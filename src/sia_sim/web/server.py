@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import uvicorn
 
@@ -30,6 +31,14 @@ logging.basicConfig(level=logging.INFO)
 HTML_PATH = Path(__file__).parents[3] / ".planning" / "sketches" / "sia-simulation-workbench" / "index.html"
 
 app = FastAPI(title="SIA Simulation Workbench API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 MS_TO_KT = 1.943844
 
@@ -283,17 +292,17 @@ async def websocket_sim_endpoint(websocket: WebSocket) -> None:
     runner = SimulationRunner()
     logger.info("Client connected to Simulation WebSocket.")
 
-    async def send_state() -> None:
-        try:
-            state = runner.step()
-            await websocket.send_text(json.dumps(state))
-        except Exception as e:
-            logger.error(f"Error sending tick: {e}")
-
+    # Send initial state frame
     try:
-        while True:
-            try:
-                msg_text = await asyncio.wait_for(websocket.receive_text(), timeout=0.01)
+        init_frame = runner.step()
+        await websocket.send_text(json.dumps(init_frame))
+    except Exception as e:
+        logger.error(f"Error sending init state: {e}")
+
+    async def incoming_loop() -> None:
+        try:
+            while True:
+                msg_text = await websocket.receive_text()
                 data = json.loads(msg_text)
                 action = data.get("action")
 
@@ -305,20 +314,24 @@ async def websocket_sim_endpoint(websocket: WebSocket) -> None:
                 elif action == "reset":
                     runner.is_playing = False
                     runner.reset()
-                    await send_state()
+                    state = runner.step()
+                    await websocket.send_text(json.dumps(state))
                 elif action == "step":
                     runner.is_playing = False
-                    await send_state()
+                    state = runner.step()
+                    await websocket.send_text(json.dumps(state))
                 elif action == "set_scenario":
                     scenario_id = data.get("scenario_id", "SIM-005")
                     runner.scenario_id = scenario_id
                     runner.reset()
-                    await send_state()
+                    state = runner.step()
+                    await websocket.send_text(json.dumps(state))
                 elif action == "set_duration":
                     dur_ms = int(data.get("duration_ms", 15000))
                     runner.total_duration_ms = dur_ms
                     runner.reset()
-                    await send_state()
+                    state = runner.step()
+                    await websocket.send_text(json.dumps(state))
                 elif action == "set_speed":
                     runner.sim_speed = float(data.get("speed", 1.0))
                 elif action == "user_input":
@@ -330,18 +343,34 @@ async def websocket_sim_endpoint(websocket: WebSocket) -> None:
                     else:
                         runner.rudder_deg = 0.0
 
-            except asyncio.TimeoutError:
-                pass
+        except (WebSocketDisconnect, asyncio.CancelledError):
+            pass
 
-            if runner.is_playing:
-                delay = 0.01 / max(0.1, runner.sim_speed)
-                await send_state()
-                await asyncio.sleep(min(delay, 0.05))
-            else:
-                await asyncio.sleep(0.05)
+    async def streaming_loop() -> None:
+        try:
+            while True:
+                if runner.is_playing:
+                    delay = 0.01 / max(0.1, runner.sim_speed)
+                    state = runner.step()
+                    await websocket.send_text(json.dumps(state))
+                    await asyncio.sleep(min(delay, 0.05))
+                else:
+                    await asyncio.sleep(0.05)
+        except (WebSocketDisconnect, asyncio.CancelledError):
+            pass
 
-    except WebSocketDisconnect:
-        logger.info("Client disconnected from WebSocket.")
+    in_task = asyncio.create_task(incoming_loop())
+    out_task = asyncio.create_task(streaming_loop())
+
+    done, pending = await asyncio.wait(
+        [in_task, out_task],
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+
+    for task in pending:
+        task.cancel()
+
+    logger.info("Simulation WebSocket session finished.")
 
 
 def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
