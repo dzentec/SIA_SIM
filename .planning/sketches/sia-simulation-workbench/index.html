@@ -814,6 +814,12 @@
       </select>
     </div>
 
+    <!-- Backend Connection Status Pill -->
+    <div class="backend-status-pill mono" id="backend-status-tag" style="display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface-2);">
+      <div class="dot dot-warn" id="backend-dot"></div>
+      <span id="backend-status-text" style="color: var(--text-muted);">STANDALONE (JS Engine)</span>
+    </div>
+
     <!-- Total Test Duration Setting -->
     <div class="duration-controls">
       <span class="ctrl-label">⏱ Test Duration:</span>
@@ -1750,6 +1756,11 @@
       let pitch = 1.2;
       let pitchRate = 0.8;
       let accelZ = 1.02;
+      let sog = 7.8;
+      let cog = 45.0;
+      let hdg = 43.0;
+      let rudder = 0.0;
+      let rudderLoss = 0.0;
 
       let activeEventNames = [];
 
@@ -1772,13 +1783,30 @@
         }
       });
 
+      if (heel >= 20.0) {
+        rudderLoss = Math.min(65.0, (heel - 15.0) * 3.5);
+      }
+
+      if (tMs >= 3500 && heel >= 25.0) {
+        rudder = -15.0;
+        hdg = (43.0 + 8.0 * Math.sin((tMs - 3500) / 2000)) % 360;
+        cog = (hdg + 2.0) % 360;
+      }
+
       document.getElementById('gt-tws').innerText = tws.toFixed(1) + ' kt';
       document.getElementById('gt-heel').innerText = heel.toFixed(1) + '°';
       document.getElementById('gt-rollrate').innerText = (rollRate >= 0 ? '+' : '') + rollRate.toFixed(1) + ' °/s';
       document.getElementById('gt-pitch').innerText = (pitch >= 0 ? '+' : '') + pitch.toFixed(1) + '° (' + (pitch >= 0 ? 'Bow Up' : 'Bow Down') + ')';
       document.getElementById('gt-pitchrate').innerText = (pitchRate >= 0 ? '+' : '') + pitchRate.toFixed(1) + ' °/s';
       document.getElementById('gt-accelz').innerText = accelZ.toFixed(2) + ' g' + (accelZ > 1.25 ? ' (Slam)' : '');
+      document.getElementById('gt-sog').innerText = sog.toFixed(1) + ' kt';
+      document.getElementById('gt-rudder-loss').innerText = '-' + rudderLoss.toFixed(0) + '%';
       document.getElementById('gt-active-events').innerText = activeEventNames.length > 0 ? `[${activeEventNames.join(', ')}]` : '[STEADY STATE]';
+
+      document.getElementById('sf-sog').innerText = sog.toFixed(1);
+      document.getElementById('sf-cog').innerText = Math.round(cog).toString().padStart(3, '0');
+      document.getElementById('sf-hdg').innerText = Math.round(hdg).toString().padStart(3, '0');
+      document.getElementById('sf-rudder').innerText = (rudder >= 0 ? '+' : '') + rudder.toFixed(1);
 
       drawWindDial(awa, aws);
       drawHeelDial(heel, Math.abs(rollRate));
@@ -1880,6 +1908,7 @@
       const parsedMs = parseTimeToMs(inputStr);
       if (parsedMs > 0) {
         setTotalDuration(parsedMs);
+        sendBackendCommand({ action: 'set_duration', duration_ms: parsedMs });
       }
       closeDurationModal();
     });
@@ -1890,7 +1919,9 @@
       if (val === 'custom') {
         openDurationModal();
       } else {
-        setTotalDuration(parseInt(val));
+        const ms = parseInt(val);
+        setTotalDuration(ms);
+        sendBackendCommand({ action: 'set_duration', duration_ms: ms });
       }
     });
 
@@ -1908,6 +1939,7 @@
         setTotalDuration(currentScenario.defaultDurationMs);
       }
       simTimeMs = 0;
+      sendBackendCommand({ action: 'set_scenario', scenario_id: activeScenarioKey });
       updateTimelineWindow();
       updateUI(simTimeMs);
     });
@@ -1919,7 +1951,9 @@
         btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
       });
 
-      if (isPlaying) {
+      sendBackendCommand({ action: 'set_speed', speed: speed });
+
+      if (isPlaying && !isBackendConnected) {
         clearInterval(playInterval);
         startPlayback();
       }
@@ -1968,7 +2002,7 @@
       }
     });
 
-    // Playback Engine
+    // Playback Engine (Standalone Fallback)
     function startPlayback() {
       const intervalDelay = Math.max(10, Math.round(50 / Math.min(simSpeed, 10)));
       const stepIncrementMs = Math.round(50 * (simSpeed > 10 ? (simSpeed / 10) : 1));
@@ -1981,28 +2015,39 @@
     }
 
     document.getElementById('btn-play').addEventListener('click', () => {
-      if (!isPlaying) {
-        isPlaying = true;
+      isPlaying = true;
+      sendBackendCommand({ action: 'play', speed: simSpeed });
+      if (!isBackendConnected) {
         startPlayback();
       }
     });
 
     document.getElementById('btn-pause').addEventListener('click', () => {
       isPlaying = false;
-      clearInterval(playInterval);
+      sendBackendCommand({ action: 'pause' });
+      if (!isBackendConnected) {
+        clearInterval(playInterval);
+      }
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {
       isPlaying = false;
-      clearInterval(playInterval);
       simTimeMs = 0;
-      updateUI(simTimeMs);
+      sendBackendCommand({ action: 'reset' });
+      if (!isBackendConnected) {
+        clearInterval(playInterval);
+        updateUI(simTimeMs);
+      }
     });
 
     document.getElementById('btn-step').addEventListener('click', () => {
+      isPlaying = false;
       simTimeMs += 10;
       if (simTimeMs > TOTAL_DURATION_MS) simTimeMs = 0;
-      updateUI(simTimeMs);
+      sendBackendCommand({ action: 'step' });
+      if (!isBackendConnected) {
+        updateUI(simTimeMs);
+      }
     });
 
     // Mode Toggle (LIVE vs DEBUG)
@@ -2036,6 +2081,8 @@
         btn.classList.toggle('active', btn.innerText.includes(config));
       });
 
+      sendBackendCommand({ action: 'user_input', sail_config: config });
+
       const qStatus = document.getElementById('query-status');
       const pTitle = document.getElementById('primary-action-title');
       const pCmd = document.getElementById('primary-command');
@@ -2066,9 +2113,129 @@
       updateUI(simTimeMs);
     });
 
+    // WebSocket Client & Python Backend Synchronization
+    let ws = null;
+    let isBackendConnected = false;
+
+    function updateBackendStatus(connected) {
+      const dot = document.getElementById('backend-dot');
+      const text = document.getElementById('backend-status-text');
+      if (connected) {
+        dot.className = 'dot dot-ok';
+        text.innerText = 'PYTHON BACKEND (100 Hz Streaming)';
+        text.style.color = 'var(--marine-starboard)';
+      } else {
+        dot.className = 'dot dot-warn';
+        text.innerText = 'STANDALONE (JS Engine)';
+        text.style.color = 'var(--text-muted)';
+      }
+    }
+
+    function sendBackendCommand(cmd) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(JSON.stringify(cmd));
+        } catch (e) {
+          console.warn('Failed to send WS command:', e);
+        }
+      }
+    }
+
+    function applyBackendFrame(data) {
+      const gt = data.ground_truth;
+      const sf = data.sensor_frame;
+      const dec = data.decision;
+      const tMs = data.sim_time_ms;
+
+      simTimeMs = tMs;
+      document.getElementById('clock-txt').innerText = 'T = ' + formatTime(tMs);
+
+      const winLen = Math.max(1, windowEndMs - windowStartMs);
+      const pct = ((tMs - windowStartMs) / winLen) * 100;
+      document.getElementById('scrub-line').style.left = Math.min(Math.max(pct, -5), 105) + '%';
+
+      if (gt) {
+        document.getElementById('gt-tws').innerText = gt.tws_kt.toFixed(1) + ' kt';
+        document.getElementById('gt-heel').innerText = gt.heel_deg.toFixed(1) + '°';
+        document.getElementById('gt-rollrate').innerText = (gt.roll_rate_deg_s >= 0 ? '+' : '') + gt.roll_rate_deg_s.toFixed(1) + ' °/s';
+        document.getElementById('gt-pitch').innerText = (gt.pitch_deg >= 0 ? '+' : '') + gt.pitch_deg.toFixed(1) + '° (' + (gt.pitch_deg >= 0 ? 'Bow Up' : 'Bow Down') + ')';
+        document.getElementById('gt-pitchrate').innerText = (gt.pitch_rate_deg_s >= 0 ? '+' : '') + gt.pitch_rate_deg_s.toFixed(1) + ' °/s';
+        document.getElementById('gt-accelz').innerText = (gt.accel_z_g || 1.0).toFixed(2) + ' g';
+        document.getElementById('gt-sog').innerText = gt.sog_kt.toFixed(1) + ' kt';
+        document.getElementById('gt-active-events').innerText = gt.active_events && gt.active_events.length > 0 ? `[${gt.active_events.join(', ')}]` : '[STEADY STATE]';
+      }
+
+      if (sf) {
+        const awa = sf.wind && sf.wind.awa_deg !== null ? sf.wind.awa_deg : 135.0;
+        const aws = sf.wind && sf.wind.aws_kt !== null ? sf.wind.aws_kt : 22.0;
+        const heel = sf.imu && sf.imu.roll_deg !== null ? sf.imu.roll_deg : (gt ? gt.heel_deg : 12.0);
+        const rollRate = sf.imu && sf.imu.roll_rate_deg_s !== null ? Math.abs(sf.imu.roll_rate_deg_s) : 0.5;
+        const pitch = sf.imu && sf.imu.pitch_deg !== null ? sf.imu.pitch_deg : (gt ? gt.pitch_deg : 1.2);
+        const pitchRate = sf.imu && sf.imu.pitch_rate_deg_s !== null ? Math.abs(sf.imu.pitch_rate_deg_s) : 0.8;
+
+        drawWindDial(awa, aws);
+        drawHeelDial(heel, rollRate);
+        drawPitchDial(pitch, pitchRate);
+
+        if (sf.gps && sf.gps.sog_kt !== null) {
+          document.getElementById('sf-sog').innerText = sf.gps.sog_kt.toFixed(1);
+        }
+        if (sf.gps && sf.gps.cog_deg !== null) {
+          document.getElementById('sf-cog').innerText = Math.round(sf.gps.cog_deg).toString().padStart(3, '0');
+        }
+        if (sf.actuators && sf.actuators.rudder_angle_deg !== null) {
+          document.getElementById('sf-rudder').innerText = (sf.actuators.rudder_angle_deg >= 0 ? '+' : '') + sf.actuators.rudder_angle_deg.toFixed(1);
+        }
+      }
+
+      if (dec) {
+        const hazardBox = document.getElementById('hazard-box');
+        if (dec.primary_action) {
+          hazardBox.style.display = 'flex';
+          document.getElementById('primary-action-title').innerText = `1. ${dec.primary_action} (Score: ${dec.primary_score ? dec.primary_score.toFixed(2) : '0.95'})`;
+        } else {
+          hazardBox.style.display = 'none';
+        }
+      }
+    }
+
+    function initWebSocket() {
+      const wsUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + (window.location.host || '127.0.0.1:8000') + '/ws/sim';
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          isBackendConnected = true;
+          updateBackendStatus(true);
+        };
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'SIM_TICK') {
+              applyBackendFrame(data);
+            }
+          } catch (e) {
+            console.error('Error parsing WS frame:', e);
+          }
+        };
+        ws.onclose = () => {
+          isBackendConnected = false;
+          updateBackendStatus(false);
+          setTimeout(initWebSocket, 3000);
+        };
+        ws.onerror = () => {
+          isBackendConnected = false;
+          updateBackendStatus(false);
+        };
+      } catch (e) {
+        isBackendConnected = false;
+        updateBackendStatus(false);
+      }
+    }
+
     // Initial Render & Setup
     setMode('live');
     setTotalDuration(15000);
+    initWebSocket();
   </script>
 </body>
 </html>

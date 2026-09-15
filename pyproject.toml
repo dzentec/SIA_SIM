@@ -10,6 +10,9 @@ dependencies = [
     "scipy>=1.14.0",
     "polars>=1.0.0",
     "pyarrow>=18.0.0",
+    "fastapi>=0.141.1",
+    "uvicorn>=0.53.0",
+    "websockets>=17.1",
 ]
 
 [build-system]
