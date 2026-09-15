@@ -11,7 +11,7 @@ This roadmap delivers the MVP Milestone (M0–M6) for SIA Simulation: an end-to-
 - [x] **Phase 3: Simplified Deterministic Causal Vessel Dynamics (M2)** - Environmental wind/wave models and simplified deterministic causal vessel dynamics at 100 Hz.
 - [x] **Phase 4: Deterministic Sensor Degradation & Fault Verification (M3)** - Transform ground truth to SensorFrame with deterministic noise, bias, drift, latency, and fault modes.
 - [x] **Phase 5: SIACore Boundary & Deterministic MockSIA (M4)** - Strict boundary isolation protocol (`SIACore`) and deterministic `MockSIA` with candidate responses and conflict resolution.
-- [ ] **Phase 6: Oracle & Evaluator (M5)** - Independent physical safety oracle and objective PASS/FAIL evaluator.
+- [x] **Phase 6: Oracle & Evaluator (M5)** - Independent physical safety oracle and objective PASS/FAIL evaluator.
 - [ ] **Phase 7: Complete End-to-End Pipeline PASS (M6)** - End-to-end integration and automated verification of the complete simulation loop on SIM-005 Broach Precursor.
 
 ## Phase Details
@@ -123,13 +123,13 @@ Plans:
 2. Evaluator compares SIA decisions against Oracle expectations to compute latency and error metrics.  
 3. Evaluator outputs structured `EvaluationResult` with definitive PASS/FAIL verdict.  
 
-**Plans**: 3 plans  
+**Plans**: 3/3 plans executed  
 
 Plans:
 
-- [ ] 06-01: Implement physical Oracle computing safety envelopes and hazard timing from GroundTruth.
-- [ ] 06-02: Implement Evaluator comparing SIA traces against Oracle targets.
-- [ ] 06-03: Build evaluation verification test suite covering true positives, false alarms, and timing boundaries.
+- [x] 06-01: Implement physical Oracle computing safety envelopes and hazard timing from GroundTruth.
+- [x] 06-02: Implement Evaluator comparing SIA traces against Oracle targets.
+- [x] 06-03: Build evaluation verification test suite covering true positives, false alarms, and timing boundaries.
 
 ### Phase 7: Complete End-to-End Pipeline PASS (M6)
 
@@ -161,8 +161,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Data Contracts & Validation (M1) | 3/3 | Completed | 2026-09-15 |
 | 3. Simplified Deterministic Causal Dynamics (M2) | 3/3 | Completed | 2026-09-15 |
 | 4. Sensor Degradation & Faults (M3) | 3/3 | Completed | 2026-09-15 |
-| 5. SIACore Boundary & MockSIA (M4) | 0/3 | Not started | - |
-| 6. Oracle & Evaluator (M5) | 0/3 | Not started | - |
+| 5. SIACore Boundary & MockSIA (M4) | 3/3 | Completed | 2026-09-15 |
+| 6. Oracle & Evaluator (M5) | 3/3 | Completed | 2026-09-15 |
 | 7. Complete Pipeline PASS (M6) | 0/3 | Not started | - |
 
 ---

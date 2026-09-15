@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import math
+import sys
 
 from sia_sim.contracts.scenario import Scenario, ScenarioEvent, VesselConfig
 from sia_sim.physics.dynamics import VesselDynamics
 from sia_sim.physics.forces import apparent_wind
 from sia_sim.physics.world import WorldModel
-
-
-import sys
 
 if sys.stdout.encoding.lower() != "utf-8":
     try:
@@ -70,12 +68,22 @@ def main() -> None:
 
     print("\n" + "=" * 96)
     print(f"  SIA SIMULATION - SCENARIO TRAJECTORY DEMO: {scenario.name} ({scenario.scenario_id})")
-    print(f"  Vessel: {scenario.vessel.vessel_type} | LOA: {scenario.vessel.loa_m}m | Mass: {scenario.vessel.displacement_kg:.0f}kg")
-    print(f"  Conditions: Wind {scenario.initial_tws_kt}kt | Waves {scenario.initial_wave_height_m}m / {scenario.initial_wave_period_s}s")
-    print("=" * 96)
-    print(
-        f"{'Time (s)':<9} | {'Heel (deg)':<11} | {'Heading (deg)':<14} | {'SOG (kt)':<9} | {'AWA (deg)':<10} | {'Yaw Rate (deg/s)':<17} | {'Events / State'}"
+    vessel_desc = (
+        f"  Vessel: {scenario.vessel.vessel_type} | "
+        f"LOA: {scenario.vessel.loa_m}m | Mass: {scenario.vessel.displacement_kg:.0f}kg"
     )
+    cond_desc = (
+        f"  Conditions: Wind {scenario.initial_tws_kt}kt | "
+        f"Waves {scenario.initial_wave_height_m}m / {scenario.initial_wave_period_s}s"
+    )
+    print(vessel_desc)
+    print(cond_desc)
+    print("=" * 96)
+    hdr = (
+        f"{'Time (s)':<9} | {'Heel (deg)':<11} | {'Heading (deg)':<14} | "
+        f"{'SOG (kt)':<9} | {'AWA (deg)':<10} | {'Yaw Rate (deg/s)':<17} | {'Events / State'}"
+    )
+    print(hdr)
     print("-" * 96)
 
     total_ticks = scenario.duration_ms // 10
@@ -105,7 +113,7 @@ def main() -> None:
         if tick % 100 == 0:
             time_s = t_ms / 1000.0
             sog_kt = vessel.sog_m_s * 1.94384
-            aws_m_s, awa_deg = apparent_wind(
+            _aws_m_s, awa_deg = apparent_wind(
                 u_m_s=vessel.sog_m_s * math.cos(math.radians(vessel.cog_deg - vessel.heading_deg)),
                 v_m_s=vessel.sog_m_s * math.sin(math.radians(vessel.cog_deg - vessel.heading_deg)),
                 heading_deg=vessel.heading_deg,
@@ -128,9 +136,12 @@ def main() -> None:
 
             status_str = ", ".join(notes) if notes else "Nominal"
 
-            print(
-                f"{time_s:5.1f} s   | {vessel.heel_deg:+6.1f} deg  | {vessel.heading_deg:6.1f} deg     | {sog_kt:4.1f} kt   | {awa_deg:+5.1f} deg  | {vessel.yaw_rate_deg_s:+6.2f} deg/s      | {status_str}"
+            row = (
+                f"{time_s:5.1f} s   | {vessel.heel_deg:+6.1f} deg  | "
+                f"{vessel.heading_deg:6.1f} deg     | {sog_kt:4.1f} kt   | "
+                f"{awa_deg:+5.1f} deg  | {vessel.yaw_rate_deg_s:+6.2f} deg/s      | {status_str}"
             )
+            print(row)
 
     print("=" * 96)
     print("  SIMULATION COMPLETE: 20.0s (2000 ticks at 100 Hz) evaluated.")

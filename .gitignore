@@ -1,6 +1,7 @@
 # Project-specific ignored directories
 .init_docs/
 .agents/
+.codegraph/
 
 # Python
 __pycache__/

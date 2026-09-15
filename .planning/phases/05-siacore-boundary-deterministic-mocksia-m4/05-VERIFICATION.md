@@ -1,3 +1,11 @@
+---
+phase: 05-siacore-boundary-deterministic-mocksia-m4
+verified: 2026-09-15T21:00:00Z
+status: passed
+score: 5/5 must-haves verified
+behavior_unverified: 0
+---
+
 # Phase 5 (M4) Verification Report: SIACore Boundary & Deterministic MockSIA
 
 ## 1. Executive Summary
@@ -41,14 +49,3 @@ All requirements (`ADAPT-01`, `ADAPT-02`, `INV-01`, `INV-02`) have been fully ve
 - Verifies that `df_sensor` contains zero ground-truth columns.
 - JSON Lines serialization export and round-trip parsing.
 - Reset clearing for batch scenarios.
-
----
-
-## 4. Automated Test Summary
-
-```
-============================= 159 passed in 1.87s =============================
-pyproject.toml: note: unused section(s): module = ['scipy.*']
-Success: no issues found in 48 source files
-All checks passed!
-```

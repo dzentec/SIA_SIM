@@ -1,18 +1,18 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 1
-current_phase_name: Project Skeleton & Deterministic Harness (M0)
-status: executing
-last_updated: "2026-09-10T21:03:09.957Z"
-last_activity: 2026-09-11
-last_activity_desc: Roadmap refined with user guidance (causal dynamics, deterministic sensor degradation, SIACore boundary, complete end-to-end PASS)
+current_phase: 7
+current_phase_name: Complete End-to-End Pipeline PASS (M6)
+status: ready
+last_updated: "2026-09-15T21:35:00.000Z"
+last_activity: 2026-09-15
+last_activity_desc: Phase 6 Oracle & Evaluator (M5) completed (all 3 plans summarized and verified)
 state_head: 534efa79683e09a9c0bd1f2bf9a95d31d25477e7
 progress:
   total_phases: 7
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_phases: 6
+  total_plans: 17
+  completed_plans: 17
+  percent: 86
 ---
 
 # Project State
@@ -22,40 +22,40 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-10)
 
 **Core value:** Strictly maintain the system boundary where only `SensorFrame` enters SIA Core, ensuring deterministic end-to-end execution of the Broach Precursor scenario (SIM-005) with automated Oracle evaluation and reproducible PASS/FAIL verification without simulation ever making decisions on behalf of SIA.  
-**Current focus:** Phase 1: Project Skeleton & Deterministic Harness (M0)
+**Current focus:** Phase 7: Complete End-to-End Pipeline PASS (M6)
 
 ## Current Position
 
-Phase: 1 (Project Skeleton & Deterministic Harness (M0)) — READY TO EXECUTE
-Plan: 0 of 2 in current phase  
-Status: Ready to execute
-Last activity: 2026-09-11 — Roadmap refined with user guidance (causal dynamics, deterministic sensor degradation, SIACore boundary, complete end-to-end PASS)  
+Phase: 7 (Complete End-to-End Pipeline PASS (M6))
+Plan: 0 of ? in current phase  
+Status: Ready to plan / execute  
+Last activity: 2026-09-15 — Phase 6 Oracle & Evaluator (M5) completed (all 3 plans summarized and verified)  
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 86%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: 0 min
-- Total execution time: 0.0 hours
+- Total plans completed: 17
+- Average duration: 3.3 min
+- Total execution time: 0.95 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Project Skeleton & Harness (M0) | 0/2 | - | - |
-| 2. Data Contracts & Validation (M1) | 0/3 | - | - |
-| 3. Simplified Deterministic Causal Dynamics (M2) | 0/3 | - | - |
-| 4. Deterministic Sensor Degradation & Faults (M3) | 0/3 | - | - |
-| 5. SIACore Boundary & Deterministic MockSIA (M4) | 0/3 | - | - |
-| 6. Oracle & Evaluator (M5) | 0/3 | - | - |
-| 7. Complete End-to-End Pipeline PASS (M6) | 0/3 | - | - |
+| 1. Project Skeleton & Harness (M0) | 2/2 | 7 min | 3.5 min |
+| 2. Data Contracts & Validation (M1) | 3/3 | 10 min | 3.3 min |
+| 3. Simplified Deterministic Causal Dynamics (M2) | 3/3 | 11 min | 3.6 min |
+| 4. Deterministic Sensor Degradation & Faults (M3) | 3/3 | 9 min | 3.0 min |
+| 5. SIACore Boundary & Deterministic MockSIA (M4) | 3/3 | 10 min | 3.3 min |
+| 6. Oracle & Evaluator (M5) | 3/3 | 10 min | 3.3 min |
+| 7. Complete End-to-End Pipeline PASS (M6) | 0/? | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans: None
+- Last 5 plans: Complete
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -67,13 +67,9 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.  
 Recent decisions affecting current work:
 
-- [Init]: Scope MVP to M0–M6 with SIM-005 Broach Precursor as first Golden Test.
-- [Init]: Use `uv` for package and environment management with Python 3.12+.
-- [Init]: Structure roadmap using Horizontal Layers (M0 -> M6).
-- [Init]: M2 focuses on simplified deterministic causal vessel dynamics.
-- [Init]: M3 focuses on deterministic sensor degradation and fault verification.
-- [Init]: M4 focuses on strict SIACore boundary and deterministic MockSIA.
-- [Init]: M6 focuses on complete end-to-end pipeline PASS verification.
+- [Phase 5]: Enforce AST-level boundary verification preventing any Ground Truth or Physics imports into SIA Core.
+- [Phase 5]: MockSIA generates up to 3 prioritized advisory candidate responses without issuing direct executive overrides.
+- [Phase 5]: RunRecorder strictly segregates Ground Truth, Sensor, and Decision traces into isolated Polars DataFrames.
 
 ### Pending Todos
 

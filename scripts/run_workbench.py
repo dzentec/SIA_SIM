@@ -10,7 +10,7 @@ src_dir = Path(__file__).parents[1] / "src"
 if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
-from sia_sim.web.server import run_server
+from sia_sim.web.server import run_server  # noqa: E402
 
 if __name__ == "__main__":
     run_server(host="127.0.0.1", port=8000)

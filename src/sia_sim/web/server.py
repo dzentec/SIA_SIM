@@ -10,12 +10,12 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
+import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-import uvicorn
 
 from sia_sim.contracts.data import GroundTruthFrame
 from sia_sim.contracts.scenario import Scenario, ScenarioEvent, VesselConfig
@@ -28,7 +28,9 @@ logger = logging.getLogger("sia_sim.web")
 logging.basicConfig(level=logging.INFO)
 
 # Path to the HTML interface
-HTML_PATH = Path(__file__).parents[3] / ".planning" / "sketches" / "sia-simulation-workbench" / "index.html"
+HTML_PATH = (
+    Path(__file__).parents[3] / ".planning" / "sketches" / "sia-simulation-workbench" / "index.html"
+)
 
 app = FastAPI(title="SIA Simulation Workbench API")
 
@@ -181,7 +183,7 @@ class SimulationRunner:
         self.rudder_deg = 0.0
         self.mainsheet_pct = 100.0
 
-    def step(self) -> Dict[str, Any]:
+    def step(self) -> dict[str, Any]:
         """Advances simulation by one 10 ms (100 Hz) tick."""
         dt_s = 0.01
         env = self.world.step(self.sim_time_ms)
@@ -248,9 +250,13 @@ class SimulationRunner:
             "sensor_frame": {
                 "imu": {
                     "roll_deg": sensor_frame.imu.roll_deg if sensor_frame.imu else None,
-                    "roll_rate_deg_s": sensor_frame.imu.roll_rate_deg_s if sensor_frame.imu else None,
+                    "roll_rate_deg_s": sensor_frame.imu.roll_rate_deg_s
+                    if sensor_frame.imu
+                    else None,
                     "pitch_deg": sensor_frame.imu.pitch_deg if sensor_frame.imu else None,
-                    "pitch_rate_deg_s": sensor_frame.imu.pitch_rate_deg_s if sensor_frame.imu else None,
+                    "pitch_rate_deg_s": sensor_frame.imu.pitch_rate_deg_s
+                    if sensor_frame.imu
+                    else None,
                     "yaw_rate_deg_s": sensor_frame.imu.yaw_rate_deg_s if sensor_frame.imu else None,
                 },
                 "gps": {
@@ -259,18 +265,28 @@ class SimulationRunner:
                     "hdop": sensor_frame.gps.hdop if sensor_frame.gps else None,
                 },
                 "wind": {
-                    "awa_deg": sensor_frame.wind.apparent_wind_angle_deg if sensor_frame.wind else None,
-                    "aws_kt": sensor_frame.wind.apparent_wind_speed_kt if sensor_frame.wind else None,
+                    "awa_deg": sensor_frame.wind.apparent_wind_angle_deg
+                    if sensor_frame.wind
+                    else None,
+                    "aws_kt": sensor_frame.wind.apparent_wind_speed_kt
+                    if sensor_frame.wind
+                    else None,
                 },
                 "actuators": {
-                    "rudder_angle_deg": sensor_frame.actuators.rudder_angle_deg if sensor_frame.actuators else None,
+                    "rudder_angle_deg": sensor_frame.actuators.rudder_angle_deg
+                    if sensor_frame.actuators
+                    else None,
                 },
             },
             "decision": {
                 "confidence": decision.risk_assessment.confidence,
                 "risk_score": decision.risk_assessment.risk_score,
-                "primary_action": decision.selected_response.action_type if decision.selected_response else None,
-                "primary_score": decision.selected_response.priority_score if decision.selected_response else None,
+                "primary_action": decision.selected_response.action_type
+                if decision.selected_response
+                else None,
+                "primary_score": decision.selected_response.priority_score
+                if decision.selected_response
+                else None,
                 "target_hazard": decision.risk_assessment.hazard_id,
                 "candidates_count": len(decision.candidates),
             },
@@ -362,7 +378,7 @@ async def websocket_sim_endpoint(websocket: WebSocket) -> None:
     in_task = asyncio.create_task(incoming_loop())
     out_task = asyncio.create_task(streaming_loop())
 
-    done, pending = await asyncio.wait(
+    _done, pending = await asyncio.wait(
         [in_task, out_task],
         return_when=asyncio.FIRST_COMPLETED,
     )
@@ -375,10 +391,10 @@ async def websocket_sim_endpoint(websocket: WebSocket) -> None:
 
 def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
     """Runs the Uvicorn web server."""
-    print(f"\n=======================================================")
-    print(f"  SIA Simulation Workbench Server running at:")
+    print("\n=======================================================")
+    print("  SIA Simulation Workbench Server running at:")
     print(f"  --> http://{host}:{port}/")
-    print(f"=======================================================\n")
+    print("=======================================================\n")
     uvicorn.run(app, host=host, port=port)
 
 
