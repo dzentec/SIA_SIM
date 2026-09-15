@@ -29,13 +29,15 @@ class TestCLI:
     def test_cli_parquet_and_jsonl_export(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_path = Path(tmp_dir)
-            exit_code = main([
-                "SIM-005",
-                "--output-dir",
-                str(out_path),
-                "--export-parquet",
-                "--export-jsonl",
-            ])
+            exit_code = main(
+                [
+                    "SIM-005",
+                    "--output-dir",
+                    str(out_path),
+                    "--export-parquet",
+                    "--export-jsonl",
+                ]
+            )
 
             assert exit_code == 0
 

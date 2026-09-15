@@ -45,11 +45,11 @@ def test_serve_static_index(running_workbench: str) -> None:
         assert response.status == 200
         content = response.read().decode("utf-8")
         assert "<title>SIA Simulation Workbench" in content
-        assert "id=\"zoneGroundTruth\"" in content
-        assert "id=\"zoneSensorView\"" in content
-        assert "id=\"zoneSiaAdvisory\"" in content
-        assert "id=\"zoneTimeline\"" in content
-        assert "id=\"zoneQueryLoop\"" in content
+        assert 'id="zoneGroundTruth"' in content
+        assert 'id="zoneSensorView"' in content
+        assert 'id="zoneSiaAdvisory"' in content
+        assert 'id="zoneTimeline"' in content
+        assert 'id="zoneQueryLoop"' in content
 
 
 def test_serve_static_js_and_css(running_workbench: str) -> None:

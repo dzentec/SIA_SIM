@@ -89,9 +89,15 @@ class ActiveWaveImpact:
 class WindModel:
     """Causal wind model computing true wind speed and direction."""
 
-    def __init__(self, base_tws_m_s: float, base_twa_deg: float) -> None:
+    def __init__(
+        self,
+        base_tws_m_s: float,
+        base_twa_deg: float,
+        enable_turbulence: bool = False,
+    ) -> None:
         self.base_tws_m_s = max(0.0, base_tws_m_s)
         self.base_twa_deg = base_twa_deg % 360.0
+        self.enable_turbulence = enable_turbulence
         self._gusts: list[ActiveGust] = []
 
     def add_gust(self, gust: ActiveGust) -> None:
@@ -113,12 +119,24 @@ class WindModel:
         self._gusts = active
 
         current_speed = max(0.0, self.base_tws_m_s + speed_extra)
+        # Add deterministic organic natural wind turbulence (~4-8% fluctuation) if enabled
+        if self.enable_turbulence and self.base_tws_m_s > 0.0:
+            t_s = time_ms / 1000.0
+            turb = (
+                0.05 * math.sin(0.37 * t_s)
+                + 0.03 * math.cos(0.83 * t_s + 1.2)
+                + 0.02 * math.sin(1.71 * t_s + 2.5)
+            )
+            current_speed = max(0.0, current_speed * (1.0 + turb))
+            dir_turb = 2.0 * math.sin(0.29 * t_s + 0.7) + 1.2 * math.cos(0.71 * t_s)
+            dir_shift += dir_turb
+
         current_dir = (self.base_twa_deg + dir_shift) % 360.0
         return current_speed, current_dir
 
 
 class WaveModel:
-    """Deterministic deep-water linear wave kinematics model."""
+    """Deterministic deep-water linear wave kinematics model with continuous ambient field."""
 
     def __init__(
         self,
@@ -164,6 +182,50 @@ class WaveModel:
         proj_dist = x_m * math.cos(dir_rad) + y_m * math.sin(dir_rad)
         phase = self.wave_number_k * proj_dist - self.angular_frequency_omega * time_s
         return (self.wave_height_m / 2.0) * math.cos(phase)
+
+    def evaluate_ambient_excitation(
+        self,
+        x_m: float,
+        y_m: float,
+        time_s: float,
+        heading_deg: float,
+        mass_kg: float = 4500.0,
+    ) -> tuple[float, float, float, float]:
+        """Calculates continuous ambient wave excitation for living sea background.
+
+        Returns:
+            (elevation_m, roll_moment_nm, pitch_moment_nm, vertical_accel_m_s2)
+        """
+        if self.wave_height_m <= 0.001:
+            return 0.0, 0.0, 0.0, 0.0
+
+        dir_rad = math.radians(self.wave_direction_deg)
+        proj_dist = x_m * math.cos(dir_rad) + y_m * math.sin(dir_rad)
+        phase = self.wave_number_k * proj_dist - self.angular_frequency_omega * time_s
+
+        elevation = (self.wave_height_m / 2.0) * math.cos(phase)
+        slope_mag = self.wave_number_k * (self.wave_height_m / 2.0) * math.sin(phase)
+
+        # Relative wave angle to vessel heading (0: following, 90: beam, 180: head sea)
+        rel_angle_rad = math.radians((heading_deg - self.wave_direction_deg) % 360.0)
+
+        # Transverse and longitudinal wave slope components relative to hull
+        transverse_slope = slope_mag * math.sin(rel_angle_rad)
+        longitudinal_slope = slope_mag * math.cos(rel_angle_rad)
+
+        # Froude-Krylov continuous excitation moments with GM approximations
+        # (GM_T ~ 1.2m, GM_L ~ 10m)
+        gm_t = 1.2
+        gm_l = 10.0
+        # Gentle background rolling moment coefficient
+        smith_factor = 0.12
+        roll_moment_nm = mass_kg * GRAVITY * gm_t * transverse_slope * smith_factor
+        pitch_moment_nm = mass_kg * GRAVITY * gm_l * longitudinal_slope * 0.10 * smith_factor
+
+        # Vertical wave surface acceleration d^2(eta)/dt^2
+        vert_accel = -(self.angular_frequency_omega**2) * elevation
+
+        return elevation, roll_moment_nm, pitch_moment_nm, vert_accel
 
 
 class CurrentModel:

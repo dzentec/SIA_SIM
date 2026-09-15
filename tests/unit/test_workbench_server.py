@@ -79,11 +79,13 @@ def test_run_simulation_endpoint(workbench_server: None) -> None:
 def test_query_action_endpoint(workbench_server: None) -> None:
     """Verifies /api/query-action processes skipper context updates."""
     url = "http://127.0.0.1:8099/api/query-action"
-    req_body = json.dumps({
-        "sail_set": "REEF_1",
-        "sim_time_ms": 12000,
-        "heel_deg": 22.5,
-    }).encode("utf-8")
+    req_body = json.dumps(
+        {
+            "sail_set": "REEF_1",
+            "sim_time_ms": 12000,
+            "heel_deg": 22.5,
+        }
+    ).encode("utf-8")
     req = Request(url, data=req_body, headers={"Content-Type": "application/json"}, method="POST")
 
     with urlopen(req) as response:
@@ -92,3 +94,48 @@ def test_query_action_endpoint(workbench_server: None) -> None:
         assert data["status"] == "recalculated"
         assert data["sail_set"] == "REEF_1"
         assert len(data["candidates"]) > 0
+
+
+def test_run_simulation_with_custom_events_and_duration(workbench_server: None) -> None:
+    """Verifies /api/run supports custom duration, custom events, and new telemetry fields."""
+    url = "http://127.0.0.1:8099/api/run"
+    custom_events = [
+        {
+            "event_id": "EVT-CUSTOM-01",
+            "event_type": "wind_gust",
+            "sim_time_ms": 2000,
+            "parameters": {"tws_kt": 25.0, "duration_ms": 3000},
+        },
+        {
+            "event_id": "EVT-CUSTOM-02",
+            "event_type": "wave_impact",
+            "sim_time_ms": 4000,
+            "parameters": {"impact_force_n": 16000.0, "duration_ms": 1500},
+        },
+    ]
+    req_body = json.dumps(
+        {
+            "scenario": "sim005",
+            "seed": 42,
+            "duration_ms": 8000,
+            "events": custom_events,
+        }
+    ).encode("utf-8")
+    req = Request(url, data=req_body, headers={"Content-Type": "application/json"}, method="POST")
+
+    with urlopen(req) as response:
+        assert response.status == 200
+        data = json.loads(response.read().decode("utf-8"))
+        assert data["duration_ms"] == 8000
+        assert data["total_ticks"] == 800
+        assert len(data["ticks"]) == 800
+
+        # Check telemetry fields on a sample tick
+        sample_tick = data["ticks"][450]  # T=4500ms (during wave slam)
+        assert "pitch_deg" in sample_tick["ground_truth"]
+        assert "heave_m" in sample_tick["ground_truth"]
+        assert "slam_force_kn" in sample_tick["ground_truth"]
+        assert "accel_z_m_s2" in sample_tick["sensor_frame"]["imu"]
+        assert "pitch_deg" in sample_tick["sensor_frame"]["imu"]
+        assert "pitch_rate_deg_s" in sample_tick["sensor_frame"]["imu"]
+        assert sample_tick["ground_truth"]["slam_force_kn"] > 0

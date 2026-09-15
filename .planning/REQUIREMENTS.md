@@ -48,7 +48,15 @@ Requirements for MVP Milestone (M0–M6: First Golden Test BROACH PRECURSOR).
 
 - [ ] **GOLD-01**: System loads and validates the SIM-005 Broach Precursor scenario specification.
 - [ ] **GOLD-02**: End-to-end simulation runner executes SIM-005 through World -> Dynamics -> Sensors -> SIA -> Oracle -> Evaluator loop.
-- [ ] **GOLD-03**: Automated pytest assertion verifies that the SIM-005 run completes deterministically and achieves a PASS evaluation.
+### Workbench UI & Interactive Studio (Phase 8)
+
+- [ ] **WB-01**: SIA Core Advisory Panel displays active nominal monitoring status and transitions into high-contrast primary and candidate recommendations upon hazard onset.
+- [ ] **WB-02**: Multi-track timeline supports interactive event creation (Wind Gust, Wave Impact/Slam, Sensor Faults) via toolbar or track clicks.
+- [ ] **WB-03**: Timeline event markers are draggable along time tracks and editable/deletable via event inspector.
+- [ ] **WB-04**: Timeline supports zoom (1x to 10x), horizontal pan/scroll, and adaptive multi-scale time grid.
+- [ ] **WB-05**: User can configure simulation duration (`DURATION: [ 20 ] s`) with automated re-simulation.
+- [ ] **WB-06**: Marine Console displays dedicated Pitch Inclinometer (килевая качка) and Heave/Vertical Acceleration meter (вертикальная качка).
+- [ ] **WB-07**: Marine Console displays dedicated Slamming/Hull Shock instrument (слеминг) with peak impact force (kN) and shock pulse alert.
 
 ## v2 Requirements
 

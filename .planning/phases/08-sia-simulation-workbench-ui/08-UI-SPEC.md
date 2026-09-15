@@ -122,16 +122,18 @@ Accent reserved for:
 
 ```
 +-------------------------------------------------------------------------------------------------------------------------+
-| [HEADER BAR] SIA Simulation Workbench   [Preset: SIM-005 Broach Precursor]   [T=00:04.20]  [▶ Run] [⏸ Pause] [↺ Reset] [⚙]  |
+| [HEADER BAR] SIA Simulation Workbench   [Preset: SIM-005]  [DURATION: 20 s]  [T=00:04.20]  [▶ Run] [⏸ Pause] [↺ Reset]   |
 +-------------------------------------------------------------------------------------------------------------------------+
-| [ZONE 1: TIMELINE & TEMPORAL DEBUGGER]                                                                                  |
-|  Tracks: Wind Gusts | Waves | Sensor Faults | Rudder Action | SIA Decision Points | Scrub Cursor                        |
+| [ZONE 1: TIMELINE, ZOOM & EVENT BUILDER]                                                                                |
+|  [Zoom: − 1.0x +]  [+ Gust] [+ Wave/Slam] [+ Fault]  │  Tracks: Wind | Wave/Slam | Faults | Rudder | SIA | Scrub Cursor |
 +------------------------------+----------------------------------+-------------------------------------------------------+
-| [ZONE 2: GROUND TRUTH]       | [ZONE 3: SENSOR VIEW]            | [ZONE 4: SIA ADVISORY & REASONING]                    |
-| Monospace Lab Monitor        | Marine B&G Dial Console          | Decision Hierarchy: Primary + Alternatives            |
-| TWS, TWD, Waves, True Heel   | AWA/AWS Wind Dial, Heel IMU,     | 1. BEAR AWAY (Score 0.95, Rudder -15°)                |
-| Rudder Hydro Loss            | SOG/COG, Sensor Health L0        | 2. EASE MAIN (Score 0.85)                             |
-| ● NOT AVAILABLE TO SIA       | ● INPUT TO SIA                   | 3. ALERT CREW (Score 0.70)                            |
+| [ZONE 2: GROUND TRUTH]       | [ZONE 3: SENSOR VIEW (6 DIALS)]  | [ZONE 4: SIA ADVISORY & REASONING]                    |
+| Monospace Lab Monitor        | 1. Apparent Wind (AWA/AWS)       | Decision Hierarchy: Primary + Alternatives            |
+| TWS, TWD, Waves, True Heel   | 2. Heel Inclinometer (Roll)      | 1. REDUCE SAIL (Score 0.95, Depower 30%)              |
+| True Pitch, Heave, Slam Force| 3. Pitch Inclinometer (Trim)     | 2. RUDDER CORRECTION (Score 0.85, Rudder -20°)        |
+| Rudder Hydro Loss            | 4. Navigation (SOG/COG)          | 3. ALERT CREW (Score 0.70)                            |
+| ● NOT AVAILABLE TO SIA       | 5. Heave & Vertical Accel (az)   | Continuous nominal monitoring state                   |
+|                              | 6. Slamming & Hull Shock Meter   | ● SIA CORE ENGINE                                     |
 +------------------------------+----------------------------------+-------------------------------------------------------+
 | [ZONE 5: INTERACTION & QUERY LOOP]                                                                                      |
 |  SIA Context Question: "Specify sail set: [ FULL MAIN ] [ REEF 1 ] [ REEF 2 ] [ STORM ]"                                 |
@@ -149,9 +151,14 @@ Accent reserved for:
 | Category | Element | Status | Resolution / Specification |
 |----------|---------|--------|----------------------------|
 | Loading / Init | Workbench Shell | ✅ covered | Preloads default SIM-005 scenario at T=0; dials render neutral zero positions |
-| Empty state | Scenario Timeline | ✅ covered | Displays empty track guidance: "Click anywhere on track to add Gust / Wave / Fault" |
+| Continuous Advisory | SIA Core Panel | ✅ covered | Shows active nominal monitoring guidelines in calm state; prominently highlights hazards on onset |
+| Event Placement | Scenario Timeline | ✅ covered | Dedicated toolbar to add/drag/edit Wind Gust, Wave Slam, and Sensor Faults |
+| Zoom & Pan | Temporal Debugger | ✅ covered | Zoom 1x..10x with fine multi-scale time grid and horizontal panning |
+| Pitch Gauge | Marine Console | ✅ covered | Profile yacht silhouette displaying bow up/down pitch angle ($\pm 15^\circ/\pm 30^\circ$) and pitch rate |
+| Heave Gauge | Marine Console | ✅ covered | Heave displacement ($z$) and vertical acceleration ($a_z$) accelerometer gauge |
+| Slamming Gauge | Marine Console | ✅ covered | Dynamic slamming impact force meter ($\text{kN}$) with visual shock alert pulse |
 | Interactive Query | Query Loop Box | ✅ covered | Hidden when confidence is high; animates smoothly into focus with quick action chips on anomaly |
-| Scrubbing / Pause | Temporal Debugger | ✅ covered | Pauses simulation clock; dragging scrub cursor updates all 3 columns simultaneously at 100 Hz step |
+| Scrubbing / Pause | Temporal Debugger | ✅ covered | Pauses simulation clock; dragging scrub cursor updates all instruments simultaneously at 100 Hz step |
 | Sensor Fault state | Instrument Dials | ✅ covered | Dial needle dims, display shows `---` or amber `NO FIX` badge; never coerces to 0.0 |
 | Overflow | Decision Candidates | ✅ covered | Fixed 3-candidate slot allocation prevents vertical layout shifts |
 

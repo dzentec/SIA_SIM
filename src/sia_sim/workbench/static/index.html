@@ -19,11 +19,37 @@
         <span class="logo-title">SIA WORKBENCH</span>
       </div>
       <div class="preset-selector-group">
-        <label for="scenarioSelect" class="control-label">SCENARIO:</label>
+        <label for="scenarioSelect" class="control-label">WORLD PRESET:</label>
         <select id="scenarioSelect" class="select-dropdown">
-          <option value="sim005" selected>SIM-005 Broach Precursor (18 kt Gust + 12 kN Wave)</option>
-          <option value="benign">Benign Beam Reach (12 kt Constant)</option>
+          <option value="cruise" selected>2. Coastal Cruise (TWS 13kt | Wave 1.0m)</option>
+          <option value="harbour">1. Calm Harbour (TWS 4kt | Wave 0.2m)</option>
+          <option value="fresh">3. Fresh Breeze (TWS 21kt | Wave 2.1m)</option>
+          <option value="gale">4. Gale / Broach (TWS 28kt | Wave 3.2m)</option>
+          <option value="sim005">SIM-005 Benchmark (Default Gust + Slam)</option>
         </select>
+        <button id="btnCustomWorld" class="btn btn-tool" title="Edit background wind, waves and boat state">⚙️ Custom Sea</button>
+      </div>
+      <div class="imu-rate-group">
+        <label for="imuRateSelect" class="control-label">IMU RATE:</label>
+        <select id="imuRateSelect" class="select-dropdown">
+          <option value="100" selected>100 Hz (MCU Raw)</option>
+          <option value="50">50 Hz (RS-485)</option>
+          <option value="10">10 Hz (Wireless RF)</option>
+          <option value="20">20 Hz</option>
+        </select>
+      </div>
+      <div class="damping-group">
+        <label for="dampingSelect" class="control-label">DIAL DAMPING:</label>
+        <select id="dampingSelect" class="select-dropdown">
+          <option value="normal" selected>Normal (0.35s B&G)</option>
+          <option value="heavy">Heavy (0.75s)</option>
+          <option value="none">Off (Direct Raw)</option>
+        </select>
+      </div>
+      <div class="duration-input-group">
+        <label for="durationInput" class="control-label">DURATION:</label>
+        <input type="number" id="durationInput" class="input-number" value="20" min="5" max="120" step="5">
+        <span class="input-unit">s</span>
       </div>
       <div class="seed-input-group">
         <label for="seedInput" class="control-label">SEED:</label>
@@ -53,20 +79,48 @@
     </div>
   </header>
 
-  <!-- ZONE 1: TIMELINE & TEMPORAL DEBUGGER -->
+  <!-- ZONE 1: TIMELINE, ZOOM & EVENT BUILDER -->
   <section class="zone-timeline" id="zoneTimeline">
     <div class="timeline-header">
-      <span class="section-title">TEMPORAL DEBUGGER & MULTI-TRACK TIMELINE (100 Hz)</span>
+      <div class="timeline-title-group">
+        <span class="section-title">TEMPORAL DEBUGGER & MULTI-TRACK EVENT BUILDER (100 Hz)</span>
+      </div>
+
+      <!-- Timeline Toolbar: Zoom & Event Palette -->
+      <div class="timeline-toolbar">
+        <div class="zoom-controls-group">
+          <span class="tool-label">ZOOM:</span>
+          <button id="btnZoomOut" class="btn btn-tool" title="Zoom Out Timeline">−</button>
+          <span id="timelineZoomVal" class="zoom-value-label">1.0x</span>
+          <button id="btnZoomIn" class="btn btn-tool" title="Zoom In Timeline">+</button>
+          <button id="btnZoomReset" class="btn btn-tool" title="Reset Zoom">1x</button>
+        </div>
+
+        <div class="event-tools-group">
+          <span class="tool-label">ADD EVENT:</span>
+          <button id="toolAddGust" class="btn btn-tool btn-timeline-tool" data-tool="wind_gust" title="Click to add Wind Gust">💨 + Gust</button>
+          <button id="toolAddSlam" class="btn btn-tool btn-timeline-tool" data-tool="wave_impact" title="Click to add Wave Impact / Slam">🌊 + Wave Slam</button>
+          <button id="toolAddFault" class="btn btn-tool btn-timeline-tool" data-tool="sensor_fault" title="Click to add Sensor Fault">⚡ + Fault</button>
+          <button id="btnResetEvents" class="btn btn-tool" title="Reset events to default scenario">↺ Reset Events</button>
+          <button id="btnClearTimeline" class="btn btn-tool highlight-warning" title="Clear all events: Pure Living Sea Background without anomalies">🗑️ Clear (Pure Sea)</button>
+        </div>
+      </div>
+
       <div class="timeline-meta">
         <span class="legend-item"><span class="legend-dot dot-wind"></span> Wind Gust</span>
-        <span class="legend-item"><span class="legend-dot dot-wave"></span> Wave Impact</span>
+        <span class="legend-item"><span class="legend-dot dot-wave"></span> Wave / Slam</span>
+        <span class="legend-item"><span class="legend-dot dot-fault"></span> Sensor Fault</span>
         <span class="legend-item"><span class="legend-dot dot-decision"></span> SIA Decision</span>
-        <span class="legend-item"><span class="legend-dot dot-oracle"></span> Safety Envelope</span>
       </div>
     </div>
+
     <div class="timeline-canvas-container" id="timelineContainer">
       <canvas id="timelineCanvas" width="1600" height="96"></canvas>
-      <div class="timeline-cursor" id="timelineCursor"></div>
+      <div class="timeline-cursor" id="timelineCursor">
+        <div class="timeline-handle" id="timelineHandle" title="Перетащите ползунок для перемотки симуляции">
+          <div class="handle-grip"></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -97,8 +151,16 @@
             <span class="term-val" id="gtWave">0.00 <span class="term-unit">m</span></span>
           </div>
           <div class="term-row">
+            <span class="term-label">HEAVE DISPLACEMENT</span>
+            <span class="term-val" id="gtHeave">0.00 <span class="term-unit">m</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">SLAM IMPACT FORCE</span>
+            <span class="term-val highlight-danger" id="gtSlamForce">0.0 <span class="term-unit">kN</span></span>
+          </div>
+          <div class="term-row">
             <span class="term-label">TRUE HEEL (ROLL)</span>
-            <span class="term-val highlight-danger" id="gtHeel">-15.00 <span class="term-unit">°</span></span>
+            <span class="term-val" id="gtHeel">-15.00 <span class="term-unit">°</span></span>
           </div>
           <div class="term-row">
             <span class="term-label">TRUE PITCH ANGLE</span>
@@ -129,12 +191,12 @@
       </div>
     </section>
 
-    <!-- ZONE 3: SENSOR VIEW (MARINE COCKPIT) -->
+    <!-- ZONE 3: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
     <section class="zone-card zone-sensor-view" id="zoneSensorView">
       <div class="card-header">
         <div class="header-title-group">
           <span class="zone-badge badge-sensor-frame">● SENSOR FRAME — OBSERVED BY SIA</span>
-          <h2 class="card-title">MARINE CONSOLE INSTRUMENTS</h2>
+          <h2 class="card-title">MARINE CONSOLE INSTRUMENTS (6 DIALS)</h2>
         </div>
         <div class="sensor-health-bar" id="sensorHealthBar">
           <span class="health-chip chip-ok" id="chipImu">IMU: OK</span>
@@ -143,12 +205,12 @@
         </div>
       </div>
       <div class="card-content marine-content">
-        <div class="dials-grid">
-          <!-- AWA / AWS Wind Dial -->
+        <div class="dials-grid-6">
+          <!-- 1. AWA / AWS Wind Dial -->
           <div class="dial-card">
             <div class="dial-title">APPARENT WIND (AWA / AWS)</div>
             <div class="canvas-wrapper">
-              <canvas id="dialWindCanvas" width="220" height="220"></canvas>
+              <canvas id="dialWindCanvas" width="200" height="200"></canvas>
             </div>
             <div class="dial-footer" id="windDialFooter">
               <span class="dial-footer-label">AWS:</span>
@@ -156,11 +218,11 @@
             </div>
           </div>
 
-          <!-- Heel Inclinometer Dial -->
+          <!-- 2. Heel Inclinometer (Roll) -->
           <div class="dial-card">
-            <div class="dial-title">HEEL INCLINOMETER (IMU)</div>
+            <div class="dial-title">HEEL INCLINOMETER (ROLL)</div>
             <div class="canvas-wrapper">
-              <canvas id="dialHeelCanvas" width="220" height="220"></canvas>
+              <canvas id="dialHeelCanvas" width="200" height="200"></canvas>
             </div>
             <div class="dial-footer" id="heelDialFooter">
               <span class="dial-footer-label">HEEL:</span>
@@ -168,15 +230,51 @@
             </div>
           </div>
 
-          <!-- SOG / COG Navigation Display -->
+          <!-- 3. Pitch Inclinometer / Trim (Килевая качка) -->
+          <div class="dial-card">
+            <div class="dial-title">PITCH / TRIM (КИЛЕВАЯ КАЧКА)</div>
+            <div class="canvas-wrapper">
+              <canvas id="dialPitchCanvas" width="200" height="200"></canvas>
+            </div>
+            <div class="dial-footer" id="pitchDialFooter">
+              <span class="dial-footer-label">PITCH:</span>
+              <span class="dial-footer-val" id="valPitch">0.0 <span class="unit">°</span></span>
+            </div>
+          </div>
+
+          <!-- 4. Navigation (SOG / COG) -->
           <div class="dial-card">
             <div class="dial-title">NAVIGATION (SOG / COG)</div>
             <div class="canvas-wrapper">
-              <canvas id="dialNavCanvas" width="220" height="220"></canvas>
+              <canvas id="dialNavCanvas" width="200" height="200"></canvas>
             </div>
             <div class="dial-footer" id="navDialFooter">
               <span class="dial-footer-label">SOG:</span>
               <span class="dial-footer-val" id="valSog">5.1 <span class="unit">kt</span></span>
+            </div>
+          </div>
+
+          <!-- 5. Heave & Vertical Accel (Вертикальная качка) -->
+          <div class="dial-card">
+            <div class="dial-title">HEAVE & ACCEL AZ (ВЕРТИКАЛЬНАЯ)</div>
+            <div class="canvas-wrapper">
+              <canvas id="dialHeaveCanvas" width="200" height="200"></canvas>
+            </div>
+            <div class="dial-footer" id="heaveDialFooter">
+              <span class="dial-footer-label">AZ:</span>
+              <span class="dial-footer-val" id="valHeaveAccel">1.00 <span class="unit">g</span></span>
+            </div>
+          </div>
+
+          <!-- 6. Slamming & Hull Shock Meter (Слеминг) -->
+          <div class="dial-card" id="cardSlamming">
+            <div class="dial-title">SLAM IMPACT SHOCK (СЛЕМИНГ)</div>
+            <div class="canvas-wrapper">
+              <canvas id="dialSlamCanvas" width="200" height="200"></canvas>
+            </div>
+            <div class="dial-footer" id="slamDialFooter">
+              <span class="dial-footer-label">IMPACT:</span>
+              <span class="dial-footer-val" id="valSlamForce">0.0 <span class="unit">kN</span></span>
             </div>
           </div>
         </div>
@@ -237,10 +335,10 @@
         <!-- Dominant Recommended Primary Response -->
         <div class="primary-decision-card" id="primaryDecisionCard">
           <div class="dec-card-header">
-            <span class="dec-tag">PRIMARY RECOMMENDED ACTION</span>
+            <span class="dec-tag" id="primaryCardTag">PRIMARY RECOMMENDED ACTION</span>
             <span class="dec-score" id="primaryScore">SCORE: --</span>
           </div>
-          <div class="dec-action-title" id="primaryActionTitle">NO IMMEDIATE ACTION REQUIRED</div>
+          <div class="dec-action-title" id="primaryActionTitle">MAINTAIN COURSE & MONITOR TRIM</div>
           <div class="dec-commands-grid" id="primaryCommandsGrid">
             <div class="cmd-chip"><span class="cmd-lbl">RUDDER:</span> <span class="cmd-val" id="cmdRudder">0.0°</span></div>
             <div class="cmd-chip"><span class="cmd-lbl">SAIL TRIM:</span> <span class="cmd-val" id="cmdSail">100%</span></div>
@@ -251,15 +349,14 @@
         <div class="alternatives-section">
           <div class="alternatives-header">ALTERNATIVE CANDIDATE RESPONSES (L4)</div>
           <div class="candidates-list" id="candidatesList">
-            <div class="candidate-row empty">None active</div>
-            <div class="candidate-row empty">--</div>
+            <div class="candidate-row empty">None active (Nominal cruising state)</div>
           </div>
         </div>
 
         <!-- Causal Reasoning Note -->
         <div class="reasoning-box">
           <div class="reasoning-header">DECISION CONFLICT RESOLUTION NOTE:</div>
-          <div class="reasoning-text" id="siaReasoningNote">Nominal conditions, no safety hazard</div>
+          <div class="reasoning-text" id="siaReasoningNote">Nominal conditions, continuous monitoring active</div>
         </div>
       </div>
     </section>
@@ -304,6 +401,99 @@
       <span class="verdict-badge badge-pass" id="footerVerdict">VERDICT: PASS (M6)</span>
     </div>
   </footer>
+
+  <!-- EVENT INSPECTOR MODAL -->
+  <div class="modal-backdrop" id="eventModalBackdrop" style="display: none;">
+    <div class="modal-card" id="eventModal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="eventModalTitle">EDIT SCENARIO EVENT</h3>
+        <button class="modal-close" id="btnEventModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label class="form-label">EVENT ID:</label>
+          <input type="text" id="modalEventId" class="input-text" readonly>
+        </div>
+        <div class="form-row">
+          <label class="form-label">TYPE:</label>
+          <select id="modalEventType" class="select-dropdown">
+            <option value="wind_gust">Wind Gust</option>
+            <option value="wave_impact">Wave Impact / Slam</option>
+            <option value="sensor_fault">Sensor Fault</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">TIME (ms):</label>
+          <input type="number" id="modalEventTime" class="input-number" min="0" step="500">
+        </div>
+        <div class="form-row">
+          <label class="form-label">DURATION (ms):</label>
+          <input type="number" id="modalEventDuration" class="input-number" min="500" step="500">
+        </div>
+        <div class="form-row" id="rowModalForce">
+          <label class="form-label">INTENSITY / FORCE:</label>
+          <input type="number" id="modalEventParam" class="input-number" min="1" step="1">
+          <span class="input-unit" id="modalParamUnit">kN / kt</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost highlight-danger" id="btnEventDelete">Delete Event</button>
+        <button class="btn btn-primary" id="btnEventSave">Save & Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM WORLD PRESET MODAL -->
+  <div class="modal-backdrop" id="customWorldModalBackdrop" style="display: none;">
+    <div class="modal-card" id="customWorldModal" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ CUSTOM LIVING SEA & VESSEL PARAMETERS</h3>
+        <button class="modal-close" id="btnCustomWorldClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label class="form-label">TRUE WIND SPEED (TWS):</label>
+          <input type="number" id="customTws" class="input-number" value="13.0" min="0" max="60" step="0.5">
+          <span class="input-unit">kt</span>
+        </div>
+        <div class="form-row">
+          <label class="form-label">TRUE WIND ANGLE (TWA):</label>
+          <input type="number" id="customTwa" class="input-number" value="0.0" min="0" max="359" step="5">
+          <span class="input-unit">deg</span>
+        </div>
+        <div class="form-row">
+          <label class="form-label">WAVE HEIGHT (Hs):</label>
+          <input type="number" id="customWaveHeight" class="input-number" value="1.0" min="0" max="15" step="0.1">
+          <span class="input-unit">m</span>
+        </div>
+        <div class="form-row">
+          <label class="form-label">WAVE PERIOD (T):</label>
+          <input type="number" id="customWavePeriod" class="input-number" value="4.5" min="1.0" max="25" step="0.5">
+          <span class="input-unit">s</span>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #1f2d47; margin: 12px 0;">
+        <div class="form-row">
+          <label class="form-label">INITIAL BOAT SOG:</label>
+          <input type="number" id="customSog" class="input-number" value="5.8" min="0" max="30" step="0.2">
+          <span class="input-unit">kt</span>
+        </div>
+        <div class="form-row">
+          <label class="form-label">INITIAL HEADING:</label>
+          <input type="number" id="customHeading" class="input-number" value="65.0" min="0" max="359" step="5">
+          <span class="input-unit">deg</span>
+        </div>
+        <div class="form-row">
+          <label class="form-label">INITIAL HEEL ANGLE:</label>
+          <input type="number" id="customHeel" class="input-number" value="-12.0" min="-45" max="45" step="1">
+          <span class="input-unit">deg (+S/-P)</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btnCustomWorldCancel">Cancel</button>
+        <button class="btn btn-primary" id="btnCustomWorldApply">Apply to Simulation</button>
+      </div>
+    </div>
+  </div>
 
   <!-- SCRIPTS -->
   <script src="/js/instruments.js"></script>

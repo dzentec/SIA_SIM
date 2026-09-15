@@ -81,6 +81,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.workbench:
         from sia_sim.workbench.server import run_workbench
+
         run_workbench(port=args.port)
         return 0
 

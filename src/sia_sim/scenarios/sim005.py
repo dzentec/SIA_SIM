@@ -81,12 +81,28 @@ def get_benign_scenario(seed: int = 100) -> Scenario:
 
 
 def load_scenario(path_or_name: str, seed: int = 42) -> Scenario:
-    """Loads a Scenario from a canonical ID ('SIM-005', 'SIM-BENIGN') or a JSON file path."""
-    name_upper = path_or_name.upper()
-    if name_upper in ("SIM-005", "SIM005", "BROACH"):
+    """Loads a Scenario from a canonical preset ID or a JSON file path."""
+    name_clean = path_or_name.lower().replace("preset-", "").replace("preset_", "")
+    if name_clean in ("sim-005", "sim005", "broach"):
         return get_sim005_scenario(seed=seed)
-    if name_upper in ("SIM-BENIGN", "BENIGN", "CALM"):
+    if name_clean in ("sim-benign", "benign", "calm", "harbour"):
         return get_benign_scenario(seed=seed)
+
+    from sia_sim.scenarios.presets import get_preset_by_id
+
+    valid_preset_keys = {
+        "cruise",
+        "coastal",
+        "coastal_cruise",
+        "reach",
+        "fresh",
+        "fresh_breeze",
+        "chop",
+        "rough",
+        "gale",
+    }
+    if name_clean in valid_preset_keys:
+        return get_preset_by_id(path_or_name, seed=seed)
 
     file_path = Path(path_or_name)
     if not file_path.exists():

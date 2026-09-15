@@ -29,12 +29,20 @@ class SensorPipeline:
         self,
         master_seed: int = 0,
         enable_mainsheet_sensor: bool = False,
+        imu_sample_rate_hz: int = 100,
+        imu_lpf_cutoff_hz: float = 20.0,
     ) -> None:
         self.master_seed = master_seed
         self.rng_manager = RNGManager(master_seed)
         self.enable_mainsheet_sensor = enable_mainsheet_sensor
+        self.imu_sample_rate_hz = imu_sample_rate_hz
+        self.imu_lpf_cutoff_hz = imu_lpf_cutoff_hz
 
-        self.imu = IMUSensorModel(rng=self.rng_manager.get_channel("imu"))
+        self.imu = IMUSensorModel(
+            rng=self.rng_manager.get_channel("imu"),
+            sample_rate_hz=imu_sample_rate_hz,
+            lpf_cutoff_hz=imu_lpf_cutoff_hz,
+        )
         self.gps = GPSSensorModel(rng=self.rng_manager.get_channel("gps"))
         self.wind = WindSensorModel(rng=self.rng_manager.get_channel("wind"))
         self.actuators = ActuatorSensorModel(

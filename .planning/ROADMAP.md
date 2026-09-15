@@ -150,25 +150,27 @@ Plans:
 - [x] 07-02: Run full vertical slice of SIM-005 Broach Precursor and verify PASS verdict across the end-to-end pipeline.
 - [x] 07-03: Add CI regression test ensuring 100% deterministic repeatability and PASS verdict on SIM-005.
 
-### Phase 8: SIA Simulation Workbench UI
-
-**Goal**: Build a single-screen, high-contrast night bridge operational & research cockpit featuring 60 FPS HTML5 Canvas marine instruments, Ground Truth lab terminal, multi-track temporal scrubber, and interactive skipper query loop.  
-**Depends on**: Phase 7  
-**Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05, UI-06  
-**Success Criteria**:  
-
-1. Local web server launches via `sia-sim --workbench` and streams 100 Hz simulation data to browser.  
-2. 5-Zone layout strictly enforces visual segregation between Ground Truth terminal (`● NOT AVAILABLE TO SIA`) and Marine Console (`● OBSERVED BY SIA`).  
-3. Multi-track temporal scrubber allows sub-second stepping, pausing, and scrubbing across 3000 ticks.  
-4. Interactive skipper query loop dispatches context chips (`[ REEF 1 ]`, `[ FULL MAIN ]`) to SIA Core with real-time recalculated responses.  
-
-**Plans**: 3/3 plans executed  
-
-Plans:
-
-- [x] 08-01: Workbench Backend Engine & Telemetry Streamer.
-- [x] 08-02: Workbench UI 5-Zone Shell, Canvas Marine Dials & Lab Terminal.
-- [x] 08-03: Temporal Debugger Scrubber, Interactive Query Loop & Verification.
+### Phase 8: SIA Simulation Workbench UI & Interactive Studio
+ 
+ **Goal**: Build a single-screen, high-contrast night bridge operational & research cockpit featuring 6-dial 60 FPS HTML5 Canvas marine instruments (including Pitch, Heave, and Slamming), Ground Truth lab terminal, interactive multi-track timeline event builder with zoom/pan, dynamic duration configuration, and skipper query loop.  
+ **Depends on**: Phase 7  
+ **Requirements**: UI-01..UI-06, WB-01..WB-07  
+ **Success Criteria**:  
+ 
+ 1. Local web server launches via `sia-sim --workbench` and streams 100 Hz simulation data to browser.  
+ 2. 5-Zone layout strictly enforces visual segregation between Ground Truth terminal (`● NOT AVAILABLE TO SIA`) and Marine Console (`● OBSERVED BY SIA`).  
+ 3. Marine Console renders 6 authentic marine dials: Wind (AWA/AWS), Heel (Roll), Pitch (Trim/килевая качка), SOG/COG, Heave (вертикальная качка), and Slamming (слеминг).  
+ 4. Multi-track temporal timeline allows interactive event placement (Wind, Wave, Faults), dragging, editing, zooming (1x-10x), and dynamic duration configuration.  
+ 5. SIA Advisory Panel provides continuous nominal monitoring guidelines and high-contrast decision cards with candidate priorities on hazard onset.  
+ 6. Interactive skipper query loop dispatches context chips (`[ REEF 1 ]`, `[ FULL MAIN ]`) to SIA Core with real-time recalculated responses.  
+ 
+ **Plans**: 3/3 plans executed  
+ 
+ Plans:
+ 
+ - [x] 08-01: Workbench Backend Engine & Telemetry Streamer.
+ - [x] 08-02: Workbench UI 5-Zone Shell, Canvas Marine Dials & Lab Terminal.
+ - [x] 08-03: Temporal Debugger Scrubber, Interactive Query Loop, 6-Dial Suite & Event Builder.
 
 ## Progress
 

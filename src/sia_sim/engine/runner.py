@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -45,16 +46,22 @@ class SimulationRunner:
         sia_core: SIACore | None = None,
         oracle_config: OracleConfig | None = None,
         evaluator_config: EvaluatorConfig | None = None,
+        imu_sample_rate_hz: int = 100,
+        imu_lpf_cutoff_hz: float = 20.0,
     ) -> None:
         self.sia_core: SIACore = sia_core or MockSIA()
         self.oracle_config = oracle_config or OracleConfig()
         self.evaluator_config = evaluator_config or EvaluatorConfig()
+        self.imu_sample_rate_hz = imu_sample_rate_hz
+        self.imu_lpf_cutoff_hz = imu_lpf_cutoff_hz
 
     def run(
         self,
         scenario: Scenario,
         run_id: str | None = None,
         apply_actuator_feedback: bool = True,
+        imu_sample_rate_hz: int | None = None,
+        imu_lpf_cutoff_hz: float | None = None,
     ) -> SimulationRunResult:
         """Executes a full scenario from start to finish and computes objective evaluation."""
         run_id = run_id or f"RUN-{scenario.scenario_id}-{scenario.seed}"
@@ -63,8 +70,15 @@ class SimulationRunner:
         world = WorldModel.from_scenario(scenario)
         world.apply_events(scenario.events)
 
+        effective_rate = imu_sample_rate_hz or self.imu_sample_rate_hz
+        effective_lpf = imu_lpf_cutoff_hz or self.imu_lpf_cutoff_hz
+
         dynamics = VesselDynamics.from_config(scenario.vessel)
-        sensor_pipeline = SensorPipeline(master_seed=scenario.seed)
+        sensor_pipeline = SensorPipeline(
+            master_seed=scenario.seed,
+            imu_sample_rate_hz=effective_rate,
+            imu_lpf_cutoff_hz=effective_lpf,
+        )
         self.sia_core.reset()
         recorder = RunRecorder()
 
@@ -83,8 +97,16 @@ class SimulationRunner:
             # Step 1: Advance environmental ground truth physics
             env = world.step(t_ms)
             wave_f, wave_rm, wave_ym = world.wave.evaluate_impact(t_ms)
+            heading_now_deg = math.degrees(dynamics._state[2])
+            _elev, amb_rm, _amb_pm, _vert_a = world.wave.evaluate_ambient_excitation(
+                x_m=float(dynamics._state[0]),
+                y_m=float(dynamics._state[1]),
+                time_s=t_ms / 1000.0,
+                heading_deg=heading_now_deg,
+                mass_kg=dynamics.mass,
+            )
 
-            # Step 2: Step vessel 3-DoF planar dynamics
+            # Step 2: Step vessel 3-DoF planar dynamics with continuous wave excitation
             vessel = dynamics.step(
                 dt_s=dt_s,
                 env=env,
@@ -93,9 +115,11 @@ class SimulationRunner:
                 wave_impact_force_n=wave_f,
                 wave_impact_roll_moment_nm=wave_rm,
                 wave_impact_yaw_moment_nm=wave_ym,
+                ambient_wave_roll_moment_nm=amb_rm,
             )
 
-            active_events = tuple(world.get_active_event_ids(t_ms))
+            active_event_objs = tuple(world.get_active_events(t_ms))
+            active_events = tuple(evt.event_id for evt in active_event_objs)
             gt = GroundTruthFrame(
                 sim_time_ms=t_ms,
                 vessel=vessel,
@@ -105,7 +129,7 @@ class SimulationRunner:
             )
 
             # Step 3: Degrade ground truth into observable SensorFrame (INV-01, INV-02)
-            sf = sensor_pipeline.process(gt, ())
+            sf = sensor_pipeline.process(gt, active_event_objs)
 
             # Step 4: Feed SensorFrame to SIA Core
             decision = self.sia_core.process(sf)
@@ -125,9 +149,7 @@ class SimulationRunner:
 
         elapsed_wall_time = time.perf_counter() - start_time
         sim_duration_s = scenario.duration_ms / 1000.0
-        sim_speed_ratio = (
-            sim_duration_s / max(0.0001, elapsed_wall_time)
-        )
+        sim_speed_ratio = sim_duration_s / max(0.0001, elapsed_wall_time)
 
         # 3. Post-run independent Oracle Evaluation (INV-03)
         oracle = SafetyOracle(self.oracle_config)

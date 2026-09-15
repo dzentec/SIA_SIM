@@ -117,8 +117,12 @@ class WorldModel:
 
     def get_active_event_ids(self, time_ms: int) -> tuple[str, ...]:
         """Return IDs of scenario events currently active at time_ms."""
-        active_ids = []
-        for evt_id, evt in list(self._active_events.items()):
+        return tuple(evt.event_id for evt in self.get_active_events(time_ms))
+
+    def get_active_events(self, time_ms: int) -> tuple[ScenarioEvent, ...]:
+        """Return scenario events currently active at time_ms."""
+        active = []
+        for evt in self._active_events.values():
             dur_ms = int(
                 evt.parameters.get(
                     "duration_ms",
@@ -126,5 +130,5 @@ class WorldModel:
                 )
             )
             if evt.sim_time_ms <= time_ms < evt.sim_time_ms + dur_ms:
-                active_ids.append(evt_id)
-        return tuple(active_ids)
+                active.append(evt)
+        return tuple(active)

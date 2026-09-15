@@ -88,6 +88,7 @@ class VesselDynamics:
         wave_impact_force_n: float = 0.0,
         wave_impact_roll_moment_nm: float = 0.0,
         wave_impact_yaw_moment_nm: float = 0.0,
+        ambient_wave_roll_moment_nm: float = 0.0,
     ) -> VesselState:
         """Advance dynamics state by dt_s and return immutable VesselState."""
         self._rudder_angle_deg = rudder_deg
@@ -138,10 +139,16 @@ class VesselDynamics:
             # 5. Righting moment
             k_righting = righting_moment(heel_deg=heel_deg, mass_kg=self.mass)
 
-            # Total forces and moments
+            # Total forces and moments (including continuous ambient wave excitation)
             total_x = x_sail + x_drag
             total_y = y_sail + y_rudder + y_drag + wave_impact_force_n
-            total_k = k_sail + k_roll_drag + k_righting + wave_impact_roll_moment_nm
+            total_k = (
+                k_sail
+                + k_roll_drag
+                + k_righting
+                + wave_impact_roll_moment_nm
+                + ambient_wave_roll_moment_nm
+            )
             total_n = n_sail + n_rudder + n_yaw_drag + wave_impact_yaw_moment_nm
 
             # Kinematics
@@ -178,15 +185,36 @@ class VesselDynamics:
         drift_deg = math.degrees(math.atan2(v, max(0.01, u))) if sog_m_s > 0.05 else 0.0
         cog_deg = (heading_deg + drift_deg) % 360.0
 
+        # Pitch kinematics derived from wave slope encounter and slamming moments
+        # Wave encounter angle mu
+        wave_dir_rad = math.radians(env.true_wind_angle_deg)  # wave follows wind direction
+        mu = wave_dir_rad - psi
+        wavelength = max(5.0, (9.80665 * (env.wave_period_s**2)) / (2.0 * math.pi))
+        wave_k = (2.0 * math.pi) / wavelength
+        omega_0 = (2.0 * math.pi) / max(0.1, env.wave_period_s)
+        # Encounter frequency
+        omega_e = abs(omega_0 - wave_k * u * math.cos(mu))
+        # Spatial wave slope pitch component (rad)
+        pitch_wave_amp = 0.5 * wave_k * env.wave_height_m * math.cos(mu)
+        # Time-varying pitch oscillation
+        pitch_wave_deg = (
+            math.degrees(pitch_wave_amp * math.sin(omega_e * (x / max(0.1, sog_m_s))))
+            if sog_m_s > 0.1
+            else 0.0
+        )
+        # Wave slam impact induces bow-down pitch moment
+        slam_pitch_deg = -3.5 * (wave_impact_force_n / 12000.0) if wave_impact_force_n > 0 else 0.0
+        total_pitch_deg = max(-25.0, min(25.0, pitch_wave_deg + slam_pitch_deg))
+
         return VesselState(
             x_m=float(x),
             y_m=float(y),
-            heading_deg=float(heading_deg),
-            sog_m_s=float(sog_m_s),
-            cog_deg=float(cog_deg),
-            heel_deg=float(math.degrees(phi)),
-            pitch_deg=0.0,  # Planar dynamics approximation
-            roll_rate_deg_s=float(math.degrees(p)),
-            yaw_rate_deg_s=float(math.degrees(r)),
-            rudder_angle_deg=float(self._rudder_angle_deg),
+            heading_deg=heading_deg,
+            sog_m_s=sog_m_s,
+            cog_deg=cog_deg,
+            heel_deg=math.degrees(phi),
+            pitch_deg=round(total_pitch_deg, 2),
+            roll_rate_deg_s=math.degrees(p),
+            yaw_rate_deg_s=math.degrees(r),
+            rudder_angle_deg=self._rudder_angle_deg,
         )
