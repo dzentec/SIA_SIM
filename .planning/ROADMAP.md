@@ -9,7 +9,7 @@ This roadmap delivers the MVP Milestone (M0–M6) for SIA Simulation: an end-to-
 - [x] **Phase 1: Project Skeleton & Deterministic Harness (M0)** - Python 3.12+, uv, strict typing, 100 Hz simulation clock, and deterministic test runner.
 - [x] **Phase 2: Data Contracts & Validation (M1)** - Strict Pydantic schemas for SensorFrame, GroundTruthFrame, Scenario, and evaluation contracts.
 - [x] **Phase 3: Simplified Deterministic Causal Vessel Dynamics (M2)** - Environmental wind/wave models and simplified deterministic causal vessel dynamics at 100 Hz.
-- [ ] **Phase 4: Deterministic Sensor Degradation & Fault Verification (M3)** - Transform ground truth to SensorFrame with deterministic noise, bias, drift, latency, and fault modes.
+- [x] **Phase 4: Deterministic Sensor Degradation & Fault Verification (M3)** - Transform ground truth to SensorFrame with deterministic noise, bias, drift, latency, and fault modes.
 - [ ] **Phase 5: SIACore Boundary & Deterministic MockSIA (M4)** - Strict boundary isolation protocol (`SIACore`) and deterministic `MockSIA` with candidate responses and conflict resolution.
 - [ ] **Phase 6: Oracle & Evaluator (M5)** - Independent physical safety oracle and objective PASS/FAIL evaluator.
 - [ ] **Phase 7: Complete End-to-End Pipeline PASS (M6)** - End-to-end integration and automated verification of the complete simulation loop on SIM-005 Broach Precursor.
@@ -85,13 +85,13 @@ Plans:
 2. Configurable Gaussian noise, static bias, and gradual drift are deterministically applied per channel.  
 3. Sensor dropouts and frozen values emit proper fault flags and `None` states without simulation crashes or zero-coercion.  
 
-**Plans**: 3 plans  
+**Plans**: 3/3 plans executed  
 
 Plans:
 
-- [ ] 04-01: Implement base sensor transformation pipeline and individual sensor channels.
-- [ ] 04-02: Implement deterministic noise, bias, drift, latency queue, and failure mode decorators.
-- [ ] 04-03: Build verification tests asserting statistical repeatability and non-coercion of missing signals.
+- [x] 04-01: Implement base sensor transformation pipeline and individual sensor channels.
+- [x] 04-02: Implement deterministic noise, bias, drift, latency queue, and failure mode decorators.
+- [x] 04-03: Build verification tests asserting statistical repeatability and non-coercion of missing signals.
 
 ### Phase 5: SIACore Boundary & Deterministic MockSIA (M4)
 
@@ -160,7 +160,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Project Skeleton & Harness (M0) | 2/2 | Completed | 2026-09-15 |
 | 2. Data Contracts & Validation (M1) | 3/3 | Completed | 2026-09-15 |
 | 3. Simplified Deterministic Causal Dynamics (M2) | 3/3 | Completed | 2026-09-15 |
-| 4. Sensor Degradation & Faults (M3) | 0/3 | Not started | - |
+| 4. Sensor Degradation & Faults (M3) | 3/3 | Completed | 2026-09-15 |
 | 5. SIACore Boundary & MockSIA (M4) | 0/3 | Not started | - |
 | 6. Oracle & Evaluator (M5) | 0/3 | Not started | - |
 | 7. Complete Pipeline PASS (M6) | 0/3 | Not started | - |

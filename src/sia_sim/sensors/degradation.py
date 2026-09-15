@@ -28,6 +28,9 @@ class DegradationConfig:
     dropout_prob: float = 0.0
     """Probability per tick [0.0, 1.0] of signal dropout (emitting None)."""
 
+    warmup_fill: bool = True
+    """If True, pre-fill latency buffer with initial measurement to avoid startup dropout."""
+
     min_value: float | None = None
     """Physical lower sensor bound. Values outside are marked invalid or clamped."""
 
@@ -117,9 +120,12 @@ class ChannelDegrader:
 
         # 5. Latency queue
         if self._buffer_len > 0:
+            if not self._buffer and self.config.warmup_fill and output is not None:
+                self._buffer.extend([output] * self._buffer_len)
+
             self._buffer.append(output)
             if len(self._buffer) <= self._buffer_len:
-                # Buffer filling up: output initial None or first valid
+                # Buffer filling up (when warmup_fill is False)
                 delayed_output = None
             else:
                 delayed_output = self._buffer.popleft()

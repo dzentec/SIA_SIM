@@ -48,9 +48,7 @@ class TestDegradationPrimitives:
 
     def test_bias_and_linear_drift(self) -> None:
         # Bias = 2.0, drift = 0.5 units/s
-        degrader = ChannelDegrader(
-            DegradationConfig(bias=2.0, drift_rate=0.5, noise_std=0.0)
-        )
+        degrader = ChannelDegrader(DegradationConfig(bias=2.0, drift_rate=0.5, noise_std=0.0))
         # At t=0s: 10 + 2 + 0 = 12.0
         assert math.isclose(degrader.process(10.0, 0) or 0.0, 12.0, abs_tol=1e-5)
         # At t=2s (2000ms): 10 + 2 + 0.5*2 = 13.0
@@ -58,7 +56,9 @@ class TestDegradationPrimitives:
 
     def test_latency_queue_delay(self) -> None:
         # 50 ms latency = 5 ticks of 10ms
-        degrader = ChannelDegrader(DegradationConfig(latency_ms=50, noise_std=0.0))
+        degrader = ChannelDegrader(
+            DegradationConfig(latency_ms=50, noise_std=0.0, warmup_fill=False)
+        )
 
         # Ticks 0..4 (0..40ms): queue is filling, returns None
         for t_ms in range(0, 50, 10):
