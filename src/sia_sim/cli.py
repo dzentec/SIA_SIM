@@ -58,6 +58,19 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Quiet mode: suppress detailed banner and output verdict only.",
     )
+    parser.add_argument(
+        "--workbench",
+        "-w",
+        action="store_true",
+        help="Launch SIA Simulation Workbench interactive UI server.",
+    )
+    parser.add_argument(
+        "--port",
+        "-p",
+        type=int,
+        default=8050,
+        help="Port for SIA Simulation Workbench web server (default: 8050).",
+    )
     return parser
 
 
@@ -65,6 +78,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Main CLI entrypoint. Returns process exit code (0 on PASS, 1 on FAIL)."""
     parser = create_parser()
     args = parser.parse_args(argv)
+
+    if args.workbench:
+        from sia_sim.workbench.server import run_workbench
+        run_workbench(port=args.port)
+        return 0
 
     try:
         scenario = load_scenario(args.scenario, seed=args.seed)
