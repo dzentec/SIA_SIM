@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIA Simulation Workbench | Marine Safety & Causal Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/workbench.css">
+</head>
+<body class="mode-live">
+
+  <!-- HEADER BAR -->
+  <header class="header-bar" id="headerBar">
+    <div class="header-left">
+      <div class="logo-mark">
+        <span class="logo-icon">⚓</span>
+        <span class="logo-title">SIA WORKBENCH</span>
+      </div>
+      <div class="preset-selector-group">
+        <label for="scenarioSelect" class="control-label">SCENARIO:</label>
+        <select id="scenarioSelect" class="select-dropdown">
+          <option value="sim005" selected>SIM-005 Broach Precursor (18 kt Gust + 12 kN Wave)</option>
+          <option value="benign">Benign Beam Reach (12 kt Constant)</option>
+        </select>
+      </div>
+      <div class="seed-input-group">
+        <label for="seedInput" class="control-label">SEED:</label>
+        <input type="number" id="seedInput" class="input-number" value="42" min="1" max="99999">
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="clock-display" id="clockDisplay">
+        <span class="clock-label">TIME</span>
+        <span class="clock-value" id="simTimeValue">00:00.00</span>
+        <span class="clock-sub" id="simTickValue">[Tick 0/2000]</span>
+      </div>
+      <div class="playback-controls">
+        <button id="btnRun" class="btn btn-primary" title="Run / Play Simulation">▶ Run</button>
+        <button id="btnPause" class="btn btn-secondary" title="Pause Simulation" disabled>⏸ Pause</button>
+        <button id="btnStep" class="btn btn-secondary" title="Step forward 10 ms">⏯ Step 10ms</button>
+        <button id="btnReset" class="btn btn-ghost" title="Reset to start">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="mode-toggle-group">
+        <button id="btnModeLive" class="mode-pill active" data-mode="live">● LIVE / OPERATION</button>
+        <button id="btnModeDebug" class="mode-pill" data-mode="debug">○ DEBUG / RESEARCH</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ZONE 1: TIMELINE & TEMPORAL DEBUGGER -->
+  <section class="zone-timeline" id="zoneTimeline">
+    <div class="timeline-header">
+      <span class="section-title">TEMPORAL DEBUGGER & MULTI-TRACK TIMELINE (100 Hz)</span>
+      <div class="timeline-meta">
+        <span class="legend-item"><span class="legend-dot dot-wind"></span> Wind Gust</span>
+        <span class="legend-item"><span class="legend-dot dot-wave"></span> Wave Impact</span>
+        <span class="legend-item"><span class="legend-dot dot-decision"></span> SIA Decision</span>
+        <span class="legend-item"><span class="legend-dot dot-oracle"></span> Safety Envelope</span>
+      </div>
+    </div>
+    <div class="timeline-canvas-container" id="timelineContainer">
+      <canvas id="timelineCanvas" width="1600" height="96"></canvas>
+      <div class="timeline-cursor" id="timelineCursor"></div>
+    </div>
+  </section>
+
+  <!-- MAIN 3-COLUMN CORE -->
+  <main class="main-core">
+
+    <!-- ZONE 2: GROUND TRUTH LAB TERMINAL -->
+    <section class="zone-card zone-ground-truth" id="zoneGroundTruth">
+      <div class="card-header">
+        <div class="header-title-group">
+          <span class="zone-badge badge-ground-truth">● SIMULATION ONLY — NOT AVAILABLE TO SIA</span>
+          <h2 class="card-title">GROUND TRUTH PHYSICS</h2>
+        </div>
+        <span class="physics-state-tag" id="gtStateTag">HYDRO: NOMINAL</span>
+      </div>
+      <div class="card-content terminal-content">
+        <div class="terminal-grid">
+          <div class="term-row">
+            <span class="term-label">TRUE WIND SPEED (TWS)</span>
+            <span class="term-val" id="gtTws">15.00 <span class="term-unit">kt</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">TRUE WIND DIR (TWD)</span>
+            <span class="term-val" id="gtTwd">000.0 <span class="term-unit">°</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">WAVE ELEVATION (Z)</span>
+            <span class="term-val" id="gtWave">0.00 <span class="term-unit">m</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">TRUE HEEL (ROLL)</span>
+            <span class="term-val highlight-danger" id="gtHeel">-15.00 <span class="term-unit">°</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">TRUE PITCH ANGLE</span>
+            <span class="term-val" id="gtPitch">0.00 <span class="term-unit">°</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">VESSEL HEADING (YAW)</span>
+            <span class="term-val" id="gtYaw">065.0 <span class="term-unit">°</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">TRUE SPEED (SOG)</span>
+            <span class="term-val" id="gtSog">5.00 <span class="term-unit">kt</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">PHYSICAL RUDDER</span>
+            <span class="term-val" id="gtRudder">0.0 <span class="term-unit">°</span></span>
+          </div>
+          <div class="term-row">
+            <span class="term-label">RUDDER HYDRO LOSS</span>
+            <span class="term-val" id="gtHydroLoss">0 %</span>
+          </div>
+        </div>
+
+        <div class="terminal-raw-trace" id="terminalTrace">
+          <div class="trace-header">ACTIVE WORLD EVENTS:</div>
+          <div class="trace-line" id="gtActiveEvents">NONE</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZONE 3: SENSOR VIEW (MARINE COCKPIT) -->
+    <section class="zone-card zone-sensor-view" id="zoneSensorView">
+      <div class="card-header">
+        <div class="header-title-group">
+          <span class="zone-badge badge-sensor-frame">● SENSOR FRAME — OBSERVED BY SIA</span>
+          <h2 class="card-title">MARINE CONSOLE INSTRUMENTS</h2>
+        </div>
+        <div class="sensor-health-bar" id="sensorHealthBar">
+          <span class="health-chip chip-ok" id="chipImu">IMU: OK</span>
+          <span class="health-chip chip-ok" id="chipGps">GPS: OK</span>
+          <span class="health-chip chip-ok" id="chipWind">WIND: OK</span>
+        </div>
+      </div>
+      <div class="card-content marine-content">
+        <div class="dials-grid">
+          <!-- AWA / AWS Wind Dial -->
+          <div class="dial-card">
+            <div class="dial-title">APPARENT WIND (AWA / AWS)</div>
+            <div class="canvas-wrapper">
+              <canvas id="dialWindCanvas" width="220" height="220"></canvas>
+            </div>
+            <div class="dial-footer" id="windDialFooter">
+              <span class="dial-footer-label">AWS:</span>
+              <span class="dial-footer-val" id="valAws">17.2 <span class="unit">kt</span></span>
+            </div>
+          </div>
+
+          <!-- Heel Inclinometer Dial -->
+          <div class="dial-card">
+            <div class="dial-title">HEEL INCLINOMETER (IMU)</div>
+            <div class="canvas-wrapper">
+              <canvas id="dialHeelCanvas" width="220" height="220"></canvas>
+            </div>
+            <div class="dial-footer" id="heelDialFooter">
+              <span class="dial-footer-label">HEEL:</span>
+              <span class="dial-footer-val" id="valHeel">-15.2 <span class="unit">°</span></span>
+            </div>
+          </div>
+
+          <!-- SOG / COG Navigation Display -->
+          <div class="dial-card">
+            <div class="dial-title">NAVIGATION (SOG / COG)</div>
+            <div class="canvas-wrapper">
+              <canvas id="dialNavCanvas" width="220" height="220"></canvas>
+            </div>
+            <div class="dial-footer" id="navDialFooter">
+              <span class="dial-footer-label">SOG:</span>
+              <span class="dial-footer-val" id="valSog">5.1 <span class="unit">kt</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sensor-readings-strip">
+          <div class="strip-item">
+            <span class="strip-lbl">PITCH RATE</span>
+            <span class="strip-val" id="valPitchRate">0.0 °/s</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-lbl">YAW RATE</span>
+            <span class="strip-val" id="valYawRate">0.0 °/s</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-lbl">RUDDER ANGLE</span>
+            <span class="strip-val" id="valRudderSensor">0.0 °</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-lbl">MAINSAIL TRIM</span>
+            <span class="strip-val" id="valSailSensor">UNKNOWN</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZONE 4: SIA ADVISORY & REASONING -->
+    <section class="zone-card zone-sia-advisory" id="zoneSiaAdvisory">
+      <div class="card-header">
+        <div class="header-title-group">
+          <span class="zone-badge badge-sia">● SIA CORE ADVISORY ENGINE</span>
+          <h2 class="card-title">HAZARD DETECTION & REASONING</h2>
+        </div>
+        <div class="hazard-badge nominal" id="siaHazardBadge">NOMINAL</div>
+      </div>
+      <div class="card-content sia-content">
+        <!-- Risk & Confidence Meters -->
+        <div class="risk-overview-bar">
+          <div class="meter-box">
+            <div class="meter-labels">
+              <span class="meter-title">ESTIMATED RISK SCORE</span>
+              <span class="meter-val" id="siaRiskVal">0.00</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="siaRiskBar" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="meter-box">
+            <div class="meter-labels">
+              <span class="meter-title">OBSERVATION CONFIDENCE</span>
+              <span class="meter-val" id="siaConfVal">1.00</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill fill-confidence" id="siaConfBar" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dominant Recommended Primary Response -->
+        <div class="primary-decision-card" id="primaryDecisionCard">
+          <div class="dec-card-header">
+            <span class="dec-tag">PRIMARY RECOMMENDED ACTION</span>
+            <span class="dec-score" id="primaryScore">SCORE: --</span>
+          </div>
+          <div class="dec-action-title" id="primaryActionTitle">NO IMMEDIATE ACTION REQUIRED</div>
+          <div class="dec-commands-grid" id="primaryCommandsGrid">
+            <div class="cmd-chip"><span class="cmd-lbl">RUDDER:</span> <span class="cmd-val" id="cmdRudder">0.0°</span></div>
+            <div class="cmd-chip"><span class="cmd-lbl">SAIL TRIM:</span> <span class="cmd-val" id="cmdSail">100%</span></div>
+          </div>
+        </div>
+
+        <!-- Alternative Candidate Responses -->
+        <div class="alternatives-section">
+          <div class="alternatives-header">ALTERNATIVE CANDIDATE RESPONSES (L4)</div>
+          <div class="candidates-list" id="candidatesList">
+            <div class="candidate-row empty">None active</div>
+            <div class="candidate-row empty">--</div>
+          </div>
+        </div>
+
+        <!-- Causal Reasoning Note -->
+        <div class="reasoning-box">
+          <div class="reasoning-header">DECISION CONFLICT RESOLUTION NOTE:</div>
+          <div class="reasoning-text" id="siaReasoningNote">Nominal conditions, no safety hazard</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ZONE 5: INTERACTIVE QUERY LOOP (SKIPPER IN THE LOOP) -->
+  <section class="zone-query-loop" id="zoneQueryLoop">
+    <div class="query-loop-container">
+      <div class="query-prompt-icon">💡</div>
+      <div class="query-body">
+        <div class="query-title">SKIPPER INTERACTIVE QUERY LOOP</div>
+        <div class="query-prompt-text" id="queryPromptText">
+          SIA Core: "Sensor telemetry detects high heel under wind gusts. Confirm current sail configuration to refine advisory action:"
+        </div>
+      </div>
+      <div class="query-actions-grid" id="queryActionsGrid">
+        <button class="btn-query-chip" data-sail="FULL_MAIN">[ FULL MAIN ]</button>
+        <button class="btn-query-chip active" data-sail="REEF_1">[ REEF 1 ]</button>
+        <button class="btn-query-chip" data-sail="REEF_2">[ REEF 2 ]</button>
+        <button class="btn-query-chip" data-sail="STORM_JIB">[ STORM JIB ONLY ]</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER: ORACLE & EVALUATOR STATUS -->
+  <footer class="footer-bar" id="footerBar">
+    <div class="footer-item">
+      <span class="footer-lbl">ORACLE SAFETY ENVELOPE:</span>
+      <span class="footer-val val-pass" id="footerEnvelope">INTACT (35° MAX)</span>
+    </div>
+    <div class="footer-item">
+      <span class="footer-lbl">DETECTION LATENCY:</span>
+      <span class="footer-val" id="footerLatency">240 ms (Target &lt; 500 ms)</span>
+    </div>
+    <div class="footer-item">
+      <span class="footer-lbl">FALSE ALARMS:</span>
+      <span class="footer-val" id="footerFalseAlarms">0</span>
+    </div>
+    <div class="footer-item">
+      <span class="footer-lbl">EVALUATOR VERDICT:</span>
+      <span class="verdict-badge badge-pass" id="footerVerdict">VERDICT: PASS (M6)</span>
+    </div>
+  </footer>
+
+  <!-- SCRIPTS -->
+  <script src="/js/instruments.js"></script>
+  <script src="/js/timeline.js"></script>
+  <script src="/js/query_loop.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
