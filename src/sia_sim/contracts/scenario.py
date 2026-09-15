@@ -59,6 +59,33 @@ class VesselConfig(BaseModel):
     """Starting speed over ground in knots."""
 
 
+# Canonical Single Source of Truth for the simulated yacht
+DEFAULT_VESSEL_CONFIG = VesselConfig(
+    vessel_type="monohull_ior",
+    loa_m=10.5,
+    beam_m=3.2,
+    displacement_kg=4500.0,
+    initial_heading_deg=65.0,
+    initial_sog_kt=5.0,
+    initial_heel_deg=0.0,
+)
+
+
+def create_vessel_config(
+    initial_heading_deg: float = 65.0,
+    initial_sog_kt: float = 5.0,
+    initial_heel_deg: float = 0.0,
+) -> VesselConfig:
+    """Create a VesselConfig by overriding initial dynamic state on the canonical vessel."""
+    return DEFAULT_VESSEL_CONFIG.model_copy(
+        update={
+            "initial_heading_deg": initial_heading_deg,
+            "initial_sog_kt": initial_sog_kt,
+            "initial_heel_deg": initial_heel_deg,
+        }
+    )
+
+
 class Scenario(BaseModel):
     """Immutable scenario specification.
 

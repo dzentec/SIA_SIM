@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from sia_sim.contracts.scenario import Scenario, ScenarioEvent, VesselConfig
+from sia_sim.contracts.scenario import Scenario, ScenarioEvent, create_vessel_config
 
 
 def get_sim005_scenario(seed: int = 42) -> Scenario:
@@ -23,11 +23,7 @@ def get_sim005_scenario(seed: int = 42) -> Scenario:
         initial_twa_deg=0.0,
         initial_wave_height_m=2.0,
         initial_wave_period_s=6.0,
-        vessel=VesselConfig(
-            vessel_type="monohull_ior",
-            loa_m=10.5,
-            beam_m=3.2,
-            displacement_kg=4500.0,
+        vessel=create_vessel_config(
             initial_heading_deg=65.0,
             initial_sog_kt=5.0,
             initial_heel_deg=-15.0,
@@ -66,11 +62,7 @@ def get_benign_scenario(seed: int = 100) -> Scenario:
         initial_twa_deg=0.0,
         initial_wave_height_m=0.5,
         initial_wave_period_s=4.0,
-        vessel=VesselConfig(
-            vessel_type="monohull_ior",
-            loa_m=10.5,
-            beam_m=3.2,
-            displacement_kg=4500.0,
+        vessel=create_vessel_config(
             initial_heading_deg=45.0,
             initial_sog_kt=4.0,
             initial_heel_deg=-5.0,

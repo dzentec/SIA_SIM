@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sia_sim.contracts.scenario import Scenario, ScenarioEvent, VesselConfig
+from sia_sim.contracts.scenario import Scenario, ScenarioEvent, create_vessel_config
 
 
 def get_harbour_preset(seed: int = 42, duration_ms: int = 20000) -> Scenario:
@@ -26,11 +26,7 @@ def get_harbour_preset(seed: int = 42, duration_ms: int = 20000) -> Scenario:
         initial_twa_deg=30.0,
         initial_wave_height_m=0.2,
         initial_wave_period_s=3.0,
-        vessel=VesselConfig(
-            vessel_type="monohull_ior",
-            loa_m=10.5,
-            beam_m=3.2,
-            displacement_kg=4500.0,
+        vessel=create_vessel_config(
             initial_heading_deg=45.0,
             initial_sog_kt=2.5,
             initial_heel_deg=-1.5,
@@ -52,11 +48,7 @@ def get_coastal_cruise_preset(seed: int = 42, duration_ms: int = 20000) -> Scena
         initial_twa_deg=0.0,
         initial_wave_height_m=1.0,
         initial_wave_period_s=4.5,
-        vessel=VesselConfig(
-            vessel_type="monohull_ior",
-            loa_m=10.5,
-            beam_m=3.2,
-            displacement_kg=4500.0,
+        vessel=create_vessel_config(
             initial_heading_deg=65.0,
             initial_sog_kt=5.8,
             initial_heel_deg=-12.0,
@@ -78,11 +70,7 @@ def get_fresh_breeze_preset(seed: int = 42, duration_ms: int = 20000) -> Scenari
         initial_twa_deg=0.0,
         initial_wave_height_m=2.1,
         initial_wave_period_s=5.0,
-        vessel=VesselConfig(
-            vessel_type="monohull_ior",
-            loa_m=10.5,
-            beam_m=3.2,
-            displacement_kg=4500.0,
+        vessel=create_vessel_config(
             initial_heading_deg=65.0,
             initial_sog_kt=7.2,
             initial_heel_deg=-20.0,
@@ -129,11 +117,7 @@ def get_gale_broach_preset(
         initial_twa_deg=0.0,
         initial_wave_height_m=3.2,
         initial_wave_period_s=6.5,
-        vessel=VesselConfig(
-            vessel_type="monohull_ior",
-            loa_m=10.5,
-            beam_m=3.2,
-            displacement_kg=4500.0,
+        vessel=create_vessel_config(
             initial_heading_deg=65.0,
             initial_sog_kt=8.5,
             initial_heel_deg=-24.0,

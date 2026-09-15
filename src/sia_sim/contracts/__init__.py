@@ -28,12 +28,15 @@ from sia_sim.contracts.evaluation import (
     RiskAssessment,
 )
 from sia_sim.contracts.scenario import (
+    DEFAULT_VESSEL_CONFIG,
     Scenario,
     ScenarioEvent,
     VesselConfig,
+    create_vessel_config,
 )
 
 __all__ = [
+    "DEFAULT_VESSEL_CONFIG",
     "ActuatorState",
     "CandidateResponse",
     "DecisionPayload",
@@ -50,4 +53,5 @@ __all__ = [
     "VesselConfig",
     "VesselState",
     "WindReading",
+    "create_vessel_config",
 ]
