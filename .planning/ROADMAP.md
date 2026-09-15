@@ -12,7 +12,7 @@ This roadmap delivers the MVP Milestone (M0–M6) for SIA Simulation: an end-to-
 - [x] **Phase 4: Deterministic Sensor Degradation & Fault Verification (M3)** - Transform ground truth to SensorFrame with deterministic noise, bias, drift, latency, and fault modes.
 - [x] **Phase 5: SIACore Boundary & Deterministic MockSIA (M4)** - Strict boundary isolation protocol (`SIACore`) and deterministic `MockSIA` with candidate responses and conflict resolution.
 - [x] **Phase 6: Oracle & Evaluator (M5)** - Independent physical safety oracle and objective PASS/FAIL evaluator.
-- [ ] **Phase 7: Complete End-to-End Pipeline PASS (M6)** - End-to-end integration and automated verification of the complete simulation loop on SIM-005 Broach Precursor.
+- [x] **Phase 7: Complete End-to-End Pipeline PASS (M6)** - End-to-end integration and automated verification of the complete simulation loop on SIM-005 Broach Precursor.
 
 ## Phase Details
 
