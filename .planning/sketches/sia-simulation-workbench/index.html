@@ -819,6 +819,18 @@
           </div>
         </div>
 
+        <!-- Debug Layer: Ground Truth Physics Internals -->
+        <div class="debug-layer" style="display: none; background: rgba(0,0,0,0.5); border: 1px dashed var(--border-light); border-radius: 6px; padding: 10px; font-size: 11px;">
+          <div style="font-weight: 700; color: var(--cyan-accent); margin-bottom: 6px; font-size: 10px; text-transform: uppercase;">🔬 Physics Solver Internals</div>
+          <div class="mono" style="display: flex; flex-direction: column; gap: 4px; color: var(--text-muted); font-size: 10px;">
+            <div>• ODE Integrator: RK4 (dt = 10 ms / 100 Hz)</div>
+            <div>• Hydro Righting: GZ(28°) = 0.58 m (Righting 52.4 kNm)</div>
+            <div>• Aero Roll Moment: M_aero = 48.6 kNm</div>
+            <div>• Rudder Lift Coeff: Cl_eff = 0.58 (Ventilation: Active)</div>
+            <div>• Wave Force: F_wave_lat = 14.2 kN (Quartering sea)</div>
+          </div>
+        </div>
+
         <div class="mono text-dim" style="font-size: 10px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--gt-border);">
           Invariant INV-02: Zero ground truth imports in SIA engine.
         </div>
@@ -865,6 +877,19 @@
           <div class="marine-digit-box">
             <div class="marine-digit-label">Rudder Angle</div>
             <div class="marine-digit-val"><span id="sf-rudder">0.0</span><span class="marine-digit-unit">°</span></div>
+          </div>
+        </div>
+
+        <!-- Debug Layer: Sensor Degradation & Latency Queues -->
+        <div class="debug-layer" style="display: none; background: rgba(0,0,0,0.5); border: 1px dashed var(--border-light); border-radius: 6px; padding: 10px; font-size: 11px;">
+          <div style="font-weight: 700; color: var(--warning-amber); margin-bottom: 6px; font-size: 10px; text-transform: uppercase;">📡 Degradation Pipeline & Noise Models</div>
+          <div class="mono" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: var(--text-muted); font-size: 10px;">
+            <div>• IMU Noise: σ = 0.20° (Gaussian)</div>
+            <div>• IMU Latency: 20 ms (2 ticks)</div>
+            <div>• GPS Latency: 100 ms (10 ticks)</div>
+            <div>• GPS HDOP: 1.05 (Valid 3D Fix)</div>
+            <div>• Wind Noise: σ = 0.50 kt</div>
+            <div>• Mainsheet Sensor: None (Standard)</div>
           </div>
         </div>
 
@@ -915,6 +940,19 @@
           <div class="candidate-row" id="cand-3">
             <span>3. ALERT CREW (Готовность к крену)</span>
             <span class="candidate-score mono">0.70</span>
+          </div>
+        </div>
+
+        <!-- Debug Layer: SIA Core Multi-Layer Audit Trail -->
+        <div class="debug-layer" style="display: none; background: rgba(0,0,0,0.5); border: 1px dashed var(--border-light); border-radius: 6px; padding: 10px; font-size: 11px;">
+          <div style="font-weight: 700; color: #a78bfa; margin-bottom: 6px; font-size: 10px; text-transform: uppercase;">🧠 SIA Multi-Layer Reasoning Trace</div>
+          <div class="mono" style="display: flex; flex-direction: column; gap: 4px; color: var(--text-muted); font-size: 10px;">
+            <div>• L0 Integrity: All required channels healthy (Conf: 0.88)</div>
+            <div>• L2 Detection: Heel >= 25° & RollRate >= 10°/s & AWS >= 20kt</div>
+            <div>• L3 Risk Assessment: Hazard = BROACH_PRECURSOR (Score: 0.88)</div>
+            <div>• L4 Candidate 1: BEAR AWAY (Score 0.95, Rule R_BROACH_01)</div>
+            <div>• L4 Candidate 2: EASE MAIN (Score 0.85, Rule R_BROACH_02)</div>
+            <div>• Conflict Resolution: Highest score response selected</div>
           </div>
         </div>
 
@@ -1209,6 +1247,30 @@
       updateUI(simTimeMs);
     });
 
+    // Mode Toggle (LIVE vs DEBUG)
+    let currentMode = 'live';
+    const btnLive = document.getElementById('btn-mode-live');
+    const btnDebug = document.getElementById('btn-mode-debug');
+    const debugElements = document.querySelectorAll('.debug-layer');
+
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'live') {
+        btnLive.classList.add('active');
+        btnDebug.classList.remove('active');
+        document.body.classList.remove('debug-active');
+        debugElements.forEach(el => el.style.display = 'none');
+      } else {
+        btnLive.classList.remove('active');
+        btnDebug.classList.add('active');
+        document.body.classList.add('debug-active');
+        debugElements.forEach(el => el.style.display = 'block');
+      }
+    }
+
+    btnLive.addEventListener('click', () => setMode('live'));
+    btnDebug.addEventListener('click', () => setMode('debug'));
+
     // Timeline Drag / Scrubbing
     const timelineBox = document.getElementById('timeline-box');
     timelineBox.addEventListener('click', (e) => {
@@ -1220,6 +1282,7 @@
     });
 
     // Initial Render
+    setMode('live');
     updateUI(simTimeMs);
   </script>
 </body>
