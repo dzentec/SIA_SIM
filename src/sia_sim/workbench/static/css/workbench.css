@@ -374,8 +374,8 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   overflow: visible;
-  margin-top: 14px;
-  margin-bottom: 6px;
+  margin-top: 6px;
+  margin-bottom: 16px;
   cursor: pointer;
 }
 
@@ -388,8 +388,8 @@ body {
 
 .timeline-cursor {
   position: absolute;
-  top: -12px;
-  bottom: 0;
+  top: 0;
+  bottom: -14px;
   left: 0;
   width: 2px;
   background: var(--accent-cyan);
@@ -401,12 +401,12 @@ body {
 
 .timeline-handle {
   position: absolute;
-  top: -12px;
+  bottom: -14px;
   left: 50%;
   transform: translateX(-50%);
-  width: 22px;
+  width: 24px;
   height: 16px;
-  background: linear-gradient(180deg, #38bdf8 0%, #00e5ff 100%);
+  background: linear-gradient(0deg, #38bdf8 0%, #00e5ff 100%);
   border: 1.5px solid #ffffff;
   border-radius: 4px 4px 6px 6px;
   cursor: grab;
@@ -421,7 +421,7 @@ body {
 
 .timeline-handle:hover {
   transform: translateX(-50%) scale(1.18);
-  background: linear-gradient(180deg, #7dd3fc 0%, #00e5ff 100%);
+  background: linear-gradient(0deg, #7dd3fc 0%, #00e5ff 100%);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8), 0 0 14px #00e5ff;
 }
 
