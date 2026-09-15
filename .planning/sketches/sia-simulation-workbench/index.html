@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIA Simulation Workbench — Interactive Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-midnight: #080c14;
+      --surface-1: #101726;
+      --surface-2: #162032;
+      --surface-3: #1f2d47;
+      --border: #243552;
+      --border-light: #334a70;
+      
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --cyan-accent: #00e5ff;
+      --cyan-glow: rgba(0, 229, 255, 0.2);
+      
+      --marine-starboard: #00e676; /* Green */
+      --marine-port: #ff1744;      /* Red */
+      --warning-amber: #ffb300;    /* Amber */
+      
+      --gt-color: #cbd5e1;
+      --gt-bg: #0b111c;
+      --gt-border: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-midnight);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: var(--surface-1);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #00e5ff 0%, #0077b6 100%);
+      color: #000;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .app-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+
+    .scenario-tag {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-2);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .btn {
+      background: var(--surface-3);
+      color: var(--text-main);
+      border: 1px solid var(--border-light);
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: #2a3c5e;
+      border-color: var(--cyan-accent);
+      color: #fff;
+    }
+
+    .btn-primary {
+      background: var(--cyan-accent);
+      color: #000;
+      border-color: var(--cyan-accent);
+    }
+
+    .btn-primary:hover {
+      background: #33ebff;
+      color: #000;
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    .clock-display {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--cyan-accent);
+      background: #060a12;
+      padding: 4px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--surface-3);
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .mode-toggle {
+      display: flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .mode-btn {
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+
+    .mode-btn.active {
+      background: var(--surface-3);
+      color: var(--cyan-accent);
+      box-shadow: inset 0 -2px 0 var(--cyan-accent);
+    }
+
+    /* Main Grid Layout */
+    .workbench-container {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+
+    /* Zone 1: Timeline */
+    .timeline-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--cyan-accent);
+      border-radius: 50%;
+    }
+
+    .timeline-tracks {
+      position: relative;
+      background: #070b13;
+      border: 1px solid var(--surface-3);
+      border-radius: 6px;
+      padding: 10px 0;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .timeline-axis {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 16px 8px 100px;
+      border-bottom: 1px solid #141c2c;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .track-row {
+      display: flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 16px;
+      position: relative;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .track-name {
+      width: 84px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .track-lane {
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+
+    .event-block {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    .event-gust {
+      background: rgba(0, 229, 255, 0.2);
+      border: 1px solid var(--cyan-accent);
+      color: var(--cyan-accent);
+    }
+
+    .event-wave {
+      background: rgba(59, 130, 246, 0.25);
+      border: 1px solid #60a5fa;
+      color: #93c5fd;
+    }
+
+    .event-fault {
+      background: rgba(255, 179, 0, 0.2);
+      border: 1px solid var(--warning-amber);
+      color: var(--warning-amber);
+    }
+
+    .event-alert {
+      background: rgba(255, 23, 68, 0.25);
+      border: 1px solid var(--marine-port);
+      color: #ff80ab;
+    }
+
+    .scrub-cursor {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #ff0055;
+      box-shadow: 0 0 8px #ff0055;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .scrub-handle {
+      position: absolute;
+      top: -4px;
+      left: -6px;
+      width: 14px;
+      height: 14px;
+      background: #ff0055;
+      border: 2px solid #fff;
+      border-radius: 50%;
+    }
+
+    /* 3-Column Core Area */
+    .columns-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 340px;
+      gap: 16px;
+    }
+
+    /* Column 1: Ground Truth */
+    .gt-panel {
+      background: var(--gt-bg);
+      border: 1px solid var(--gt-border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .badge-locked {
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 3px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-block;
+    }
+
+    .gt-telemetry {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .gt-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .gt-label {
+      color: var(--text-dim);
+    }
+
+    .gt-val {
+      font-weight: 600;
+      color: var(--gt-color);
+    }
+
+    /* Column 2: Sensor View (Raymarine / B&G Marine Cockpit) */
+    .sensor-panel {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .marine-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .dial-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .dial-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .digital-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .marine-digit-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .marine-digit-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .marine-digit-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    .marine-digit-unit {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    .sensor-health-bar {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      padding-top: 4px;
+      border-top: 1px solid var(--surface-3);
+    }
+
+    .health-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .dot-ok {
+      background: var(--marine-starboard);
+      box-shadow: 0 0 6px var(--marine-starboard);
+    }
+
+    .dot-warn {
+      background: var(--warning-amber);
+      box-shadow: 0 0 6px var(--warning-amber);
+    }
+
+    .dot-fault {
+      background: var(--marine-port);
+      box-shadow: 0 0 6px var(--marine-port);
+    }
+
+    /* Column 3: SIA View */
+    .sia-panel {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hazard-banner {
+      background: rgba(255, 23, 68, 0.15);
+      border: 1px solid var(--marine-port);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hazard-title {
+      font-weight: 700;
+      font-size: 12px;
+      color: #ff5252;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hazard-metrics {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #fecdd3;
+    }
+
+    .primary-decision-card {
+      background: var(--surface-2);
+      border: 2px solid var(--cyan-accent);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 4px 16px var(--cyan-glow);
+    }
+
+    .decision-badge {
+      font-size: 10px;
+      font-weight: 700;
+      color: #000;
+      background: var(--cyan-accent);
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .decision-action-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .decision-command-line {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--cyan-accent);
+      margin-top: 4px;
+    }
+
+    .candidate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .candidate-row {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .candidate-score {
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* Zone 5: Query Loop */
+    .query-loop-card {
+      background: linear-gradient(180deg, #162032 0%, #101726 100%);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .query-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .sia-avatar {
+      background: var(--cyan-accent);
+      color: #000;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+
+    .query-text {
+      font-size: 13px;
+      color: #fff;
+    }
+
+    .query-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .quick-action-chips {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chip-btn {
+      background: var(--surface-3);
+      border: 1px solid var(--border-light);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .chip-btn:hover {
+      background: var(--cyan-accent);
+      color: #000;
+      border-color: var(--cyan-accent);
+    }
+
+    .chip-btn.active {
+      background: var(--cyan-accent);
+      color: #000;
+      border-color: var(--cyan-accent);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    /* Footer: Oracle / Evaluator */
+    footer {
+      background: #05080e;
+      border-top: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .oracle-tag {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--text-muted);
+    }
+
+    .verdict-pass {
+      background: rgba(0, 230, 118, 0.15);
+      border: 1px solid var(--marine-starboard);
+      color: var(--marine-starboard);
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header>
+    <div class="logo-group">
+      <span class="logo-badge">SIA CORE</span>
+      <span class="app-title">Simulation Workbench</span>
+      <span class="scenario-tag">SIM-005 Broach Precursor (12.5m Yacht)</span>
+    </div>
+
+    <div class="playback-controls">
+      <button class="btn btn-primary" id="btn-play">▶ Run</button>
+      <button class="btn" id="btn-pause">⏸ Pause</button>
+      <button class="btn" id="btn-reset">↺ Reset</button>
+      <button class="btn" id="btn-step">⏯ +10ms</button>
+      <div class="clock-display mono" id="clock-txt">T = 00:04.20</div>
+    </div>
+
+    <div class="mode-toggle">
+      <div class="mode-btn active" id="btn-mode-live">● LIVE / OPERATION</div>
+      <div class="mode-btn" id="btn-mode-debug">○ DEBUG / RESEARCH</div>
+    </div>
+  </header>
+
+  <!-- Main Area -->
+  <main class="workbench-container">
+
+    <!-- Zone 1: Timeline & Temporal Debugger -->
+    <section class="timeline-card">
+      <div class="timeline-header">
+        <span class="section-label">1. Temporal Debugger & Scenario Timeline (0 — 15 Seconds)</span>
+        <span class="text-dim" style="font-size: 11px;">Click & drag cursor to scrub 100 Hz state</span>
+      </div>
+
+      <div class="timeline-tracks" id="timeline-box">
+        <div class="scrub-cursor" id="scrub-line" style="left: 38%;">
+          <div class="scrub-handle"></div>
+        </div>
+
+        <div class="timeline-axis mono">
+          <span>00.0s</span>
+          <span>02.5s</span>
+          <span>05.0s</span>
+          <span>07.5s</span>
+          <span>10.0s</span>
+          <span>12.5s</span>
+          <span>15.0s</span>
+        </div>
+
+        <!-- Track 1: Wind Gust -->
+        <div class="track-row">
+          <div class="track-name">Wind</div>
+          <div class="track-lane">
+            <div class="event-block event-gust" style="left: 16%; width: 30%;">
+              🌪️ GUST +14kt (TWS 32kt)
+            </div>
+          </div>
+        </div>
+
+        <!-- Track 2: Waves -->
+        <div class="track-row">
+          <div class="track-name">Waves</div>
+          <div class="track-lane">
+            <div class="event-block event-wave" style="left: 26%; width: 22%;">
+              🌊 QUARTERING WAVE (H=2.8m)
+            </div>
+          </div>
+        </div>
+
+        <!-- Track 3: Sensor Fault -->
+        <div class="track-row">
+          <div class="track-name">Sensors</div>
+          <div class="track-lane">
+            <div class="event-block event-fault" style="left: 56%; width: 20%;">
+              ⚠️ GPS NO FIX (Dropout)
+            </div>
+          </div>
+        </div>
+
+        <!-- Track 4: SIA Decision -->
+        <div class="track-row">
+          <div class="track-name">SIA Alert</div>
+          <div class="track-lane">
+            <div class="event-block event-alert" style="left: 23%; width: 35%;">
+              🚨 BROACH PRECURSOR (Risk 0.88)
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zone 2, 3, 4: 3-Column Core Grid -->
+    <div class="columns-grid">
+
+      <!-- Column 1: Ground Truth (Hidden Physics) -->
+      <section class="gt-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="section-label" style="color: #94a3b8;">Ground Truth</span>
+          <span class="badge-locked">● Not in SIA</span>
+        </div>
+
+        <div class="gt-telemetry mono">
+          <div class="gt-row">
+            <span class="gt-label">True Wind (TWS)</span>
+            <span class="gt-val" id="gt-tws">32.4 kt</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">True Angle (TWD)</span>
+            <span class="gt-val" id="gt-twd">225.0°</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">Significant Wave</span>
+            <span class="gt-val" id="gt-wave">2.8 m (6.5s)</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">True Heel (Roll)</span>
+            <span class="gt-val" id="gt-heel" style="color: #ff5252;">28.1°</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">Roll Rate</span>
+            <span class="gt-val" id="gt-rollrate">+12.4 °/s</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">True SOG</span>
+            <span class="gt-val" id="gt-sog">8.4 kt</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">Rudder Hydro Loss</span>
+            <span class="gt-val" id="gt-rudder-loss" style="color: #ffb300;">-42%</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">Active Events</span>
+            <span class="gt-val" style="color: var(--cyan-accent);">[GUST, WAVE]</span>
+          </div>
+        </div>
+
+        <div class="mono text-dim" style="font-size: 10px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--gt-border);">
+          Invariant INV-02: Zero ground truth imports in SIA engine.
+        </div>
+      </section>
+
+      <!-- Column 2: Sensor View (Raymarine/B&G Marine Cockpit) -->
+      <section class="sensor-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="section-label">2. Sensor View (Observed by SIA)</span>
+          <span class="badge-locked" style="background: rgba(0, 229, 255, 0.1); border-color: var(--cyan-accent); color: var(--cyan-accent);">
+            ● SensorFrame @ 100 Hz
+          </span>
+        </div>
+
+        <!-- 2 Dials -->
+        <div class="marine-grid">
+          <!-- Wind Dial -->
+          <div class="dial-box">
+            <div class="dial-title">Wind (AWA / AWS)</div>
+            <canvas id="wind-dial" width="180" height="180"></canvas>
+          </div>
+
+          <!-- Attitude / Heel Inclinometer -->
+          <div class="dial-box">
+            <div class="dial-title">Attitude / Heel (IMU)</div>
+            <canvas id="heel-dial" width="180" height="180"></canvas>
+          </div>
+        </div>
+
+        <!-- Digital Nav Repeaters -->
+        <div class="digital-strip mono">
+          <div class="marine-digit-box">
+            <div class="marine-digit-label">SOG (Speed)</div>
+            <div class="marine-digit-val"><span id="sf-sog">7.8</span><span class="marine-digit-unit">kt</span></div>
+          </div>
+          <div class="marine-digit-box">
+            <div class="marine-digit-label">COG (Course)</div>
+            <div class="marine-digit-val"><span id="sf-cog">045</span><span class="marine-digit-unit">°</span></div>
+          </div>
+          <div class="marine-digit-box">
+            <div class="marine-digit-label">HDG (Compass)</div>
+            <div class="marine-digit-val"><span id="sf-hdg">043</span><span class="marine-digit-unit">°</span></div>
+          </div>
+          <div class="marine-digit-box">
+            <div class="marine-digit-label">Rudder Angle</div>
+            <div class="marine-digit-val"><span id="sf-rudder">0.0</span><span class="marine-digit-unit">°</span></div>
+          </div>
+        </div>
+
+        <!-- Sensor Integrity Status (L0) -->
+        <div class="sensor-health-bar">
+          <div class="health-tag"><div class="dot dot-ok"></div> IMU: OK</div>
+          <div class="health-tag"><div class="dot dot-ok"></div> GPS: FIX (3D)</div>
+          <div class="health-tag"><div class="dot dot-ok"></div> WIND: OK</div>
+          <div class="health-tag text-dim" style="margin-left: auto;">Noise: ±0.2° | Latency: 20ms</div>
+        </div>
+      </section>
+
+      <!-- Column 3: SIA Intelligence View -->
+      <section class="sia-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="section-label">3. SIA Intelligence View</span>
+          <span class="mono" style="font-size: 11px; color: var(--cyan-accent);">Confidence: 88%</span>
+        </div>
+
+        <!-- Hazard Alert -->
+        <div class="hazard-banner" id="hazard-box">
+          <div class="hazard-title">
+            <span>⚠️ BROACH PRECURSOR</span>
+            <span style="font-size: 10px; margin-left: auto; color: #fff;">CRITICAL</span>
+          </div>
+          <div class="hazard-metrics mono">
+            <span>Risk Score: <strong>0.88</strong></span>
+            <span>TTE: <strong>4.2 s</strong></span>
+          </div>
+        </div>
+
+        <!-- Primary Dominant Decision -->
+        <div class="primary-decision-card">
+          <span class="decision-badge">Primary Response (Score 0.95)</span>
+          <div class="decision-action-title" id="primary-action-title">1. BEAR AWAY (Увалиться под ветер)</div>
+          <div class="decision-command-line mono" id="primary-command">Command: Rudder -15.0° (Bearing away)</div>
+          <div class="text-dim" style="font-size: 11px; margin-top: 6px;">
+            Reduces aerodynamic heeling moment and relieves rudder ventilation.
+          </div>
+        </div>
+
+        <!-- Candidate Alternatives -->
+        <div class="candidate-list">
+          <div class="candidate-row" id="cand-2">
+            <span>2. EASE MAIN (Потравить грот)</span>
+            <span class="candidate-score mono">0.85</span>
+          </div>
+          <div class="candidate-row" id="cand-3">
+            <span>3. ALERT CREW (Готовность к крену)</span>
+            <span class="candidate-score mono">0.70</span>
+          </div>
+        </div>
+
+        <div class="mono text-dim" style="font-size: 10px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--border);">
+          Decision Latency: 240 ms | Rules: R_BROACH_01, R_HEEL_02
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Zone 5: Query Loop (SIA ↔ Skipper Dialogue) -->
+    <section class="query-loop-card">
+      <div class="query-content">
+        <div class="sia-avatar">SIA COPILOT</div>
+        <div>
+          <div class="query-text" id="query-question">
+            «Зафиксирован резкий рост крена (27.5°) и рыскание. Несущая площадь грота не определена датчиками. Уточните текущее вооружение:»
+          </div>
+          <div class="query-sub mono" id="query-status">
+            SIA Context: Awaiting skipper input to optimize response priorities.
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-action-chips">
+        <button class="chip-btn" onclick="selectSailConfig('FULL MAIN')">[ FULL MAIN ]</button>
+        <button class="chip-btn" onclick="selectSailConfig('REEF 1')">[ REEF 1 ]</button>
+        <button class="chip-btn" onclick="selectSailConfig('REEF 2')">[ REEF 2 ]</button>
+        <button class="chip-btn" onclick="selectSailConfig('STORM JIB')">[ STORM JIB ]</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer: Oracle / Evaluator -->
+  <footer>
+    <div class="oracle-tag mono">
+      <span>Oracle Safety Envelope: <strong>INTACT (Margin 18%)</strong></span>
+      <span>Detection Latency: <strong>240 ms (Target &lt;500 ms)</strong></span>
+      <span>False Alarms: <strong>0</strong></span>
+    </div>
+    <div class="verdict-pass mono">
+      VERDICT: PASS (M4)
+    </div>
+  </footer>
+
+  <!-- Simulation & Visualization Script -->
+  <script>
+    // State Variables
+    let simTimeMs = 4200; // 4.20s
+    let isPlaying = false;
+    let playInterval = null;
+    let currentSailConfig = null;
+
+    // Canvas Dials
+    const windCanvas = document.getElementById('wind-dial');
+    const windCtx = windCanvas.getContext('2d');
+
+    const heelCanvas = document.getElementById('heel-dial');
+    const heelCtx = heelCanvas.getContext('2d');
+
+    function drawWindDial(awaDeg, awsKt) {
+      const w = windCanvas.width;
+      const h = windCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = w / 2 - 16;
+
+      windCtx.clearRect(0, 0, w, h);
+
+      // Outer bezel
+      windCtx.beginPath();
+      windCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      windCtx.fillStyle = '#0b111c';
+      windCtx.fill();
+      windCtx.strokeStyle = '#243552';
+      windCtx.lineWidth = 2;
+      windCtx.stroke();
+
+      // Port / Starboard sectors
+      // Starboard (0 to +180): Green
+      windCtx.beginPath();
+      windCtx.arc(cx, cy, r - 4, -Math.PI / 2, Math.PI / 2);
+      windCtx.strokeStyle = 'rgba(0, 230, 118, 0.4)';
+      windCtx.lineWidth = 4;
+      windCtx.stroke();
+
+      // Port (0 to -180): Red
+      windCtx.beginPath();
+      windCtx.arc(cx, cy, r - 4, Math.PI / 2, -Math.PI / 2);
+      windCtx.strokeStyle = 'rgba(255, 23, 68, 0.4)';
+      windCtx.lineWidth = 4;
+      windCtx.stroke();
+
+      // Center Boat Silhouette
+      windCtx.save();
+      windCtx.translate(cx, cy);
+      windCtx.beginPath();
+      windCtx.moveTo(0, -22);
+      windCtx.quadraticCurveTo(10, 0, 8, 20);
+      windCtx.lineTo(-8, 20);
+      windCtx.quadraticCurveTo(-10, 0, 0, -22);
+      windCtx.fillStyle = '#334a70';
+      windCtx.fill();
+      windCtx.restore();
+
+      // Wind Needle
+      const rad = (awaDeg - 90) * (Math.PI / 180);
+      windCtx.save();
+      windCtx.translate(cx, cy);
+      windCtx.rotate(rad + Math.PI / 2);
+
+      // Arrow needle
+      windCtx.beginPath();
+      windCtx.moveTo(0, -r + 10);
+      windCtx.lineTo(6, -r + 26);
+      windCtx.lineTo(-6, -r + 26);
+      windCtx.closePath();
+      windCtx.fillStyle = awaDeg >= 0 ? '#00e676' : '#ff1744';
+      windCtx.fill();
+
+      windCtx.restore();
+
+      // Center readout
+      windCtx.fillStyle = '#ffffff';
+      windCtx.font = '700 16px "JetBrains Mono"';
+      windCtx.textAlign = 'center';
+      windCtx.fillText(awsKt.toFixed(1) + ' kt', cx, cy + 42);
+
+      windCtx.fillStyle = '#94a3b8';
+      windCtx.font = '500 11px "Inter"';
+      windCtx.fillText('AWA: ' + Math.round(awaDeg) + '°', cx, cy + 58);
+    }
+
+    function drawHeelDial(heelDeg, rollRateDegS) {
+      const w = heelCanvas.width;
+      const h = heelCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = w / 2 - 16;
+
+      heelCtx.clearRect(0, 0, w, h);
+
+      // Dial circle
+      heelCtx.beginPath();
+      heelCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      heelCtx.fillStyle = '#0b111c';
+      heelCtx.fill();
+      heelCtx.strokeStyle = '#243552';
+      heelCtx.lineWidth = 2;
+      heelCtx.stroke();
+
+      // Danger arc (> 25 deg)
+      heelCtx.beginPath();
+      heelCtx.arc(cx, cy, r - 4, (-90 + 25) * Math.PI / 180, (-90 + 50) * Math.PI / 180);
+      heelCtx.strokeStyle = 'rgba(255, 23, 68, 0.7)';
+      heelCtx.lineWidth = 6;
+      heelCtx.stroke();
+
+      // Vessel Cross-Section (Tilts with heel)
+      heelCtx.save();
+      heelCtx.translate(cx, cy - 8);
+      heelCtx.rotate(heelDeg * Math.PI / 180);
+
+      // Hull
+      heelCtx.beginPath();
+      heelCtx.moveTo(-36, -8);
+      heelCtx.quadraticCurveTo(0, 26, 36, -8);
+      heelCtx.lineTo(32, -14);
+      heelCtx.lineTo(-32, -14);
+      heelCtx.closePath();
+      heelCtx.fillStyle = '#243552';
+      heelCtx.fill();
+      heelCtx.strokeStyle = '#00e5ff';
+      heelCtx.lineWidth = 2;
+      heelCtx.stroke();
+
+      // Mast
+      heelCtx.beginPath();
+      heelCtx.moveTo(0, -14);
+      heelCtx.lineTo(0, -48);
+      heelCtx.strokeStyle = '#94a3b8';
+      heelCtx.lineWidth = 2;
+      heelCtx.stroke();
+
+      heelCtx.restore();
+
+      // Readouts
+      heelCtx.fillStyle = heelDeg >= 25 ? '#ff5252' : '#ffffff';
+      heelCtx.font = '700 18px "JetBrains Mono"';
+      heelCtx.textAlign = 'center';
+      heelCtx.fillText(heelDeg.toFixed(1) + '°', cx, cy + 42);
+
+      heelCtx.fillStyle = '#94a3b8';
+      heelCtx.font = '500 11px "Inter"';
+      heelCtx.fillText('RATE: +' + rollRateDegS.toFixed(1) + '°/s', cx, cy + 58);
+    }
+
+    // Update UI from Simulation Time
+    function updateUI(tMs) {
+      const sec = (tMs / 1000).toFixed(2);
+      document.getElementById('clock-txt').innerText = 'T = 00:' + (sec < 10 ? '0' : '') + sec;
+      
+      const pct = (tMs / 15000) * 100;
+      document.getElementById('scrub-line').style.left = Math.min(Math.max(pct, 0), 100) + '%';
+
+      // Dynamic variables based on scenario curve
+      let heel = 12.0;
+      let rollRate = 1.0;
+      let tws = 18.0;
+      let aws = 22.0;
+      let awa = 135.0;
+
+      if (tMs >= 2500 && tMs <= 7000) {
+        // Gust & Wave Zone
+        const progress = (tMs - 2500) / 4500;
+        tws = 18.0 + 14.0 * Math.sin(progress * Math.PI);
+        aws = 22.0 + 12.0 * Math.sin(progress * Math.PI);
+        heel = 12.0 + 16.5 * Math.sin(progress * Math.PI);
+        rollRate = 12.4 * Math.cos(progress * Math.PI);
+      }
+
+      document.getElementById('gt-tws').innerText = tws.toFixed(1) + ' kt';
+      document.getElementById('gt-heel').innerText = heel.toFixed(1) + '°';
+      document.getElementById('gt-rollrate').innerText = (rollRate >= 0 ? '+' : '') + rollRate.toFixed(1) + ' °/s';
+
+      drawWindDial(awa, aws);
+      drawHeelDial(heel, Math.abs(rollRate));
+
+      // Decision update
+      const hazardBox = document.getElementById('hazard-box');
+      if (heel >= 25.0) {
+        hazardBox.style.display = 'flex';
+      } else {
+        hazardBox.style.display = 'none';
+      }
+    }
+
+    // Interactive Query Action
+    function selectSailConfig(config) {
+      currentSailConfig = config;
+      document.querySelectorAll('.chip-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText.includes(config));
+      });
+
+      const qStatus = document.getElementById('query-status');
+      const pTitle = document.getElementById('primary-action-title');
+      const pCmd = document.getElementById('primary-command');
+
+      if (config === 'FULL MAIN') {
+        qStatus.innerHTML = '<span style="color: var(--cyan-accent);">✓ Skipper confirmed: FULL MAIN → Recalculated decision.</span>';
+        pTitle.innerText = '1. EASE MAIN (Срочно потравить грот 1.5м)';
+        pCmd.innerText = 'Command: Mainsheet Ease 100% (High priority 0.98)';
+      } else if (config === 'REEF 1' || config === 'REEF 2') {
+        qStatus.innerHTML = '<span style="color: var(--cyan-accent);">✓ Skipper confirmed: ' + config + ' → Recalculated decision.</span>';
+        pTitle.innerText = '1. BEAR AWAY (Увалиться под ветер)';
+        pCmd.innerText = 'Command: Rudder -15.0° (Score 0.95)';
+      } else {
+        qStatus.innerHTML = '<span style="color: var(--cyan-accent);">✓ Skipper confirmed: STORM JIB → Recalculated decision.</span>';
+        pTitle.innerText = '1. HOLD COURSE & TRIM (Штатное удержание)';
+        pCmd.innerText = 'Command: Minimal rudder correction (Score 0.90)';
+      }
+    }
+
+    // Playback buttons
+    document.getElementById('btn-play').addEventListener('click', () => {
+      if (!isPlaying) {
+        isPlaying = true;
+        playInterval = setInterval(() => {
+          simTimeMs += 50;
+          if (simTimeMs > 15000) simTimeMs = 0;
+          updateUI(simTimeMs);
+        }, 50);
+      }
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      isPlaying = false;
+      clearInterval(playInterval);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      isPlaying = false;
+      clearInterval(playInterval);
+      simTimeMs = 0;
+      updateUI(simTimeMs);
+    });
+
+    document.getElementById('btn-step').addEventListener('click', () => {
+      simTimeMs += 10;
+      if (simTimeMs > 15000) simTimeMs = 0;
+      updateUI(simTimeMs);
+    });
+
+    // Timeline Drag / Scrubbing
+    const timelineBox = document.getElementById('timeline-box');
+    timelineBox.addEventListener('click', (e) => {
+      const rect = timelineBox.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(clickX / rect.width, 1));
+      simTimeMs = Math.round(pct * 15000);
+      updateUI(simTimeMs);
+    });
+
+    // Initial Render
+    updateUI(simTimeMs);
+  </script>
+</body>
+</html>
