@@ -452,15 +452,15 @@
 
     .marine-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
     }
 
     .dial-box {
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -883,8 +883,20 @@
             <span class="gt-val" id="gt-heel" style="color: #ff5252;">28.1°</span>
           </div>
           <div class="gt-row">
-            <span class="gt-label">Roll Rate</span>
+            <span class="gt-label">Roll Rate (ω_x)</span>
             <span class="gt-val" id="gt-rollrate">+12.4 °/s</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">True Pitch (Trim)</span>
+            <span class="gt-val" id="gt-pitch">+2.4° (Bow Up)</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">Pitch Rate (ω_y)</span>
+            <span class="gt-val" id="gt-pitchrate">±4.2 °/s</span>
+          </div>
+          <div class="gt-row">
+            <span class="gt-label">Heave Accel (a_z)</span>
+            <span class="gt-val" id="gt-accelz">1.35 g (Slam)</span>
           </div>
           <div class="gt-row">
             <span class="gt-label">True SOG</span>
@@ -907,8 +919,9 @@
             <div>• ODE Integrator: RK4 (dt = 10 ms / 100 Hz)</div>
             <div>• Hydro Righting: GZ(28°) = 0.58 m (Righting 52.4 kNm)</div>
             <div>• Aero Roll Moment: M_aero = 48.6 kNm</div>
+            <div>• Longitudinal Pitch Moment: M_pitch = 18.2 kNm</div>
             <div>• Rudder Lift Coeff: Cl_eff = 0.58 (Ventilation: Active)</div>
-            <div>• Wave Force: F_wave_lat = 14.2 kN (Quartering sea)</div>
+            <div>• Wave Slam Force: F_wave_z = 24.8 kN (Bow impact)</div>
           </div>
         </div>
 
@@ -926,18 +939,24 @@
           </span>
         </div>
 
-        <!-- 2 Dials -->
+        <!-- 3 Dials: Wind, Roll (Heel), Pitch (Trim) -->
         <div class="marine-grid">
           <!-- Wind Dial -->
           <div class="dial-box">
             <div class="dial-title">Wind (AWA / AWS)</div>
-            <canvas id="wind-dial" width="180" height="180"></canvas>
+            <canvas id="wind-dial" width="150" height="150"></canvas>
           </div>
 
-          <!-- Attitude / Heel Inclinometer -->
+          <!-- Roll / Heel Inclinometer (Бортовая качка) -->
           <div class="dial-box">
-            <div class="dial-title">Attitude / Heel (IMU)</div>
-            <canvas id="heel-dial" width="180" height="180"></canvas>
+            <div class="dial-title">Heel / Roll (Борт)</div>
+            <canvas id="heel-dial" width="150" height="150"></canvas>
+          </div>
+
+          <!-- Pitch / Trim Inclinometer (Килевая качка Нос-Корма) -->
+          <div class="dial-box">
+            <div class="dial-title">Pitch / Trim (Нос-Бак)</div>
+            <canvas id="pitch-dial" width="150" height="150"></canvas>
           </div>
         </div>
 
@@ -1110,12 +1129,15 @@
     const heelCanvas = document.getElementById('heel-dial');
     const heelCtx = heelCanvas.getContext('2d');
 
+    const pitchCanvas = document.getElementById('pitch-dial');
+    const pitchCtx = pitchCanvas.getContext('2d');
+
     function drawWindDial(awaDeg, awsKt) {
       const w = windCanvas.width;
       const h = windCanvas.height;
       const cx = w / 2;
       const cy = h / 2;
-      const r = w / 2 - 16;
+      const r = w / 2 - 14;
 
       windCtx.clearRect(0, 0, w, h);
 
@@ -1145,10 +1167,10 @@
       windCtx.save();
       windCtx.translate(cx, cy);
       windCtx.beginPath();
-      windCtx.moveTo(0, -22);
-      windCtx.quadraticCurveTo(10, 0, 8, 20);
-      windCtx.lineTo(-8, 20);
-      windCtx.quadraticCurveTo(-10, 0, 0, -22);
+      windCtx.moveTo(0, -18);
+      windCtx.quadraticCurveTo(8, 0, 6, 16);
+      windCtx.lineTo(-6, 16);
+      windCtx.quadraticCurveTo(-8, 0, 0, -18);
       windCtx.fillStyle = '#334a70';
       windCtx.fill();
       windCtx.restore();
@@ -1160,9 +1182,9 @@
       windCtx.rotate(rad + Math.PI / 2);
 
       windCtx.beginPath();
-      windCtx.moveTo(0, -r + 10);
-      windCtx.lineTo(6, -r + 26);
-      windCtx.lineTo(-6, -r + 26);
+      windCtx.moveTo(0, -r + 8);
+      windCtx.lineTo(5, -r + 22);
+      windCtx.lineTo(-5, -r + 22);
       windCtx.closePath();
       windCtx.fillStyle = awaDeg >= 0 ? '#00e676' : '#ff1744';
       windCtx.fill();
@@ -1170,13 +1192,13 @@
 
       // Center readout
       windCtx.fillStyle = '#ffffff';
-      windCtx.font = '700 16px "JetBrains Mono"';
+      windCtx.font = '700 14px "JetBrains Mono"';
       windCtx.textAlign = 'center';
-      windCtx.fillText(awsKt.toFixed(1) + ' kt', cx, cy + 42);
+      windCtx.fillText(awsKt.toFixed(1) + ' kt', cx, cy + 34);
 
       windCtx.fillStyle = '#94a3b8';
-      windCtx.font = '500 11px "Inter"';
-      windCtx.fillText('AWA: ' + Math.round(awaDeg) + '°', cx, cy + 58);
+      windCtx.font = '500 10px "Inter"';
+      windCtx.fillText('AWA: ' + Math.round(awaDeg) + '°', cx, cy + 48);
     }
 
     function drawHeelDial(heelDeg, rollRateDegS) {
@@ -1184,7 +1206,7 @@
       const h = heelCanvas.height;
       const cx = w / 2;
       const cy = h / 2;
-      const r = w / 2 - 16;
+      const r = w / 2 - 14;
 
       heelCtx.clearRect(0, 0, w, h);
 
@@ -1201,20 +1223,20 @@
       heelCtx.beginPath();
       heelCtx.arc(cx, cy, r - 4, (-90 + 25) * Math.PI / 180, (-90 + 50) * Math.PI / 180);
       heelCtx.strokeStyle = 'rgba(255, 23, 68, 0.7)';
-      heelCtx.lineWidth = 6;
+      heelCtx.lineWidth = 5;
       heelCtx.stroke();
 
       // Vessel Cross-Section (Tilts with heel)
       heelCtx.save();
-      heelCtx.translate(cx, cy - 8);
+      heelCtx.translate(cx, cy - 6);
       heelCtx.rotate(heelDeg * Math.PI / 180);
 
       // Hull
       heelCtx.beginPath();
-      heelCtx.moveTo(-36, -8);
-      heelCtx.quadraticCurveTo(0, 26, 36, -8);
-      heelCtx.lineTo(32, -14);
-      heelCtx.lineTo(-32, -14);
+      heelCtx.moveTo(-28, -6);
+      heelCtx.quadraticCurveTo(0, 20, 28, -6);
+      heelCtx.lineTo(25, -11);
+      heelCtx.lineTo(-25, -11);
       heelCtx.closePath();
       heelCtx.fillStyle = '#243552';
       heelCtx.fill();
@@ -1224,8 +1246,8 @@
 
       // Mast
       heelCtx.beginPath();
-      heelCtx.moveTo(0, -14);
-      heelCtx.lineTo(0, -48);
+      heelCtx.moveTo(0, -11);
+      heelCtx.lineTo(0, -38);
       heelCtx.strokeStyle = '#94a3b8';
       heelCtx.lineWidth = 2;
       heelCtx.stroke();
@@ -1234,13 +1256,93 @@
 
       // Readouts
       heelCtx.fillStyle = heelDeg >= 25 ? '#ff5252' : '#ffffff';
-      heelCtx.font = '700 18px "JetBrains Mono"';
+      heelCtx.font = '700 15px "JetBrains Mono"';
       heelCtx.textAlign = 'center';
-      heelCtx.fillText(heelDeg.toFixed(1) + '°', cx, cy + 42);
+      heelCtx.fillText(heelDeg.toFixed(1) + '°', cx, cy + 34);
 
       heelCtx.fillStyle = '#94a3b8';
-      heelCtx.font = '500 11px "Inter"';
-      heelCtx.fillText('RATE: +' + rollRateDegS.toFixed(1) + '°/s', cx, cy + 58);
+      heelCtx.font = '500 10px "Inter"';
+      heelCtx.fillText('ROLL: +' + rollRateDegS.toFixed(1) + '°/s', cx, cy + 48);
+    }
+
+    // Pitch / Trim (Килевая качка: Нос / Корма)
+    function drawPitchDial(pitchDeg, pitchRateDegS) {
+      const w = pitchCanvas.width;
+      const h = pitchCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = w / 2 - 14;
+
+      pitchCtx.clearRect(0, 0, w, h);
+
+      // Dial circle
+      pitchCtx.beginPath();
+      pitchCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      pitchCtx.fillStyle = '#0b111c';
+      pitchCtx.fill();
+      pitchCtx.strokeStyle = '#243552';
+      pitchCtx.lineWidth = 2;
+      pitchCtx.stroke();
+
+      // Waterline Reference
+      pitchCtx.beginPath();
+      pitchCtx.moveTo(cx - r + 8, cy);
+      pitchCtx.lineTo(cx + r - 8, cy);
+      pitchCtx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+      pitchCtx.setLineDash([3, 3]);
+      pitchCtx.lineWidth = 1;
+      pitchCtx.stroke();
+      pitchCtx.setLineDash([]);
+
+      // Vessel Side Profile (Stern on Left, Bow on Right)
+      pitchCtx.save();
+      pitchCtx.translate(cx, cy - 4);
+      // Pitch rotation: positive = Bow Up (tilt up on right), negative = Bow Down (nose-dive)
+      pitchCtx.rotate(-pitchDeg * Math.PI / 180);
+
+      // Side Hull
+      pitchCtx.beginPath();
+      pitchCtx.moveTo(-32, -4); // Stern
+      pitchCtx.lineTo(-26, 10);
+      pitchCtx.lineTo(16, 10);
+      pitchCtx.lineTo(34, -4);  // Bow
+      pitchCtx.closePath();
+      pitchCtx.fillStyle = '#243552';
+      pitchCtx.fill();
+      pitchCtx.strokeStyle = pitchDeg < -4.0 ? '#ff1744' : '#60a5fa';
+      pitchCtx.lineWidth = 2;
+      pitchCtx.stroke();
+
+      // Keel
+      pitchCtx.beginPath();
+      pitchCtx.moveTo(-4, 10);
+      pitchCtx.lineTo(-2, 22);
+      pitchCtx.lineTo(6, 22);
+      pitchCtx.lineTo(4, 10);
+      pitchCtx.fillStyle = '#334a70';
+      pitchCtx.fill();
+
+      // Mast
+      pitchCtx.beginPath();
+      pitchCtx.moveTo(2, -4);
+      pitchCtx.lineTo(0, -38);
+      pitchCtx.strokeStyle = '#94a3b8';
+      pitchCtx.lineWidth = 2;
+      pitchCtx.stroke();
+
+      pitchCtx.restore();
+
+      // Readouts
+      pitchCtx.fillStyle = Math.abs(pitchDeg) >= 5.0 ? '#ff5252' : '#ffffff';
+      pitchCtx.font = '700 15px "JetBrains Mono"';
+      pitchCtx.textAlign = 'center';
+      const trimText = (pitchDeg >= 0 ? '+' : '') + pitchDeg.toFixed(1) + '°';
+      pitchCtx.fillText(trimText, cx, cy + 34);
+
+      pitchCtx.fillStyle = '#94a3b8';
+      pitchCtx.font = '500 10px "Inter"';
+      const stateTxt = pitchDeg >= 0 ? 'BOW UP (Нос)' : 'BOW DOWN (Бак)';
+      pitchCtx.fillText(stateTxt, cx, cy + 48);
     }
 
     // Timeline Zoom & Layout Update
@@ -1313,6 +1415,9 @@
       // Dynamic variables based on scenario curve
       let heel = 12.0;
       let rollRate = 1.0;
+      let pitch = 1.2;
+      let pitchRate = 0.8;
+      let accelZ = 1.02;
       let tws = 18.0;
       let aws = 22.0;
       let awa = 135.0;
@@ -1326,12 +1431,28 @@
         rollRate = 12.4 * Math.cos(progress * Math.PI);
       }
 
+      // Wave pitch & slam zone (4.0s - 7.3s)
+      if (tMs >= 4000 && tMs <= 7300) {
+        const waveProg = (tMs - 4000) / 3300;
+        pitch = 1.2 + 3.8 * Math.sin(waveProg * Math.PI * 3);
+        pitchRate = 5.6 * Math.cos(waveProg * Math.PI * 3);
+        accelZ = 1.0 + 0.42 * Math.sin(waveProg * Math.PI * 3);
+      } else {
+        pitch = 1.2 + 0.6 * Math.sin(tMs / 800);
+        pitchRate = 0.8 * Math.cos(tMs / 800);
+        accelZ = 1.0 + 0.05 * Math.sin(tMs / 800);
+      }
+
       document.getElementById('gt-tws').innerText = tws.toFixed(1) + ' kt';
       document.getElementById('gt-heel').innerText = heel.toFixed(1) + '°';
       document.getElementById('gt-rollrate').innerText = (rollRate >= 0 ? '+' : '') + rollRate.toFixed(1) + ' °/s';
+      document.getElementById('gt-pitch').innerText = (pitch >= 0 ? '+' : '') + pitch.toFixed(1) + '° (' + (pitch >= 0 ? 'Bow Up' : 'Bow Down') + ')';
+      document.getElementById('gt-pitchrate').innerText = (pitchRate >= 0 ? '+' : '') + pitchRate.toFixed(1) + ' °/s';
+      document.getElementById('gt-accelz').innerText = accelZ.toFixed(2) + ' g' + (accelZ > 1.25 ? ' (Slam)' : '');
 
       drawWindDial(awa, aws);
       drawHeelDial(heel, Math.abs(rollRate));
+      drawPitchDial(pitch, Math.abs(pitchRate));
 
       // Decision update
       const hazardBox = document.getElementById('hazard-box');
