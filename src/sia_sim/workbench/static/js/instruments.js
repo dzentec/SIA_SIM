@@ -495,46 +495,50 @@ const InstrumentRenderer = {
     ctx.strokeStyle = '#1f2d47';
     ctx.stroke();
 
-    // Scale Arc (±20 degrees) on right side
-    const safeArcTop = ((0 - 6) * Math.PI) / 180;
-    const safeArcBottom = ((0 + 6) * Math.PI) / 180;
+    // Scale Arc on right side (-25° to +25°)
+    // Canvas angle: 0 rad is at 3 o'clock. Up is negative angle, Down is positive.
+    // Standard pitch convention: positive pitch (+deg) = Bow Up (needle moves UP)
+    const maxScaleDeg = 20;
 
-    // Safe zone (-6 to +6 deg)
+    // Safe zone (-5 to +5 deg)
+    const radN5 = (-5 * Math.PI) / 180;
+    const radP5 = (5 * Math.PI) / 180;
     ctx.beginPath();
-    ctx.arc(cx, cy, r, -Math.PI / 6, Math.PI / 6);
-    ctx.strokeStyle = 'rgba(0, 230, 118, 0.4)';
+    ctx.arc(cx, cy, r, radN5, radP5);
+    ctx.strokeStyle = 'rgba(0, 230, 118, 0.45)';
     ctx.lineWidth = 6;
     ctx.stroke();
 
-    // Warning zones (±6 to ±12 deg)
+    // Warning zones (±5 to ±12 deg)
     ctx.beginPath();
-    ctx.arc(cx, cy, r, -Math.PI / 3, -Math.PI / 6);
+    ctx.arc(cx, cy, r, (-12 * Math.PI) / 180, radN5);
     ctx.strokeStyle = 'rgba(255, 179, 0, 0.6)';
     ctx.lineWidth = 6;
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(cx, cy, r, Math.PI / 6, Math.PI / 3);
+    ctx.arc(cx, cy, r, radP5, (12 * Math.PI) / 180);
     ctx.strokeStyle = 'rgba(255, 179, 0, 0.6)';
     ctx.lineWidth = 6;
     ctx.stroke();
 
     // Danger zones (> ±12 deg)
     ctx.beginPath();
-    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 3);
+    ctx.arc(cx, cy, r, (-20 * Math.PI) / 180, (-12 * Math.PI) / 180);
     ctx.strokeStyle = 'rgba(255, 23, 68, 0.7)';
     ctx.lineWidth = 6;
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(cx, cy, r, Math.PI / 3, Math.PI / 2);
+    ctx.arc(cx, cy, r, (12 * Math.PI) / 180, (20 * Math.PI) / 180);
     ctx.strokeStyle = 'rgba(255, 23, 68, 0.7)';
     ctx.lineWidth = 6;
     ctx.stroke();
 
-    // Ticks
+    // Ticks & Labels on right scale
     for (let deg = -20; deg <= 20; deg += 5) {
-      const rad = (deg * Math.PI) / 180;
+      // Invert so positive pitch (Bow UP) is in top half
+      const rad = (-deg * Math.PI) / 180;
       const isMajor = deg % 10 === 0;
       const innerR = isMajor ? r - 10 : r - 5;
 
@@ -558,14 +562,16 @@ const InstrumentRenderer = {
         ctx.font = '9px "JetBrains Mono", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(deg.toString(), tx, ty);
+        const prefix = deg > 0 ? '+' : '';
+        ctx.fillText(`${prefix}${deg}`, tx, ty);
       }
     }
 
     // Side Profile Yacht Silhouette (Tilts with Pitch)
     const effectivePitch = (fault || pitchDeg === null) ? 0 : pitchDeg;
-    // Rotate: positive pitch (bow up) tilts right side up / left side down
-    const pitchRad = (-effectivePitch * Math.PI) / 180;
+    // Visual magnification factor for inclinometer clarity
+    const visualPitchDeg = effectivePitch * 2.2;
+    const pitchRad = (-visualPitchDeg * Math.PI) / 180;
 
     ctx.save();
     ctx.translate(cx, cy - 6);
@@ -601,21 +607,57 @@ const InstrumentRenderer = {
     ctx.closePath();
     ctx.fillStyle = '#1e293b';
     ctx.fill();
-    ctx.strokeStyle = Math.abs(effectivePitch) >= 12 ? '#ff1744' : (Math.abs(effectivePitch) >= 6 ? '#ffb300' : '#00e5ff');
+    ctx.strokeStyle = Math.abs(effectivePitch) >= 12 ? '#ff1744' : (Math.abs(effectivePitch) >= 5 ? '#ffb300' : '#00e5ff');
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Waterline reference
+    // Bow indicator dot
     ctx.beginPath();
-    ctx.moveTo(-36, 6);
-    ctx.lineTo(38, 6);
-    ctx.strokeStyle = 'rgba(0, 229, 255, 0.3)';
-    ctx.setLineDash([2, 2]);
+    ctx.arc(32, 2, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#00e5ff';
+    ctx.fill();
+
+    ctx.restore();
+
+    // Fixed Waterline reference
+    ctx.beginPath();
+    ctx.moveTo(cx - 38, cy);
+    ctx.lineTo(cx + 38, cy);
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+    ctx.setLineDash([3, 3]);
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.restore();
+    // Pitch Needle Pointer to Right Scale
+    if (!fault && pitchDeg !== null) {
+      const clampedPitch = Math.max(-20, Math.min(20, pitchDeg));
+      const needleRad = (-clampedPitch * Math.PI) / 180;
+      const needleTipX = cx + Math.cos(needleRad) * (r - 2);
+      const needleTipY = cy + Math.sin(needleRad) * (r - 2);
+      const needleBaseX = cx + Math.cos(needleRad) * 28;
+      const needleBaseY = cy + Math.sin(needleRad) * 28;
+
+      ctx.beginPath();
+      ctx.moveTo(needleBaseX, needleBaseY);
+      ctx.lineTo(needleTipX, needleTipY);
+      ctx.strokeStyle = Math.abs(pitchDeg) >= 12 ? '#ff1744' : (Math.abs(pitchDeg) >= 5 ? '#ffb300' : '#00e5ff');
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Needle Pointer Arrow Head
+      ctx.save();
+      ctx.translate(needleTipX, needleTipY);
+      ctx.rotate(needleRad);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-6, -4);
+      ctx.lineTo(-6, 4);
+      ctx.closePath();
+      ctx.fillStyle = Math.abs(pitchDeg) >= 12 ? '#ff1744' : (Math.abs(pitchDeg) >= 5 ? '#ffb300' : '#00e5ff');
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Digital Readout
     ctx.textAlign = 'center';
@@ -625,9 +667,9 @@ const InstrumentRenderer = {
       ctx.font = 'bold 13px "JetBrains Mono", monospace';
       ctx.fillText('---', cx, cy + 34);
     } else {
-      ctx.fillStyle = Math.abs(pitchDeg) >= 12 ? '#ff1744' : (Math.abs(pitchDeg) >= 6 ? '#ffb300' : '#00e5ff');
+      ctx.fillStyle = Math.abs(pitchDeg) >= 12 ? '#ff1744' : (Math.abs(pitchDeg) >= 5 ? '#ffb300' : '#00e5ff');
       ctx.font = 'bold 14px "JetBrains Mono", monospace';
-      const dir = pitchDeg > 0.1 ? 'BOW UP' : (pitchDeg < -0.1 ? 'BOW DN' : 'LEVEL');
+      const dir = pitchDeg > 0.1 ? '▲ BOW UP' : (pitchDeg < -0.1 ? '▼ BOW DN' : '● LEVEL');
       ctx.fillText(`${Math.abs(pitchDeg).toFixed(1)}° ${dir}`, cx, cy + 34);
     }
   },

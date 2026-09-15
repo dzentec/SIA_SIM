@@ -56,6 +56,7 @@ class VesselDynamics:
             dtype=np.float64,
         )
         self._rudder_angle_deg = 0.0
+        self._time_s = 0.0
 
     @classmethod
     def from_config(cls, config: VesselConfig) -> VesselDynamics:
@@ -78,6 +79,7 @@ class VesselDynamics:
             dtype=np.float64,
         )
         self._rudder_angle_deg = 0.0
+        self._time_s = 0.0
 
     def step(
         self,
@@ -92,8 +94,9 @@ class VesselDynamics:
     ) -> VesselState:
         """Advance dynamics state by dt_s and return immutable VesselState."""
         self._rudder_angle_deg = rudder_deg
+        self._time_s += dt_s
 
-        def derivatives(state: np.ndarray, _t: float) -> np.ndarray:
+        def derivatives(state: np.ndarray, _t: float = 0.0) -> np.ndarray:
             _x, _y, psi, u, v, r, phi, p = state
 
             heading_deg = math.degrees(psi) % 360.0
@@ -186,22 +189,19 @@ class VesselDynamics:
         cog_deg = (heading_deg + drift_deg) % 360.0
 
         # Pitch kinematics derived from wave slope encounter and slamming moments
-        # Wave encounter angle mu
-        wave_dir_rad = math.radians(env.true_wind_angle_deg)  # wave follows wind direction
+        wave_dir_rad = math.radians(env.true_wind_angle_deg)
         mu = wave_dir_rad - psi
         wavelength = max(5.0, (9.80665 * (env.wave_period_s**2)) / (2.0 * math.pi))
         wave_k = (2.0 * math.pi) / wavelength
         omega_0 = (2.0 * math.pi) / max(0.1, env.wave_period_s)
         # Encounter frequency
-        omega_e = abs(omega_0 - wave_k * u * math.cos(mu))
-        # Spatial wave slope pitch component (rad)
-        pitch_wave_amp = 0.5 * wave_k * env.wave_height_m * math.cos(mu)
-        # Time-varying pitch oscillation
-        pitch_wave_deg = (
-            math.degrees(pitch_wave_amp * math.sin(omega_e * (x / max(0.1, sog_m_s))))
-            if sog_m_s > 0.1
-            else 0.0
-        )
+        omega_e = max(0.1, abs(omega_0 - wave_k * u * math.cos(mu)))
+        # Longitudinal wave slope pitch amplitude with 3D sea cross-coupling
+        pitch_wave_amp_rad = 0.5 * wave_k * env.wave_height_m * (0.85 * abs(math.cos(mu)) + 0.15)
+        # Wave pitch angle oscillation
+        phase = omega_e * self._time_s + wave_k * (x * math.cos(psi) + y * math.sin(psi))
+        pitch_wave_deg = math.degrees(pitch_wave_amp_rad * math.sin(phase))
+
         # Wave slam impact induces bow-down pitch moment
         slam_pitch_deg = -3.5 * (wave_impact_force_n / 12000.0) if wave_impact_force_n > 0 else 0.0
         total_pitch_deg = max(-25.0, min(25.0, pitch_wave_deg + slam_pitch_deg))
