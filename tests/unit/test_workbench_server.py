@@ -56,10 +56,11 @@ def test_get_scenarios_endpoint(workbench_server: None) -> None:
     with urlopen(url) as response:
         assert response.status == 200
         data = json.loads(response.read().decode("utf-8"))
-        assert "scenarios" in data
         ids = [s["id"] for s in data["scenarios"]]
-        assert "sim005" in ids
-        assert "benign" in ids
+        assert "cruise" in ids
+        assert "harbour" in ids
+        assert "fresh" in ids
+        assert "gale" in ids
 
 
 def test_run_simulation_endpoint(workbench_server: None) -> None:
