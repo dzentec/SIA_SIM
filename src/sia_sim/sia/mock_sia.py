@@ -61,16 +61,8 @@ class MockSIA(SIACore):
 
         # 2. Extract observable sensor values
         roll = abs(frame.imu.roll_deg) if frame.imu.roll_deg is not None else 0.0
-        roll_rate = (
-            abs(frame.imu.roll_rate_deg_s)
-            if frame.imu.roll_rate_deg_s is not None
-            else 0.0
-        )
-        yaw_rate = (
-            abs(frame.imu.yaw_rate_deg_s)
-            if frame.imu.yaw_rate_deg_s is not None
-            else 0.0
-        )
+        roll_rate = abs(frame.imu.roll_rate_deg_s) if frame.imu.roll_rate_deg_s is not None else 0.0
+        yaw_rate = abs(frame.imu.yaw_rate_deg_s) if frame.imu.yaw_rate_deg_s is not None else 0.0
 
         # 3. L2 Hazard Detection & L3 Risk Assessment
         hazard_id: str | None = None
@@ -81,9 +73,7 @@ class MockSIA(SIACore):
 
         if roll >= self.heel_critical_deg:
             hazard_id = "HAZ-BROACH-PRECURSOR"
-            risk_score = min(
-                1.0, 0.7 + (roll - self.heel_critical_deg) * 0.03 + yaw_rate * 0.02
-            )
+            risk_score = min(1.0, 0.7 + (roll - self.heel_critical_deg) * 0.03 + yaw_rate * 0.02)
             evidence.extend(["HIGH_HEEL", "HIGH_YAW_RATE"])
             note = f"Critical heel ({roll:.1f} deg) with uncommanded yaw round-up; broach onset"
 

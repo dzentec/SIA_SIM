@@ -10,7 +10,7 @@ This roadmap delivers the MVP Milestone (M0–M6) for SIA Simulation: an end-to-
 - [x] **Phase 2: Data Contracts & Validation (M1)** - Strict Pydantic schemas for SensorFrame, GroundTruthFrame, Scenario, and evaluation contracts.
 - [x] **Phase 3: Simplified Deterministic Causal Vessel Dynamics (M2)** - Environmental wind/wave models and simplified deterministic causal vessel dynamics at 100 Hz.
 - [x] **Phase 4: Deterministic Sensor Degradation & Fault Verification (M3)** - Transform ground truth to SensorFrame with deterministic noise, bias, drift, latency, and fault modes.
-- [ ] **Phase 5: SIACore Boundary & Deterministic MockSIA (M4)** - Strict boundary isolation protocol (`SIACore`) and deterministic `MockSIA` with candidate responses and conflict resolution.
+- [x] **Phase 5: SIACore Boundary & Deterministic MockSIA (M4)** - Strict boundary isolation protocol (`SIACore`) and deterministic `MockSIA` with candidate responses and conflict resolution.
 - [ ] **Phase 6: Oracle & Evaluator (M5)** - Independent physical safety oracle and objective PASS/FAIL evaluator.
 - [ ] **Phase 7: Complete End-to-End Pipeline PASS (M6)** - End-to-end integration and automated verification of the complete simulation loop on SIM-005 Broach Precursor.
 
@@ -104,13 +104,13 @@ Plans:
 2. Deterministic `MockSIA` evaluates sensor frames and generates reproducible risk assessments, up to 3 candidate responses, and resolved commands.  
 3. Telemetry and decision traces are recorded synchronously at 100 Hz without ground truth leakage.  
 
-**Plans**: 3 plans  
+**Plans**: 3/3 plans executed  
 
 Plans:
 
-- [ ] 05-01: Define `SIACore` Protocol and strict boundary AST enforcement tests.
-- [ ] 05-02: Implement deterministic `MockSIA` with risk assessment, 3 candidate responses, and conflict resolution.
-- [ ] 05-03: Create run recorder for logging telemetry and decision traces.
+- [x] 05-01: Define `SIACore` Protocol and strict boundary AST enforcement tests.
+- [x] 05-02: Implement deterministic `MockSIA` with risk assessment, 3 candidate responses, and conflict resolution.
+- [x] 05-03: Create run recorder for logging telemetry and decision traces.
 
 ### Phase 6: Oracle & Evaluator (M5)
 

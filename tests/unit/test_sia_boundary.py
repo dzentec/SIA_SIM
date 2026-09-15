@@ -11,7 +11,6 @@ import pytest
 from sia_sim.contracts.data import (
     ActuatorState,
     GPSReading,
-    GroundTruthFrame,
     IMUReading,
     SensorFrame,
     WindReading,
@@ -122,7 +121,7 @@ class TestSIABoundaryProtocol:
         assert len(py_files) > 0, "No python files found in src/sia_sim/sia/"
 
         for py_file in py_files:
-            with open(py_file, "r", encoding="utf-8") as f:
+            with open(py_file, encoding="utf-8") as f:
                 tree = ast.parse(f.read(), filename=str(py_file))
 
             for node in ast.walk(tree):
@@ -140,7 +139,8 @@ class TestSIABoundaryProtocol:
                     )
                     for alias in node.names:
                         assert alias.name not in FORBIDDEN_SYMBOLS, (
-                            f"Illegal symbol import '{alias.name}' from '{mod}' found in {py_file.name}"
+                            f"Illegal symbol import '{alias.name}' from '{mod}' "
+                            f"found in {py_file.name}"
                         )
 
     def test_process_enforces_sensor_frame_type(self) -> None:
