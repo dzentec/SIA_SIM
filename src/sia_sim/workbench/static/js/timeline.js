@@ -377,9 +377,9 @@ const TimelineRenderer = {
       ctx.fillText(`${m}:${s}`, x + 4, 12);
     }
 
-    // Track 1: Custom Events Placement Blocks
-    const trackY1 = 18;
-    const trackH1 = 16;
+    // Track 1: Custom Events Placement Blocks (Height 22px)
+    const trackY1 = 22;
+    const trackH1 = 20;
 
     for (const evt of this.events) {
       const startMs = evt.sim_time_ms;
@@ -412,7 +412,7 @@ const TimelineRenderer = {
       // Rounded event box
       ctx.beginPath();
       if (ctx.roundRect) {
-        ctx.roundRect(x1, trackY1, blockW, trackH1, 3);
+        ctx.roundRect(x1, trackY1, blockW, trackH1, 4);
       } else {
         ctx.rect(x1, trackY1, blockW, trackH1);
       }
@@ -421,20 +421,20 @@ const TimelineRenderer = {
 
       // Drag handles on edges
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x1 + 1, trackY1 + 2, 2, trackH1 - 4);
-      ctx.fillRect(x1 + blockW - 3, trackY1 + 2, 2, trackH1 - 4);
+      ctx.fillRect(x1 + 1, trackY1 + 3, 2, trackH1 - 6);
+      ctx.fillRect(x1 + blockW - 3, trackY1 + 3, 2, trackH1 - 6);
 
       // Label text
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 9px "Inter", sans-serif';
+      ctx.font = 'bold 10px "Inter", sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, x1 + 6, trackY1 + trackH1 / 2);
     }
 
-    // Track 2: SIA Decisions Stream
-    const trackY2 = 38;
-    const trackH2 = 14;
+    // Track 2: SIA Decisions Stream (Height 16px)
+    const trackY2 = 48;
+    const trackH2 = 16;
 
     const startTick = Math.max(0, Math.floor((viewStartMs / this.data.duration_ms) * totalTicks));
     const endTick = Math.min(totalTicks - 1, Math.ceil((viewEndMs / this.data.duration_ms) * totalTicks));
@@ -455,10 +455,10 @@ const TimelineRenderer = {
     ctx.fillStyle = '#94a3b8';
     ctx.font = '8px "Inter", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('SCENARIO EVENTS (DRAG/CLICK)', 6, trackY1 + 11);
-    ctx.fillText('SIA ADVISORY STREAM', 6, trackY2 + 10);
+    ctx.fillText('EVENTS TRACK (DRAG / DOUBLE-CLICK TO EDIT)', 6, trackY1 + 14);
+    ctx.fillText('SIA ADVISORY STREAM', 6, trackY2 + 12);
 
-    // Track 3: True Heel & Safety Envelope Curve
+    // Track 3: True Heel & Safety Envelope Curve (Height 46px, bottom at 116px)
     ctx.beginPath();
     let started = false;
     for (let i = startTick; i <= endTick; i++) {
@@ -466,7 +466,7 @@ const TimelineRenderer = {
       if (!tick) continue;
       const heel = Math.abs(tick.ground_truth.heel_deg);
       const x = timeToX(tick.sim_time_ms);
-      const y = 92 - Math.min(34, (heel / 35.0) * 34);
+      const y = 116 - Math.min(44, (heel / 35.0) * 44);
 
       if (!started) {
         ctx.moveTo(x, y);
@@ -480,11 +480,11 @@ const TimelineRenderer = {
     ctx.stroke();
 
     // Critical Threshold Line at 25 deg (Knockdown Alert)
-    const critY = 92 - (25.0 / 35.0) * 34;
+    const critY = 116 - (25.0 / 35.0) * 44;
     ctx.beginPath();
     ctx.moveTo(0, critY);
     ctx.lineTo(w, critY);
-    ctx.strokeStyle = 'rgba(255, 23, 68, 0.5)';
+    ctx.strokeStyle = 'rgba(255, 23, 68, 0.55)';
     ctx.setLineDash([4, 4]);
     ctx.lineWidth = 1;
     ctx.stroke();

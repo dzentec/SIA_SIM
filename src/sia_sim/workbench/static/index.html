@@ -18,43 +18,7 @@
         <span class="logo-icon">⚓</span>
         <span class="logo-title">SIA WORKBENCH</span>
       </div>
-      <div class="preset-selector-group">
-        <label for="scenarioSelect" class="control-label">WORLD PRESET:</label>
-        <select id="scenarioSelect" class="select-dropdown">
-          <option value="cruise" selected>2. Coastal Cruise (TWS 13kt | Wave 1.0m)</option>
-          <option value="harbour">1. Calm Harbour (TWS 4kt | Wave 0.2m)</option>
-          <option value="fresh">3. Fresh Breeze (TWS 21kt | Wave 2.1m)</option>
-          <option value="gale">4. Gale / Broach (TWS 28kt | Wave 3.2m)</option>
-          <option value="sim005">SIM-005 Benchmark (Default Gust + Slam)</option>
-        </select>
-        <button id="btnCustomWorld" class="btn btn-tool" title="Edit background wind, waves and boat state">⚙️ Custom Sea</button>
-      </div>
-      <div class="imu-rate-group">
-        <label for="imuRateSelect" class="control-label">IMU RATE:</label>
-        <select id="imuRateSelect" class="select-dropdown">
-          <option value="100" selected>100 Hz (MCU Raw)</option>
-          <option value="50">50 Hz (RS-485)</option>
-          <option value="10">10 Hz (Wireless RF)</option>
-          <option value="20">20 Hz</option>
-        </select>
-      </div>
-      <div class="damping-group">
-        <label for="dampingSelect" class="control-label">DIAL DAMPING:</label>
-        <select id="dampingSelect" class="select-dropdown">
-          <option value="normal" selected>Normal (0.35s B&G)</option>
-          <option value="heavy">Heavy (0.75s)</option>
-          <option value="none">Off (Direct Raw)</option>
-        </select>
-      </div>
-      <div class="duration-input-group">
-        <label for="durationInput" class="control-label">DURATION:</label>
-        <input type="number" id="durationInput" class="input-number" value="20" min="5" max="120" step="5">
-        <span class="input-unit">s</span>
-      </div>
-      <div class="seed-input-group">
-        <label for="seedInput" class="control-label">SEED:</label>
-        <input type="number" id="seedInput" class="input-number" value="42" min="1" max="99999">
-      </div>
+      <div class="header-sub-tag">MARINE SAFETY & CAUSAL STUDIO</div>
     </div>
 
     <div class="header-center">
@@ -101,7 +65,7 @@
           <button id="toolAddGust" class="btn btn-tool btn-timeline-tool" data-tool="wind_gust" title="Click to add Wind Gust">💨 + Gust</button>
           <button id="toolAddSlam" class="btn btn-tool btn-timeline-tool" data-tool="wave_impact" title="Click to add Wave Impact / Slam">🌊 + Wave Slam</button>
           <button id="toolAddFault" class="btn btn-tool btn-timeline-tool" data-tool="sensor_fault" title="Click to add Sensor Fault">⚡ + Fault</button>
-          <button id="btnResetEvents" class="btn btn-tool" title="Reset events to default scenario">↺ Reset Events</button>
+          <button id="btnResetEvents" class="btn btn-tool" title="Reset events to clean sea">↺ Reset Events</button>
           <button id="btnClearTimeline" class="btn btn-tool highlight-warning" title="Clear all events: Pure Living Sea Background without anomalies">🗑️ Clear (Pure Sea)</button>
         </div>
       </div>
@@ -115,7 +79,7 @@
     </div>
 
     <div class="timeline-canvas-container" id="timelineContainer">
-      <canvas id="timelineCanvas" width="1600" height="96"></canvas>
+      <canvas id="timelineCanvas" width="1600" height="120"></canvas>
       <div class="timeline-cursor" id="timelineCursor">
         <div class="timeline-handle" id="timelineHandle" title="Перетащите ползунок для перемотки симуляции">
           <div class="handle-grip"></div>
@@ -127,181 +91,263 @@
   <!-- MAIN 3-COLUMN CORE -->
   <main class="main-core">
 
-    <!-- ZONE 2: GROUND TRUTH LAB TERMINAL -->
-    <section class="zone-card zone-ground-truth" id="zoneGroundTruth">
-      <div class="card-header">
-        <div class="header-title-group">
-          <span class="zone-badge badge-ground-truth">● SIMULATION ONLY — NOT AVAILABLE TO SIA</span>
-          <h2 class="card-title">GROUND TRUTH PHYSICS</h2>
+    <!-- COLUMN 1: WORLD ENVIRONMENT PRESET & GROUND TRUTH PHYSICS -->
+    <div class="core-col core-col-left">
+
+      <!-- BLOCK 1: WORLD PRESET & SIMULATION SETTINGS (OVER GROUND TRUTH) -->
+      <section class="zone-card zone-world-preset" id="zoneWorldPreset">
+        <div class="card-header">
+          <div class="header-title-group">
+            <span class="zone-badge badge-world">● LIVING SEA ENVIRONMENT</span>
+            <h2 class="card-title">WORLD PRESET & CONFIG</h2>
+          </div>
+          <button id="btnCustomWorld" class="btn btn-tool btn-custom-sea" title="Edit background wind, waves and boat state">⚙️ Custom Sea</button>
         </div>
-        <span class="physics-state-tag" id="gtStateTag">HYDRO: NOMINAL</span>
-      </div>
-      <div class="card-content terminal-content">
-        <div class="terminal-grid">
-          <div class="term-row">
-            <span class="term-label">TRUE WIND SPEED (TWS)</span>
-            <span class="term-val" id="gtTws">15.00 <span class="term-unit">kt</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">TRUE WIND DIR (TWD)</span>
-            <span class="term-val" id="gtTwd">000.0 <span class="term-unit">°</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">WAVE ELEVATION (Z)</span>
-            <span class="term-val" id="gtWave">0.00 <span class="term-unit">m</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">HEAVE DISPLACEMENT</span>
-            <span class="term-val" id="gtHeave">0.00 <span class="term-unit">m</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">SLAM IMPACT FORCE</span>
-            <span class="term-val highlight-danger" id="gtSlamForce">0.0 <span class="term-unit">kN</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">TRUE HEEL (ROLL)</span>
-            <span class="term-val" id="gtHeel">-15.00 <span class="term-unit">°</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">TRUE PITCH ANGLE</span>
-            <span class="term-val" id="gtPitch">0.00 <span class="term-unit">°</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">VESSEL HEADING (YAW)</span>
-            <span class="term-val" id="gtYaw">065.0 <span class="term-unit">°</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">TRUE SPEED (SOG)</span>
-            <span class="term-val" id="gtSog">5.00 <span class="term-unit">kt</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">PHYSICAL RUDDER</span>
-            <span class="term-val" id="gtRudder">0.0 <span class="term-unit">°</span></span>
-          </div>
-          <div class="term-row">
-            <span class="term-label">RUDDER HYDRO LOSS</span>
-            <span class="term-val" id="gtHydroLoss">0 %</span>
-          </div>
-        </div>
-
-        <div class="terminal-raw-trace" id="terminalTrace">
-          <div class="trace-header">ACTIVE WORLD EVENTS:</div>
-          <div class="trace-line" id="gtActiveEvents">NONE</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ZONE 3: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
-    <section class="zone-card zone-sensor-view" id="zoneSensorView">
-      <div class="card-header">
-        <div class="header-title-group">
-          <span class="zone-badge badge-sensor-frame">● SENSOR FRAME — OBSERVED BY SIA</span>
-          <h2 class="card-title">MARINE CONSOLE INSTRUMENTS (6 DIALS)</h2>
-        </div>
-        <div class="sensor-health-bar" id="sensorHealthBar">
-          <span class="health-chip chip-ok" id="chipImu">IMU: OK</span>
-          <span class="health-chip chip-ok" id="chipGps">GPS: OK</span>
-          <span class="health-chip chip-ok" id="chipWind">WIND: OK</span>
-        </div>
-      </div>
-      <div class="card-content marine-content">
-        <div class="dials-grid-6">
-          <!-- 1. AWA / AWS Wind Dial -->
-          <div class="dial-card">
-            <div class="dial-title">APPARENT WIND (AWA / AWS)</div>
-            <div class="canvas-wrapper">
-              <canvas id="dialWindCanvas" width="200" height="200"></canvas>
-            </div>
-            <div class="dial-footer" id="windDialFooter">
-              <span class="dial-footer-label">AWS:</span>
-              <span class="dial-footer-val" id="valAws">17.2 <span class="unit">kt</span></span>
-            </div>
+        <div class="card-content world-preset-content">
+          <div class="form-row-preset">
+            <label for="scenarioSelect" class="preset-label">PRESET:</label>
+            <select id="scenarioSelect" class="select-dropdown full-width">
+              <option value="cruise" selected>2. Coastal Cruise (13kt | 1.0m)</option>
+              <option value="harbour">1. Calm Harbour (4kt | 0.2m)</option>
+              <option value="fresh">3. Fresh Breeze (21kt | 2.1m)</option>
+              <option value="gale">4. Gale / Broach (28kt | 3.2m)</option>
+              <option value="sim005">SIM-005 Benchmark</option>
+            </select>
           </div>
 
-          <!-- 2. Heel Inclinometer (Roll) -->
-          <div class="dial-card">
-            <div class="dial-title">HEEL INCLINOMETER (ROLL)</div>
-            <div class="canvas-wrapper">
-              <canvas id="dialHeelCanvas" width="200" height="200"></canvas>
+          <div class="preset-controls-grid">
+            <div class="control-item">
+              <label for="imuRateSelect" class="control-sublabel">IMU RATE:</label>
+              <select id="imuRateSelect" class="select-dropdown compact-select">
+                <option value="100" selected>100 Hz (MCU)</option>
+                <option value="50">50 Hz (RS485)</option>
+                <option value="20">20 Hz</option>
+                <option value="10">10 Hz (RF)</option>
+              </select>
             </div>
-            <div class="dial-footer" id="heelDialFooter">
-              <span class="dial-footer-label">HEEL:</span>
-              <span class="dial-footer-val" id="valHeel">-15.2 <span class="unit">°</span></span>
+            <div class="control-item">
+              <label for="dampingSelect" class="control-sublabel">DAMPING:</label>
+              <select id="dampingSelect" class="select-dropdown compact-select">
+                <option value="normal" selected>Normal (0.35s)</option>
+                <option value="heavy">Heavy (0.75s)</option>
+                <option value="none">Off (Raw)</option>
+              </select>
             </div>
-          </div>
-
-          <!-- 3. Pitch Inclinometer / Trim (Килевая качка) -->
-          <div class="dial-card">
-            <div class="dial-title">PITCH / TRIM (КИЛЕВАЯ КАЧКА)</div>
-            <div class="canvas-wrapper">
-              <canvas id="dialPitchCanvas" width="200" height="200"></canvas>
+            <div class="control-item">
+              <label for="durationInput" class="control-sublabel">DURATION:</label>
+              <div class="input-with-unit">
+                <input type="number" id="durationInput" class="input-number compact-input" value="20" min="5" max="120" step="5">
+                <span class="input-unit">s</span>
+              </div>
             </div>
-            <div class="dial-footer" id="pitchDialFooter">
-              <span class="dial-footer-label">PITCH:</span>
-              <span class="dial-footer-val" id="valPitch">0.0 <span class="unit">°</span></span>
-            </div>
-          </div>
-
-          <!-- 4. Navigation (SOG / COG) -->
-          <div class="dial-card">
-            <div class="dial-title">NAVIGATION (SOG / COG)</div>
-            <div class="canvas-wrapper">
-              <canvas id="dialNavCanvas" width="200" height="200"></canvas>
-            </div>
-            <div class="dial-footer" id="navDialFooter">
-              <span class="dial-footer-label">SOG:</span>
-              <span class="dial-footer-val" id="valSog">5.1 <span class="unit">kt</span></span>
-            </div>
-          </div>
-
-          <!-- 5. Heave & Vertical Accel (Вертикальная качка) -->
-          <div class="dial-card">
-            <div class="dial-title">HEAVE & ACCEL AZ (ВЕРТИКАЛЬНАЯ)</div>
-            <div class="canvas-wrapper">
-              <canvas id="dialHeaveCanvas" width="200" height="200"></canvas>
-            </div>
-            <div class="dial-footer" id="heaveDialFooter">
-              <span class="dial-footer-label">AZ:</span>
-              <span class="dial-footer-val" id="valHeaveAccel">1.00 <span class="unit">g</span></span>
-            </div>
-          </div>
-
-          <!-- 6. Slamming & Hull Shock Meter (Слеминг) -->
-          <div class="dial-card" id="cardSlamming">
-            <div class="dial-title">SLAM IMPACT SHOCK (СЛЕМИНГ)</div>
-            <div class="canvas-wrapper">
-              <canvas id="dialSlamCanvas" width="200" height="200"></canvas>
-            </div>
-            <div class="dial-footer" id="slamDialFooter">
-              <span class="dial-footer-label">IMPACT:</span>
-              <span class="dial-footer-val" id="valSlamForce">0.0 <span class="unit">kN</span></span>
+            <div class="control-item">
+              <label for="seedInput" class="control-sublabel">SEED:</label>
+              <input type="number" id="seedInput" class="input-number compact-input" value="42" min="1" max="99999">
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="sensor-readings-strip">
-          <div class="strip-item">
-            <span class="strip-lbl">PITCH RATE</span>
-            <span class="strip-val" id="valPitchRate">0.0 °/s</span>
+      <!-- BLOCK 2: GROUND TRUTH LAB TERMINAL -->
+      <section class="zone-card zone-ground-truth" id="zoneGroundTruth">
+        <div class="card-header">
+          <div class="header-title-group">
+            <span class="zone-badge badge-ground-truth">● SIMULATION ONLY — NOT AVAILABLE TO SIA</span>
+            <h2 class="card-title">GROUND TRUTH PHYSICS</h2>
           </div>
-          <div class="strip-item">
-            <span class="strip-lbl">YAW RATE</span>
-            <span class="strip-val" id="valYawRate">0.0 °/s</span>
+          <span class="physics-state-tag" id="gtStateTag">HYDRO: NOMINAL</span>
+        </div>
+        <div class="card-content terminal-content">
+          <div class="terminal-grid">
+            <div class="term-row">
+              <span class="term-label">TRUE WIND SPEED (TWS)</span>
+              <span class="term-val" id="gtTws">15.00 <span class="term-unit">kt</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">TRUE WIND DIR (TWD)</span>
+              <span class="term-val" id="gtTwd">000.0 <span class="term-unit">°</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">WAVE ELEVATION (Z)</span>
+              <span class="term-val" id="gtWave">0.00 <span class="term-unit">m</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">HEAVE DISPLACEMENT</span>
+              <span class="term-val" id="gtHeave">0.00 <span class="term-unit">m</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">SLAM IMPACT FORCE</span>
+              <span class="term-val highlight-danger" id="gtSlamForce">0.0 <span class="term-unit">kN</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">TRUE HEEL (ROLL)</span>
+              <span class="term-val" id="gtHeel">-15.00 <span class="term-unit">°</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">TRUE PITCH ANGLE</span>
+              <span class="term-val" id="gtPitch">0.00 <span class="term-unit">°</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">VESSEL HEADING (YAW)</span>
+              <span class="term-val" id="gtYaw">065.0 <span class="term-unit">°</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">TRUE SPEED (SOG)</span>
+              <span class="term-val" id="gtSog">5.00 <span class="term-unit">kt</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">PHYSICAL RUDDER</span>
+              <span class="term-val" id="gtRudder">0.0 <span class="term-unit">°</span></span>
+            </div>
+            <div class="term-row">
+              <span class="term-label">RUDDER HYDRO LOSS</span>
+              <span class="term-val" id="gtHydroLoss">0 %</span>
+            </div>
           </div>
-          <div class="strip-item">
-            <span class="strip-lbl">RUDDER ANGLE</span>
-            <span class="strip-val" id="valRudderSensor">0.0 °</span>
-          </div>
-          <div class="strip-item">
-            <span class="strip-lbl">MAINSAIL TRIM</span>
-            <span class="strip-val" id="valSailSensor">UNKNOWN</span>
+
+          <div class="terminal-raw-trace" id="terminalTrace">
+            <div class="trace-header">ACTIVE WORLD EVENTS:</div>
+            <div class="trace-line" id="gtActiveEvents">NONE</div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
-    <!-- ZONE 4: SIA ADVISORY & REASONING -->
-    <section class="zone-card zone-sia-advisory" id="zoneSiaAdvisory">
+    <!-- COLUMN 2: SKIPPER QUERY LOOP & 6-DIAL MARINE CONSOLE -->
+    <div class="core-col core-col-center">
+
+      <!-- BLOCK 3: SKIPPER INTERACTIVE QUERY LOOP (ABOVE INSTRUMENTS, MATCHING WIDTH) -->
+      <section class="zone-card zone-query-loop-card" id="zoneQueryLoop">
+        <div class="query-loop-container">
+          <div class="query-prompt-icon">💡</div>
+          <div class="query-body">
+            <div class="query-title">SKIPPER INTERACTIVE QUERY LOOP</div>
+            <div class="query-prompt-text" id="queryPromptText">
+              SIA Core: "Sensor telemetry detects high heel under wind gusts. Confirm current sail configuration to refine advisory action:"
+            </div>
+          </div>
+          <div class="query-actions-grid" id="queryActionsGrid">
+            <button class="btn-query-chip" data-sail="FULL_MAIN">[ FULL MAIN ]</button>
+            <button class="btn-query-chip active" data-sail="REEF_1">[ REEF 1 ]</button>
+            <button class="btn-query-chip" data-sail="REEF_2">[ REEF 2 ]</button>
+            <button class="btn-query-chip" data-sail="STORM_JIB">[ STORM JIB ONLY ]</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOCK 4: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
+      <section class="zone-card zone-sensor-view" id="zoneSensorView">
+        <div class="card-header">
+          <div class="header-title-group">
+            <span class="zone-badge badge-sensor-frame">● SENSOR FRAME — OBSERVED BY SIA</span>
+            <h2 class="card-title">MARINE CONSOLE INSTRUMENTS (6 DIALS)</h2>
+          </div>
+          <div class="sensor-health-bar" id="sensorHealthBar">
+            <span class="health-chip chip-ok" id="chipImu">IMU: OK</span>
+            <span class="health-chip chip-ok" id="chipGps">GPS: OK</span>
+            <span class="health-chip chip-ok" id="chipWind">WIND: OK</span>
+          </div>
+        </div>
+        <div class="card-content marine-content">
+          <div class="dials-grid-6">
+            <!-- 1. AWA / AWS Wind Dial -->
+            <div class="dial-card">
+              <div class="dial-title">APPARENT WIND (AWA / AWS)</div>
+              <div class="canvas-wrapper">
+                <canvas id="dialWindCanvas" width="200" height="200"></canvas>
+              </div>
+              <div class="dial-footer" id="windDialFooter">
+                <span class="dial-footer-label">AWS:</span>
+                <span class="dial-footer-val" id="valAws">17.2 <span class="unit">kt</span></span>
+              </div>
+            </div>
+
+            <!-- 2. Heel Inclinometer (Roll) -->
+            <div class="dial-card">
+              <div class="dial-title">HEEL INCLINOMETER (ROLL)</div>
+              <div class="canvas-wrapper">
+                <canvas id="dialHeelCanvas" width="200" height="200"></canvas>
+              </div>
+              <div class="dial-footer" id="heelDialFooter">
+                <span class="dial-footer-label">HEEL:</span>
+                <span class="dial-footer-val" id="valHeel">-15.2 <span class="unit">°</span></span>
+              </div>
+            </div>
+
+            <!-- 3. Pitch Inclinometer / Trim (Килевая качка) -->
+            <div class="dial-card">
+              <div class="dial-title">PITCH / TRIM (КИЛЕВАЯ КАЧКА)</div>
+              <div class="canvas-wrapper">
+                <canvas id="dialPitchCanvas" width="200" height="200"></canvas>
+              </div>
+              <div class="dial-footer" id="pitchDialFooter">
+                <span class="dial-footer-label">PITCH:</span>
+                <span class="dial-footer-val" id="valPitch">0.0 <span class="unit">°</span></span>
+              </div>
+            </div>
+
+            <!-- 4. Navigation (SOG / COG) -->
+            <div class="dial-card">
+              <div class="dial-title">NAVIGATION (SOG / COG)</div>
+              <div class="canvas-wrapper">
+                <canvas id="dialNavCanvas" width="200" height="200"></canvas>
+              </div>
+              <div class="dial-footer" id="navDialFooter">
+                <span class="dial-footer-label">SOG:</span>
+                <span class="dial-footer-val" id="valSog">5.1 <span class="unit">kt</span></span>
+              </div>
+            </div>
+
+            <!-- 5. Heave & Vertical Accel (Вертикальная качка) -->
+            <div class="dial-card">
+              <div class="dial-title">HEAVE & ACCEL AZ (ВЕРТИКАЛЬНАЯ)</div>
+              <div class="canvas-wrapper">
+                <canvas id="dialHeaveCanvas" width="200" height="200"></canvas>
+              </div>
+              <div class="dial-footer" id="heaveDialFooter">
+                <span class="dial-footer-label">AZ:</span>
+                <span class="dial-footer-val" id="valHeaveAccel">1.00 <span class="unit">g</span></span>
+              </div>
+            </div>
+
+            <!-- 6. Slamming & Hull Shock Meter (Слеминг) -->
+            <div class="dial-card" id="cardSlamming">
+              <div class="dial-title">SLAM IMPACT SHOCK (СЛЕМИНГ)</div>
+              <div class="canvas-wrapper">
+                <canvas id="dialSlamCanvas" width="200" height="200"></canvas>
+              </div>
+              <div class="dial-footer" id="slamDialFooter">
+                <span class="dial-footer-label">IMPACT:</span>
+                <span class="dial-footer-val" id="valSlamForce">0.0 <span class="unit">kN</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sensor-readings-strip">
+            <div class="strip-item">
+              <span class="strip-lbl">PITCH RATE</span>
+              <span class="strip-val" id="valPitchRate">0.0 °/s</span>
+            </div>
+            <div class="strip-item">
+              <span class="strip-lbl">YAW RATE</span>
+              <span class="strip-val" id="valYawRate">0.0 °/s</span>
+            </div>
+            <div class="strip-item">
+              <span class="strip-lbl">RUDDER ANGLE</span>
+              <span class="strip-val" id="valRudderSensor">0.0 °</span>
+            </div>
+            <div class="strip-item">
+              <span class="strip-lbl">MAINSAIL TRIM</span>
+              <span class="strip-val" id="valSailSensor">UNKNOWN</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- COLUMN 3: SIA ADVISORY & REASONING -->
+    <div class="core-col core-col-right">
+      <section class="zone-card zone-sia-advisory" id="zoneSiaAdvisory">
       <div class="card-header">
         <div class="header-title-group">
           <span class="zone-badge badge-sia">● SIA CORE ADVISORY ENGINE</span>
@@ -360,27 +406,9 @@
         </div>
       </div>
     </section>
+  </div>
 
   </main>
-
-  <!-- ZONE 5: INTERACTIVE QUERY LOOP (SKIPPER IN THE LOOP) -->
-  <section class="zone-query-loop" id="zoneQueryLoop">
-    <div class="query-loop-container">
-      <div class="query-prompt-icon">💡</div>
-      <div class="query-body">
-        <div class="query-title">SKIPPER INTERACTIVE QUERY LOOP</div>
-        <div class="query-prompt-text" id="queryPromptText">
-          SIA Core: "Sensor telemetry detects high heel under wind gusts. Confirm current sail configuration to refine advisory action:"
-        </div>
-      </div>
-      <div class="query-actions-grid" id="queryActionsGrid">
-        <button class="btn-query-chip" data-sail="FULL_MAIN">[ FULL MAIN ]</button>
-        <button class="btn-query-chip active" data-sail="REEF_1">[ REEF 1 ]</button>
-        <button class="btn-query-chip" data-sail="REEF_2">[ REEF 2 ]</button>
-        <button class="btn-query-chip" data-sail="STORM_JIB">[ STORM JIB ONLY ]</button>
-      </div>
-    </div>
-  </section>
 
   <!-- FOOTER: ORACLE & EVALUATOR STATUS -->
   <footer class="footer-bar" id="footerBar">
