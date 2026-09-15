@@ -10,17 +10,18 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 import uvicorn
 
+from sia_sim.contracts.data import GroundTruthFrame
 from sia_sim.contracts.scenario import Scenario, ScenarioEvent, VesselConfig
 from sia_sim.physics.dynamics import VesselDynamics
 from sia_sim.physics.world import WorldModel
 from sia_sim.sensors.pipeline import SensorPipeline
-from sia_sim.sia.mock import MockSIA
+from sia_sim.sia.mock_sia import MockSIA
 
 logger = logging.getLogger("sia_sim.web")
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +30,8 @@ logging.basicConfig(level=logging.INFO)
 HTML_PATH = Path(__file__).parents[3] / ".planning" / "sketches" / "sia-simulation-workbench" / "index.html"
 
 app = FastAPI(title="SIA Simulation Workbench API")
+
+MS_TO_KT = 1.943844
 
 
 def get_default_scenario(scenario_id: str = "SIM-005") -> Scenario:
@@ -144,13 +147,11 @@ class SimulationRunner:
         self.world = WorldModel.from_scenario(self.scenario)
         self.world.apply_events(self.scenario.events)
         self.dynamics = VesselDynamics.from_config(self.scenario.vessel)
-        self.sensor_pipeline = SensorPipeline(
-            seed=self.scenario.seed,
-            vessel_loa_m=self.scenario.vessel.loa_m,
-        )
+        self.sensor_pipeline = SensorPipeline(master_seed=self.scenario.seed)
         self.sia = MockSIA()
 
         self.sim_time_ms = 0
+        self.sequence_number = 0
         self.is_playing = False
         self.sim_speed = 1.0
         self.rudder_deg = 0.0
@@ -167,6 +168,7 @@ class SimulationRunner:
         self.sensor_pipeline.reset()
         self.sia.reset()
         self.sim_time_ms = 0
+        self.sequence_number = 0
         self.rudder_deg = 0.0
         self.mainsheet_pct = 100.0
 
@@ -176,10 +178,8 @@ class SimulationRunner:
         env = self.world.step(self.sim_time_ms)
         wave_f, wave_rm, wave_ym = self.world.wave.evaluate_impact(self.sim_time_ms)
 
-        active_event_ids = self.world.active_event_ids(self.sim_time_ms)
-
-        # 1. Physics Step -> GroundTruthFrame
-        gt_frame = self.dynamics.step(
+        # 1. Physics Step -> VesselState
+        vessel_state = self.dynamics.step(
             dt_s=dt_s,
             env=env,
             rudder_deg=self.rudder_deg,
@@ -189,42 +189,52 @@ class SimulationRunner:
             wave_impact_yaw_moment_nm=wave_ym,
         )
 
-        # 2. Sensor Degradation Pipeline -> SensorFrame
-        sensor_frame = self.sensor_pipeline.synthesize(
-            ground_truth=gt_frame,
+        # 2. Construct GroundTruthFrame
+        gt_frame = GroundTruthFrame(
+            sim_time_ms=self.sim_time_ms,
+            vessel=vessel_state,
             environment=env,
-            active_events=active_event_ids,
+            sequence_number=self.sequence_number,
+            active_event_ids=(),
         )
 
-        # 3. SIA Decision Layer -> DecisionPayload
+        # 3. Sensor Degradation Pipeline -> SensorFrame
+        sensor_frame = self.sensor_pipeline.process(gt_frame)
+
+        # 4. SIA Decision Layer -> DecisionPayload
         decision = self.sia.process(sensor_frame)
 
-        # Increment simulation clock
+        # Update and increment clock
+        current_time_ms = self.sim_time_ms
         self.sim_time_ms += 10
+        self.sequence_number += 1
         if self.sim_time_ms > self.total_duration_ms:
             self.sim_time_ms = 0
 
+        tws_kt = env.true_wind_speed_m_s * MS_TO_KT
+        sog_kt = vessel_state.sog_m_s * MS_TO_KT
+
         return {
             "type": "SIM_TICK",
-            "sim_time_ms": gt_frame.sim_time_ms,
+            "sim_time_ms": current_time_ms,
             "total_duration_ms": self.total_duration_ms,
             "is_playing": self.is_playing,
             "ground_truth": {
-                "tws_kt": env.wind.tws_kt,
-                "twd_deg": env.wind.twd_deg,
-                "wave_height_m": env.wave.wave_height_m,
-                "wave_period_s": env.wave.wave_period_s,
-                "heel_deg": gt_frame.attitude.roll_deg,
-                "roll_rate_deg_s": gt_frame.attitude.roll_rate_deg_s,
-                "pitch_deg": gt_frame.attitude.pitch_deg,
-                "pitch_rate_deg_s": gt_frame.attitude.pitch_rate_deg_s,
-                "yaw_deg": gt_frame.attitude.yaw_deg,
-                "yaw_rate_deg_s": gt_frame.attitude.yaw_rate_deg_s,
-                "sog_kt": gt_frame.velocity.sog_kt,
-                "cog_deg": gt_frame.velocity.cog_deg,
-                "accel_z_g": gt_frame.attitude.accel_z_g if hasattr(gt_frame.attitude, "accel_z_g") else 1.0,
-                "rudder_deg": gt_frame.actuators.rudder_deg,
-                "active_events": list(active_event_ids),
+                "tws_kt": tws_kt,
+                "twd_deg": env.true_wind_angle_deg,
+                "wave_height_m": env.wave_height_m,
+                "wave_period_s": env.wave_period_s,
+                "heel_deg": vessel_state.heel_deg,
+                "roll_rate_deg_s": vessel_state.roll_rate_deg_s,
+                "pitch_deg": vessel_state.pitch_deg,
+                "pitch_rate_deg_s": 0.0,
+                "yaw_deg": vessel_state.heading_deg,
+                "yaw_rate_deg_s": vessel_state.yaw_rate_deg_s,
+                "sog_kt": sog_kt,
+                "cog_deg": vessel_state.cog_deg,
+                "accel_z_g": 1.0,
+                "rudder_deg": vessel_state.rudder_angle_deg,
+                "active_events": [],
             },
             "sensor_frame": {
                 "imu": {
@@ -232,27 +242,27 @@ class SimulationRunner:
                     "roll_rate_deg_s": sensor_frame.imu.roll_rate_deg_s if sensor_frame.imu else None,
                     "pitch_deg": sensor_frame.imu.pitch_deg if sensor_frame.imu else None,
                     "pitch_rate_deg_s": sensor_frame.imu.pitch_rate_deg_s if sensor_frame.imu else None,
-                    "yaw_deg": sensor_frame.imu.yaw_deg if sensor_frame.imu else None,
                     "yaw_rate_deg_s": sensor_frame.imu.yaw_rate_deg_s if sensor_frame.imu else None,
                 },
                 "gps": {
                     "sog_kt": sensor_frame.gps.sog_kt if sensor_frame.gps else None,
                     "cog_deg": sensor_frame.gps.cog_deg if sensor_frame.gps else None,
-                    "fix_quality": sensor_frame.gps.fix_quality if sensor_frame.gps else None,
+                    "hdop": sensor_frame.gps.hdop if sensor_frame.gps else None,
                 },
                 "wind": {
-                    "awa_deg": sensor_frame.wind.awa_deg if sensor_frame.wind else None,
-                    "aws_kt": sensor_frame.wind.aws_kt if sensor_frame.wind else None,
+                    "awa_deg": sensor_frame.wind.apparent_wind_angle_deg if sensor_frame.wind else None,
+                    "aws_kt": sensor_frame.wind.apparent_wind_speed_kt if sensor_frame.wind else None,
                 },
                 "actuators": {
                     "rudder_angle_deg": sensor_frame.actuators.rudder_angle_deg if sensor_frame.actuators else None,
                 },
             },
             "decision": {
-                "confidence": decision.confidence,
-                "primary_action": decision.primary_action.action_type.value if decision.primary_action else None,
-                "primary_score": decision.primary_action.score if decision.primary_action else None,
-                "target_hazard": decision.target_hazard,
+                "confidence": decision.risk_assessment.confidence,
+                "risk_score": decision.risk_assessment.risk_score,
+                "primary_action": decision.selected_response.action_type if decision.selected_response else None,
+                "primary_score": decision.selected_response.priority_score if decision.selected_response else None,
+                "target_hazard": decision.risk_assessment.hazard_id,
                 "candidates_count": len(decision.candidates),
             },
         }
@@ -281,9 +291,7 @@ async def websocket_sim_endpoint(websocket: WebSocket) -> None:
             logger.error(f"Error sending tick: {e}")
 
     try:
-        # Background task for continuous streaming when playing
         while True:
-            # Handle incoming commands with timeout
             try:
                 msg_text = await asyncio.wait_for(websocket.receive_text(), timeout=0.01)
                 data = json.loads(msg_text)
@@ -326,7 +334,6 @@ async def websocket_sim_endpoint(websocket: WebSocket) -> None:
                 pass
 
             if runner.is_playing:
-                # Calculate sleep delay based on sim_speed
                 delay = 0.01 / max(0.1, runner.sim_speed)
                 await send_state()
                 await asyncio.sleep(min(delay, 0.05))
