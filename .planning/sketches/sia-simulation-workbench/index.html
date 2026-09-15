@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIA Simulation Workbench — Interactive Prototype</title>
+  <title>SIA Simulation Workbench — Interactive Cockpit & Scenario Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -59,34 +59,35 @@
     header {
       background: var(--surface-1);
       border-bottom: 1px solid var(--border);
-      padding: 10px 20px;
+      padding: 8px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 12px;
       position: sticky;
       top: 0;
       z-index: 100;
+      flex-wrap: wrap;
     }
 
     .logo-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .logo-badge {
       background: linear-gradient(135deg, #00e5ff 0%, #0077b6 100%);
       color: #000;
       font-weight: 800;
-      font-size: 12px;
+      font-size: 11px;
       padding: 4px 8px;
       border-radius: 4px;
       letter-spacing: 0.05em;
     }
 
     .app-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #fff;
       letter-spacing: 0.02em;
@@ -96,13 +97,13 @@
       background: var(--surface-2);
       color: var(--text-main);
       border: 1px solid var(--border);
-      padding: 5px 10px;
+      padding: 5px 8px;
       border-radius: 4px;
       font-size: 11px;
       font-weight: 600;
       outline: none;
       cursor: pointer;
-      max-width: 380px;
+      max-width: 320px;
     }
 
     .scenario-dropdown:hover, .scenario-dropdown:focus {
@@ -176,14 +177,14 @@
     .playback-controls {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       background: var(--surface-2);
-      padding: 4px 8px;
+      padding: 3px 6px;
       border-radius: 6px;
       border: 1px solid var(--border);
     }
 
-    .speed-controls {
+    .duration-controls, .speed-controls, .zoom-controls {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -193,13 +194,14 @@
       padding: 3px 6px;
     }
 
-    .speed-label, .zoom-label {
+    .ctrl-label {
       font-size: 10px;
       font-weight: 700;
       color: var(--text-dim);
       text-transform: uppercase;
       margin-right: 2px;
       margin-left: 2px;
+      white-space: nowrap;
     }
 
     .speed-btn, .zoom-btn {
@@ -227,28 +229,18 @@
       box-shadow: 0 0 8px var(--cyan-glow);
     }
 
-    .zoom-controls {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 3px 6px;
-    }
-
     .btn {
       background: var(--surface-3);
       color: var(--text-main);
       border: 1px solid var(--border-light);
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 4px;
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       transition: all 0.15s ease;
     }
 
@@ -271,14 +263,14 @@
     }
 
     .clock-display {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--cyan-accent);
       background: #060a12;
-      padding: 4px 12px;
+      padding: 4px 10px;
       border-radius: 4px;
       border: 1px solid var(--surface-3);
-      min-width: 140px;
+      min-width: 120px;
       text-align: center;
     }
 
@@ -291,18 +283,18 @@
     }
 
     .mode-btn {
-      padding: 6px 12px;
+      padding: 5px 10px;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--text-muted);
       transition: all 0.15s ease;
     }
 
     .mode-btn.active {
-      background: var(--surface-3);
-      color: var(--cyan-accent);
-      box-shadow: inset 0 -2px 0 var(--cyan-accent);
+      background: var(--cyan-accent);
+      color: #000;
+      font-weight: 700;
     }
 
     /* Main Grid Layout */
@@ -314,19 +306,21 @@
       flex: 1;
     }
 
-    /* Zone 1: Timeline */
+    /* Zone 1: Timeline & Temporal Debugger */
     .timeline-card {
       background: var(--surface-1);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .timeline-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
       flex-wrap: wrap;
       gap: 10px;
     }
@@ -334,94 +328,91 @@
     .section-label {
       font-size: 11px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
       color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section-label::before {
-      content: "";
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      background: var(--cyan-accent);
-      border-radius: 50%;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .timeline-tracks {
       position: relative;
-      background: #070b13;
-      border: 1px solid var(--surface-3);
+      background: #090e17;
+      border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 10px 0;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       cursor: pointer;
-      overflow: hidden;
-      transition: all 0.15s ease;
     }
 
     .timeline-axis {
       display: flex;
       justify-content: space-between;
-      padding: 0 16px 8px 100px;
-      border-bottom: 1px solid #141c2c;
       font-size: 10px;
       color: var(--text-dim);
+      border-bottom: 1px solid var(--surface-3);
+      padding-bottom: 4px;
+      margin-bottom: 4px;
     }
 
     .track-row {
       display: flex;
       align-items: center;
-      height: 28px;
-      padding: 0 16px;
+      height: 22px;
       position: relative;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
     }
 
     .track-name {
-      width: 84px;
-      font-size: 11px;
+      width: 70px;
+      font-size: 10px;
       font-weight: 600;
-      color: var(--text-muted);
+      color: var(--text-dim);
       text-transform: uppercase;
     }
 
     .track-lane {
       flex: 1;
       height: 100%;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 4px;
       position: relative;
     }
 
     .event-block {
       position: absolute;
-      top: 4px;
-      bottom: 4px;
+      top: 2px;
+      bottom: 2px;
       border-radius: 3px;
       font-size: 10px;
       font-weight: 600;
       display: flex;
       align-items: center;
-      padding: 0 8px;
+      padding: 0 6px;
       white-space: nowrap;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+
+    .event-block:hover {
+      filter: brightness(1.2);
     }
 
     .event-gust {
-      background: rgba(0, 229, 255, 0.2);
+      background: rgba(0, 229, 255, 0.25);
       border: 1px solid var(--cyan-accent);
       color: var(--cyan-accent);
     }
 
     .event-wave {
-      background: rgba(59, 130, 246, 0.25);
+      background: rgba(96, 165, 250, 0.25);
       border: 1px solid #60a5fa;
       color: #93c5fd;
     }
 
     .event-fault {
-      background: rgba(255, 179, 0, 0.2);
+      background: rgba(255, 179, 0, 0.25);
       border: 1px solid var(--warning-amber);
       color: var(--warning-amber);
     }
@@ -437,27 +428,25 @@
       top: 0;
       bottom: 0;
       width: 2px;
-      background: #ff0055;
-      box-shadow: 0 0 8px #ff0055;
-      pointer-events: none;
+      background: #ff5252;
       z-index: 10;
+      pointer-events: none;
     }
 
     .scrub-handle {
       position: absolute;
       top: -4px;
-      left: -6px;
-      width: 14px;
-      height: 14px;
-      background: #ff0055;
-      border: 2px solid #fff;
-      border-radius: 50%;
+      left: -5px;
+      width: 12px;
+      height: 8px;
+      background: #ff5252;
+      border-radius: 2px;
     }
 
-    /* 3-Column Core Area */
+    /* 3-Column Core Grid */
     .columns-grid {
       display: grid;
-      grid-template-columns: 280px 1fr 340px;
+      grid-template-columns: 280px 1.4fr 1fr;
       gap: 16px;
     }
 
@@ -466,40 +455,37 @@
       background: var(--gt-bg);
       border: 1px solid var(--gt-border);
       border-radius: 8px;
-      padding: 16px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
     .badge-locked {
-      background: rgba(148, 163, 184, 0.1);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      color: #94a3b8;
-      font-size: 9px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 10px;
       font-weight: 700;
-      padding: 3px 6px;
-      border-radius: 3px;
+      padding: 2px 6px;
+      border-radius: 4px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      display: inline-block;
     }
 
     .gt-telemetry {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      font-size: 12px;
+      gap: 6px;
     }
 
     .gt-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: 6px 8px;
+      padding: 5px 8px;
       background: rgba(255, 255, 255, 0.02);
       border-radius: 4px;
       border: 1px solid rgba(255,255,255,0.03);
+      font-size: 11px;
     }
 
     .gt-label {
@@ -511,28 +497,28 @@
       color: var(--gt-color);
     }
 
-    /* Column 2: Sensor View (Raymarine / B&G Marine Cockpit) */
+    /* Column 2: Sensor View */
     .sensor-panel {
       background: var(--surface-1);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 16px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .marine-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
 
     .dial-box {
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -540,11 +526,11 @@
     }
 
     .dial-title {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       letter-spacing: 0.05em;
     }
 
@@ -556,33 +542,33 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 8px;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .marine-digit-box {
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 10px;
+      padding: 8px;
       text-align: center;
     }
 
     .marine-digit-label {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
       color: var(--text-dim);
       text-transform: uppercase;
     }
 
     .marine-digit-val {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       color: #fff;
       margin-top: 2px;
     }
 
     .marine-digit-unit {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--text-muted);
       margin-left: 2px;
     }
@@ -628,7 +614,7 @@
       background: var(--surface-1);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 16px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -638,7 +624,7 @@
       background: rgba(255, 23, 68, 0.15);
       border: 1px solid var(--marine-port);
       border-radius: 6px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -650,47 +636,48 @@
       color: #ff5252;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     .hazard-metrics {
       display: flex;
-      justify-content: space-between;
+      gap: 16px;
       font-size: 11px;
-      color: #fecdd3;
+      color: var(--text-main);
     }
 
     .primary-decision-card {
       background: var(--surface-2);
-      border: 2px solid var(--cyan-accent);
-      border-radius: 8px;
+      border: 1px solid var(--cyan-accent);
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.1);
+      border-radius: 6px;
       padding: 12px;
-      box-shadow: 0 4px 16px var(--cyan-glow);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .decision-badge {
       font-size: 10px;
       font-weight: 700;
-      color: #000;
-      background: var(--cyan-accent);
-      padding: 2px 6px;
-      border-radius: 3px;
+      color: var(--cyan-accent);
       text-transform: uppercase;
-      display: inline-block;
-      margin-bottom: 6px;
+      letter-spacing: 0.05em;
     }
 
     .decision-action-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #fff;
     }
 
     .decision-command-line {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--cyan-accent);
-      margin-top: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: #090e17;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
     }
 
     .candidate-list {
@@ -703,11 +690,11 @@
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 8px 10px;
+      padding: 6px 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .candidate-score {
@@ -720,7 +707,7 @@
       background: linear-gradient(180deg, #162032 0%, #101726 100%);
       border: 1px solid var(--border-light);
       border-radius: 8px;
-      padding: 14px 18px;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -738,12 +725,12 @@
       color: #000;
       font-weight: 800;
       font-size: 11px;
-      padding: 6px 8px;
+      padding: 5px 7px;
       border-radius: 6px;
     }
 
     .query-text {
-      font-size: 13px;
+      font-size: 12px;
       color: #fff;
     }
 
@@ -762,8 +749,8 @@
       background: var(--surface-3);
       border: 1px solid var(--border-light);
       color: var(--text-main);
-      padding: 6px 12px;
-      border-radius: 20px;
+      padding: 5px 10px;
+      border-radius: 16px;
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
@@ -788,7 +775,7 @@
     footer {
       background: #05080e;
       border-top: 1px solid var(--border);
-      padding: 10px 20px;
+      padding: 8px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -820,13 +807,28 @@
       <span class="logo-badge">SIA CORE</span>
       <span class="app-title">Simulation Workbench</span>
       <select id="scenario-select" class="scenario-dropdown mono">
-        <option value="SIM-005">SIM-005: Broach Precursor (Попутный курс, TWS 18→32kt)</option>
-        <option value="SIM-006">SIM-006: Squall Knockdown (Бейдевинд, Шквал 40kt)</option>
-        <option value="SIM-007">SIM-007: IMU Sensor Loss & Drift (Отказ датчиков)</option>
+        <option value="SIM-005">SIM-005: Broach Precursor (TWS 18→32kt)</option>
+        <option value="SIM-006">SIM-006: Squall Knockdown (TWS 40kt)</option>
+        <option value="SIM-007">SIM-007: IMU Sensor Loss & Drift</option>
         <option value="CUSTOM">Custom Scenario (Студия пользователя)</option>
       </select>
     </div>
 
+    <!-- Total Test Duration Setting -->
+    <div class="duration-controls">
+      <span class="ctrl-label">⏱ Test Duration:</span>
+      <select id="duration-select" class="form-select mono" style="padding: 2px 6px; font-size: 11px; height: 26px; border-color: var(--cyan-accent);">
+        <option value="15000">15 sec (SIM-005 Sprint)</option>
+        <option value="30000">30 sec (Standard Run)</option>
+        <option value="60000">1 min (60s)</option>
+        <option value="300000">5 min (Tactical Run)</option>
+        <option value="900000">15 min (Endurance Passage)</option>
+        <option value="1800000">30 min (Long Watch)</option>
+        <option value="custom">✏️ Custom Duration...</option>
+      </select>
+    </div>
+
+    <!-- Playback Controls -->
     <div class="playback-controls">
       <button class="btn btn-primary" id="btn-play">▶ Run</button>
       <button class="btn" id="btn-pause">⏸ Pause</button>
@@ -837,7 +839,7 @@
 
     <!-- Speed Controls (0.5x to 50x) -->
     <div class="speed-controls">
-      <span class="speed-label">Speed:</span>
+      <span class="ctrl-label">Speed:</span>
       <button class="speed-btn" data-speed="0.5">0.5x</button>
       <button class="speed-btn active" data-speed="1.0">1x</button>
       <button class="speed-btn" data-speed="2.0">2x</button>
@@ -846,6 +848,7 @@
       <button class="speed-btn" data-speed="50.0">MAX</button>
     </div>
 
+    <!-- Mode Toggle -->
     <div class="mode-toggle">
       <div class="mode-btn active" id="btn-mode-live">● LIVE / OPERATION</div>
       <div class="mode-btn" id="btn-mode-debug">○ DEBUG / RESEARCH</div>
@@ -858,10 +861,10 @@
     <!-- Zone 1: Timeline & Temporal Debugger -->
     <section class="timeline-card">
       <div class="timeline-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span class="section-label">1. Temporal Debugger & Scenario Timeline</span>
           <button class="btn" id="btn-open-add-event" style="padding: 3px 8px; font-size: 11px; background: var(--surface-3); border-color: var(--cyan-accent); color: var(--cyan-accent);">
-            + Add Scenario Event
+            + Add Event
           </button>
           <button class="btn" id="btn-toggle-sequencer" style="padding: 3px 8px; font-size: 11px;">
             ≡ Event List (<span id="event-count-badge">4</span>)
@@ -870,17 +873,17 @@
         
         <!-- Zoom & Time Window Controls -->
         <div class="zoom-controls">
-          <span class="zoom-label">Zoom:</span>
-          <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out (Wider)">🔍 -</button>
-          <button class="zoom-btn active" data-zoom="1">1x (15s)</button>
-          <button class="zoom-btn" data-zoom="2">2x (7.5s)</button>
-          <button class="zoom-btn" data-zoom="5">5x (3.0s)</button>
-          <button class="zoom-btn" data-zoom="10">10x (1.5s)</button>
-          <button class="zoom-btn" id="btn-zoom-in" title="Zoom In (High Res)">🔍 +</button>
-          <button class="zoom-btn" id="btn-zoom-reset" title="Fit All (15s)">Fit All</button>
+          <span class="ctrl-label">Zoom:</span>
+          <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out">🔍 -</button>
+          <button class="zoom-btn active" data-zoom="1" id="btn-zoom-1x">1x (Fit)</button>
+          <button class="zoom-btn" data-zoom="2">2x</button>
+          <button class="zoom-btn" data-zoom="5">5x</button>
+          <button class="zoom-btn" data-zoom="10">10x</button>
+          <button class="zoom-btn" id="btn-zoom-in" title="Zoom In">🔍 +</button>
+          <button class="zoom-btn" id="btn-zoom-reset" title="Fit Entire Duration">Fit All</button>
         </div>
 
-        <span class="text-dim mono" id="zoom-window-txt" style="font-size: 11px;">Window: 0.00s — 15.00s (Full)</span>
+        <span class="text-dim mono" id="zoom-window-txt" style="font-size: 11px;">Window: 00:00.00 — 00:15.00 (Total: 15s)</span>
       </div>
 
       <div class="timeline-tracks" id="timeline-box">
@@ -889,13 +892,7 @@
         </div>
 
         <div class="timeline-axis mono" id="timeline-axis-ticks">
-          <span>00.0s</span>
-          <span>02.5s</span>
-          <span>05.0s</span>
-          <span>07.5s</span>
-          <span>10.0s</span>
-          <span>12.5s</span>
-          <span>15.0s</span>
+          <!-- Populated dynamically based on duration & zoom -->
         </div>
 
         <!-- Track 1: Wind Gust -->
@@ -924,12 +921,12 @@
       </div>
 
       <!-- Expandable Scenario Event Sequencer Table -->
-      <div id="sequencer-table-box" style="margin-top: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; display: block;">
+      <div id="sequencer-table-box" style="margin-top: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; display: block;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-            📋 Scenario Event Sequencer (Хронология событий по секундам)
+            📋 Scenario Event Sequencer (Хронология событий: минуты / секунды)
           </span>
-          <span class="text-dim mono" style="font-size: 10px;">Click any row or timeline block to edit</span>
+          <span class="text-dim mono" style="font-size: 10px;">Total Duration: <strong id="seq-total-dur-txt" style="color: var(--cyan-accent);">15.00s</strong> | Click any row or timeline block to edit</span>
         </div>
 
         <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;" class="mono">
@@ -1004,7 +1001,7 @@
           </div>
           <div class="gt-row">
             <span class="gt-label">Active Events</span>
-            <span class="gt-val" style="color: var(--cyan-accent);">[GUST, WAVE]</span>
+            <span class="gt-val" id="gt-active-events" style="color: var(--cyan-accent);">[GUST, WAVE]</span>
           </div>
         </div>
 
@@ -1040,19 +1037,19 @@
           <!-- Wind Dial -->
           <div class="dial-box">
             <div class="dial-title">Wind (AWA / AWS)</div>
-            <canvas id="wind-dial" width="150" height="150"></canvas>
+            <canvas id="wind-dial" width="140" height="140"></canvas>
           </div>
 
           <!-- Roll / Heel Inclinometer (Бортовая качка) -->
           <div class="dial-box">
             <div class="dial-title">Heel / Roll (Борт)</div>
-            <canvas id="heel-dial" width="150" height="150"></canvas>
+            <canvas id="heel-dial" width="140" height="140"></canvas>
           </div>
 
           <!-- Pitch / Trim Inclinometer (Килевая качка Нос-Корма) -->
           <div class="dial-box">
             <div class="dial-title">Pitch / Trim (Нос-Бак)</div>
-            <canvas id="pitch-dial" width="150" height="150"></canvas>
+            <canvas id="pitch-dial" width="140" height="140"></canvas>
           </div>
         </div>
 
@@ -1195,458 +1192,6 @@
     </div>
   </footer>
 
-  <!-- Simulation & Visualization Script -->
-  <script>
-    // State Variables
-    let simTimeMs = 4200; // 4.20s
-    let isPlaying = false;
-    let playInterval = null;
-    let simSpeed = 1.0; // 0.5x to 50x
-    let currentSailConfig = null;
-
-    // Timeline Zoom State
-    const TOTAL_DURATION_MS = 15000;
-    let zoomLevel = 1.0; // 1x, 2x, 5x, 10x
-    let windowStartMs = 0;
-    let windowEndMs = 15000;
-
-    // Defined Scenario Events (Ground Truth Timings in ms)
-    const SCENARIO_EVENTS = {
-      gust: { start: 2500, end: 7000, el: document.getElementById('ev-gust') },
-      wave: { start: 4000, end: 7300, el: document.getElementById('ev-wave') },
-      fault: { start: 8500, end: 11500, el: document.getElementById('ev-fault') },
-      alert: { start: 3400, end: 8700, el: document.getElementById('ev-alert') }
-    };
-
-    // Canvas Dials
-    const windCanvas = document.getElementById('wind-dial');
-    const windCtx = windCanvas.getContext('2d');
-
-    const heelCanvas = document.getElementById('heel-dial');
-    const heelCtx = heelCanvas.getContext('2d');
-
-    const pitchCanvas = document.getElementById('pitch-dial');
-    const pitchCtx = pitchCanvas.getContext('2d');
-
-    function drawWindDial(awaDeg, awsKt) {
-      const w = windCanvas.width;
-      const h = windCanvas.height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const r = w / 2 - 14;
-
-      windCtx.clearRect(0, 0, w, h);
-
-      // Outer bezel
-      windCtx.beginPath();
-      windCtx.arc(cx, cy, r, 0, Math.PI * 2);
-      windCtx.fillStyle = '#0b111c';
-      windCtx.fill();
-      windCtx.strokeStyle = '#243552';
-      windCtx.lineWidth = 2;
-      windCtx.stroke();
-
-      // Port / Starboard sectors
-      windCtx.beginPath();
-      windCtx.arc(cx, cy, r - 4, -Math.PI / 2, Math.PI / 2);
-      windCtx.strokeStyle = 'rgba(0, 230, 118, 0.4)';
-      windCtx.lineWidth = 4;
-      windCtx.stroke();
-
-      windCtx.beginPath();
-      windCtx.arc(cx, cy, r - 4, Math.PI / 2, -Math.PI / 2);
-      windCtx.strokeStyle = 'rgba(255, 23, 68, 0.4)';
-      windCtx.lineWidth = 4;
-      windCtx.stroke();
-
-      // Center Boat Silhouette
-      windCtx.save();
-      windCtx.translate(cx, cy);
-      windCtx.beginPath();
-      windCtx.moveTo(0, -18);
-      windCtx.quadraticCurveTo(8, 0, 6, 16);
-      windCtx.lineTo(-6, 16);
-      windCtx.quadraticCurveTo(-8, 0, 0, -18);
-      windCtx.fillStyle = '#334a70';
-      windCtx.fill();
-      windCtx.restore();
-
-      // Wind Needle
-      const rad = (awaDeg - 90) * (Math.PI / 180);
-      windCtx.save();
-      windCtx.translate(cx, cy);
-      windCtx.rotate(rad + Math.PI / 2);
-
-      windCtx.beginPath();
-      windCtx.moveTo(0, -r + 8);
-      windCtx.lineTo(5, -r + 22);
-      windCtx.lineTo(-5, -r + 22);
-      windCtx.closePath();
-      windCtx.fillStyle = awaDeg >= 0 ? '#00e676' : '#ff1744';
-      windCtx.fill();
-      windCtx.restore();
-
-      // Center readout
-      windCtx.fillStyle = '#ffffff';
-      windCtx.font = '700 14px "JetBrains Mono"';
-      windCtx.textAlign = 'center';
-      windCtx.fillText(awsKt.toFixed(1) + ' kt', cx, cy + 34);
-
-      windCtx.fillStyle = '#94a3b8';
-      windCtx.font = '500 10px "Inter"';
-      windCtx.fillText('AWA: ' + Math.round(awaDeg) + '°', cx, cy + 48);
-    }
-
-    function drawHeelDial(heelDeg, rollRateDegS) {
-      const w = heelCanvas.width;
-      const h = heelCanvas.height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const r = w / 2 - 14;
-
-      heelCtx.clearRect(0, 0, w, h);
-
-      // Dial circle
-      heelCtx.beginPath();
-      heelCtx.arc(cx, cy, r, 0, Math.PI * 2);
-      heelCtx.fillStyle = '#0b111c';
-      heelCtx.fill();
-      heelCtx.strokeStyle = '#243552';
-      heelCtx.lineWidth = 2;
-      heelCtx.stroke();
-
-      // Danger arc (> 25 deg)
-      heelCtx.beginPath();
-      heelCtx.arc(cx, cy, r - 4, (-90 + 25) * Math.PI / 180, (-90 + 50) * Math.PI / 180);
-      heelCtx.strokeStyle = 'rgba(255, 23, 68, 0.7)';
-      heelCtx.lineWidth = 5;
-      heelCtx.stroke();
-
-      // Vessel Cross-Section (Tilts with heel)
-      heelCtx.save();
-      heelCtx.translate(cx, cy - 6);
-      heelCtx.rotate(heelDeg * Math.PI / 180);
-
-      // Hull
-      heelCtx.beginPath();
-      heelCtx.moveTo(-28, -6);
-      heelCtx.quadraticCurveTo(0, 20, 28, -6);
-      heelCtx.lineTo(25, -11);
-      heelCtx.lineTo(-25, -11);
-      heelCtx.closePath();
-      heelCtx.fillStyle = '#243552';
-      heelCtx.fill();
-      heelCtx.strokeStyle = '#00e5ff';
-      heelCtx.lineWidth = 2;
-      heelCtx.stroke();
-
-      // Mast
-      heelCtx.beginPath();
-      heelCtx.moveTo(0, -11);
-      heelCtx.lineTo(0, -38);
-      heelCtx.strokeStyle = '#94a3b8';
-      heelCtx.lineWidth = 2;
-      heelCtx.stroke();
-
-      heelCtx.restore();
-
-      // Readouts
-      heelCtx.fillStyle = heelDeg >= 25 ? '#ff5252' : '#ffffff';
-      heelCtx.font = '700 15px "JetBrains Mono"';
-      heelCtx.textAlign = 'center';
-      heelCtx.fillText(heelDeg.toFixed(1) + '°', cx, cy + 34);
-
-      heelCtx.fillStyle = '#94a3b8';
-      heelCtx.font = '500 10px "Inter"';
-      heelCtx.fillText('ROLL: +' + rollRateDegS.toFixed(1) + '°/s', cx, cy + 48);
-    }
-
-    // Pitch / Trim (Килевая качка: Нос / Корма)
-    function drawPitchDial(pitchDeg, pitchRateDegS) {
-      const w = pitchCanvas.width;
-      const h = pitchCanvas.height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const r = w / 2 - 14;
-
-      pitchCtx.clearRect(0, 0, w, h);
-
-      // Dial circle
-      pitchCtx.beginPath();
-      pitchCtx.arc(cx, cy, r, 0, Math.PI * 2);
-      pitchCtx.fillStyle = '#0b111c';
-      pitchCtx.fill();
-      pitchCtx.strokeStyle = '#243552';
-      pitchCtx.lineWidth = 2;
-      pitchCtx.stroke();
-
-      // Waterline Reference
-      pitchCtx.beginPath();
-      pitchCtx.moveTo(cx - r + 8, cy);
-      pitchCtx.lineTo(cx + r - 8, cy);
-      pitchCtx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
-      pitchCtx.setLineDash([3, 3]);
-      pitchCtx.lineWidth = 1;
-      pitchCtx.stroke();
-      pitchCtx.setLineDash([]);
-
-      // Vessel Side Profile (Stern on Left, Bow on Right)
-      pitchCtx.save();
-      pitchCtx.translate(cx, cy - 4);
-      // Pitch rotation: positive = Bow Up (tilt up on right), negative = Bow Down (nose-dive)
-      pitchCtx.rotate(-pitchDeg * Math.PI / 180);
-
-      // Side Hull
-      pitchCtx.beginPath();
-      pitchCtx.moveTo(-32, -4); // Stern
-      pitchCtx.lineTo(-26, 10);
-      pitchCtx.lineTo(16, 10);
-      pitchCtx.lineTo(34, -4);  // Bow
-      pitchCtx.closePath();
-      pitchCtx.fillStyle = '#243552';
-      pitchCtx.fill();
-      pitchCtx.strokeStyle = pitchDeg < -4.0 ? '#ff1744' : '#60a5fa';
-      pitchCtx.lineWidth = 2;
-      pitchCtx.stroke();
-
-      // Keel
-      pitchCtx.beginPath();
-      pitchCtx.moveTo(-4, 10);
-      pitchCtx.lineTo(-2, 22);
-      pitchCtx.lineTo(6, 22);
-      pitchCtx.lineTo(4, 10);
-      pitchCtx.fillStyle = '#334a70';
-      pitchCtx.fill();
-
-      // Mast
-      pitchCtx.beginPath();
-      pitchCtx.moveTo(2, -4);
-      pitchCtx.lineTo(0, -38);
-      pitchCtx.strokeStyle = '#94a3b8';
-      pitchCtx.lineWidth = 2;
-      pitchCtx.stroke();
-
-      pitchCtx.restore();
-
-      // Readouts
-      pitchCtx.fillStyle = Math.abs(pitchDeg) >= 5.0 ? '#ff5252' : '#ffffff';
-      pitchCtx.font = '700 15px "JetBrains Mono"';
-      pitchCtx.textAlign = 'center';
-      const trimText = (pitchDeg >= 0 ? '+' : '') + pitchDeg.toFixed(1) + '°';
-      pitchCtx.fillText(trimText, cx, cy + 34);
-
-      pitchCtx.fillStyle = '#94a3b8';
-      pitchCtx.font = '500 10px "Inter"';
-      const stateTxt = pitchDeg >= 0 ? 'BOW UP (Нос)' : 'BOW DOWN (Бак)';
-      pitchCtx.fillText(stateTxt, cx, cy + 48);
-    }
-
-    // Timeline Zoom & Layout Update
-    function updateTimelineWindow() {
-      const windowDuration = TOTAL_DURATION_MS / zoomLevel;
-      
-      if (zoomLevel === 1.0) {
-        windowStartMs = 0;
-        windowEndMs = TOTAL_DURATION_MS;
-      } else {
-        // Keep active cursor visible in window
-        let centerMs = simTimeMs;
-        windowStartMs = Math.max(0, centerMs - windowDuration / 2);
-        windowEndMs = windowStartMs + windowDuration;
-        if (windowEndMs > TOTAL_DURATION_MS) {
-          windowEndMs = TOTAL_DURATION_MS;
-          windowStartMs = Math.max(0, windowEndMs - windowDuration);
-        }
-      }
-
-      // Update Window Label
-      const sStart = (windowStartMs / 1000).toFixed(2);
-      const sEnd = (windowEndMs / 1000).toFixed(2);
-      const zoomText = zoomLevel === 1.0 ? 'Full 15s' : (windowDuration / 1000).toFixed(1) + 's window';
-      document.getElementById('zoom-window-txt').innerText = `Window: ${sStart}s — ${sEnd}s (${zoomText})`;
-
-      // Generate Dynamic Ticks (6 segments)
-      const ticksContainer = document.getElementById('timeline-axis-ticks');
-      ticksContainer.innerHTML = '';
-      const numTicks = 7;
-      for (let i = 0; i < numTicks; i++) {
-        const tMs = windowStartMs + i * ((windowEndMs - windowStartMs) / (numTicks - 1));
-        const span = document.createElement('span');
-        span.innerText = (tMs / 1000).toFixed(zoomLevel > 2 ? 2 : 1) + 's';
-        ticksContainer.appendChild(span);
-      }
-
-      // Reposition Event Blocks
-      const winLen = windowEndMs - windowStartMs;
-      for (const [key, ev] of Object.entries(SCENARIO_EVENTS)) {
-        const leftPct = ((ev.start - windowStartMs) / winLen) * 100;
-        const widthPct = ((ev.end - ev.start) / winLen) * 100;
-
-        ev.el.style.left = leftPct + '%';
-        ev.el.style.width = widthPct + '%';
-        
-        // Hide if totally out of view
-        if (ev.end < windowStartMs || ev.start > windowEndMs) {
-          ev.el.style.opacity = '0.15';
-        } else {
-          ev.el.style.opacity = '1.0';
-        }
-      }
-    }
-
-    // Update UI from Simulation Time
-    function updateUI(tMs) {
-      const sec = (tMs / 1000).toFixed(2);
-      document.getElementById('clock-txt').innerText = 'T = 00:' + (sec < 10 ? '0' : '') + sec;
-      
-      // Auto-pan timeline window if cursor leaves zoomed area during playback
-      if (zoomLevel > 1.0 && (tMs < windowStartMs || tMs > windowEndMs)) {
-        updateTimelineWindow();
-      }
-
-      const winLen = windowEndMs - windowStartMs;
-      const pct = ((tMs - windowStartMs) / winLen) * 100;
-      document.getElementById('scrub-line').style.left = Math.min(Math.max(pct, -5), 105) + '%';
-
-      // Dynamic variables based on scenario curve
-      let heel = 12.0;
-      let rollRate = 1.0;
-      let pitch = 1.2;
-      let pitchRate = 0.8;
-      let accelZ = 1.02;
-      let tws = 18.0;
-      let aws = 22.0;
-      let awa = 135.0;
-
-      if (tMs >= 2500 && tMs <= 7000) {
-        // Gust & Wave Zone
-        const progress = (tMs - 2500) / 4500;
-        tws = 18.0 + 14.0 * Math.sin(progress * Math.PI);
-        aws = 22.0 + 12.0 * Math.sin(progress * Math.PI);
-        heel = 12.0 + 16.5 * Math.sin(progress * Math.PI);
-        rollRate = 12.4 * Math.cos(progress * Math.PI);
-      }
-
-      // Wave pitch & slam zone (4.0s - 7.3s)
-      if (tMs >= 4000 && tMs <= 7300) {
-        const waveProg = (tMs - 4000) / 3300;
-        pitch = 1.2 + 3.8 * Math.sin(waveProg * Math.PI * 3);
-        pitchRate = 5.6 * Math.cos(waveProg * Math.PI * 3);
-        accelZ = 1.0 + 0.42 * Math.sin(waveProg * Math.PI * 3);
-      } else {
-        pitch = 1.2 + 0.6 * Math.sin(tMs / 800);
-        pitchRate = 0.8 * Math.cos(tMs / 800);
-        accelZ = 1.0 + 0.05 * Math.sin(tMs / 800);
-      }
-
-      document.getElementById('gt-tws').innerText = tws.toFixed(1) + ' kt';
-      document.getElementById('gt-heel').innerText = heel.toFixed(1) + '°';
-      document.getElementById('gt-rollrate').innerText = (rollRate >= 0 ? '+' : '') + rollRate.toFixed(1) + ' °/s';
-      document.getElementById('gt-pitch').innerText = (pitch >= 0 ? '+' : '') + pitch.toFixed(1) + '° (' + (pitch >= 0 ? 'Bow Up' : 'Bow Down') + ')';
-      document.getElementById('gt-pitchrate').innerText = (pitchRate >= 0 ? '+' : '') + pitchRate.toFixed(1) + ' °/s';
-      document.getElementById('gt-accelz').innerText = accelZ.toFixed(2) + ' g' + (accelZ > 1.25 ? ' (Slam)' : '');
-
-      drawWindDial(awa, aws);
-      drawHeelDial(heel, Math.abs(rollRate));
-      drawPitchDial(pitch, Math.abs(pitchRate));
-
-      // Decision update
-      const hazardBox = document.getElementById('hazard-box');
-      if (heel >= 25.0) {
-        hazardBox.style.display = 'flex';
-      } else {
-        hazardBox.style.display = 'none';
-      }
-    }
-
-    // Interactive Query Action
-    function selectSailConfig(config) {
-      currentSailConfig = config;
-      document.querySelectorAll('.chip-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.innerText.includes(config));
-      });
-
-      const qStatus = document.getElementById('query-status');
-      const pTitle = document.getElementById('primary-action-title');
-      const pCmd = document.getElementById('primary-command');
-
-      if (config === 'FULL MAIN') {
-        qStatus.innerHTML = '<span style="color: var(--cyan-accent);">✓ Skipper confirmed: FULL MAIN → Recalculated decision.</span>';
-        pTitle.innerText = '1. EASE MAIN (Срочно потравить грот 1.5м)';
-        pCmd.innerText = 'Command: Mainsheet Ease 100% (High priority 0.98)';
-      } else if (config === 'REEF 1' || config === 'REEF 2') {
-        qStatus.innerHTML = '<span style="color: var(--cyan-accent);">✓ Skipper confirmed: ' + config + ' → Recalculated decision.</span>';
-        pTitle.innerText = '1. BEAR AWAY (Увалиться под ветер)';
-        pCmd.innerText = 'Command: Rudder -15.0° (Score 0.95)';
-      } else {
-        qStatus.innerHTML = '<span style="color: var(--cyan-accent);">✓ Skipper confirmed: STORM JIB → Recalculated decision.</span>';
-        pTitle.innerText = '1. HOLD COURSE & TRIM (Штатное удержание)';
-        pCmd.innerText = 'Command: Minimal rudder correction (Score 0.90)';
-      }
-    }
-
-    // Simulation Speed Multiplier Controls
-    function setSpeed(speed) {
-      simSpeed = speed;
-      document.querySelectorAll('.speed-btn').forEach(btn => {
-        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
-      });
-
-      if (isPlaying) {
-        clearInterval(playInterval);
-        startPlayback();
-      }
-    }
-
-    document.querySelectorAll('.speed-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        setSpeed(parseFloat(btn.dataset.speed));
-      });
-    });
-
-    // Zoom Level Controls
-    function setZoom(level) {
-      zoomLevel = Math.max(1.0, Math.min(level, 10.0));
-      document.querySelectorAll('.zoom-btn[data-zoom]').forEach(btn => {
-        btn.classList.toggle('active', parseFloat(btn.dataset.zoom) === zoomLevel);
-      });
-      updateTimelineWindow();
-      updateUI(simTimeMs);
-    }
-
-    document.querySelectorAll('.zoom-btn[data-zoom]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        setZoom(parseFloat(btn.dataset.zoom));
-      });
-    });
-
-    document.getElementById('btn-zoom-in').addEventListener('click', () => {
-      const nextZoom = zoomLevel < 2 ? 2 : (zoomLevel < 5 ? 5 : 10);
-      setZoom(nextZoom);
-    });
-
-    document.getElementById('btn-zoom-out').addEventListener('click', () => {
-      const prevZoom = zoomLevel > 5 ? 5 : (zoomLevel > 2 ? 2 : 1);
-      setZoom(prevZoom);
-    });
-
-    document.getElementById('btn-zoom-reset').addEventListener('click', () => {
-      setZoom(1.0);
-    });
-
-    // Mouse wheel zoom over timeline
-    document.getElementById('timeline-box').addEventListener('wheel', (e) => {
-      e.preventDefault();
-      if (e.deltaY < 0) {
-        setZoom(Math.min(zoomLevel * 1.5, 10.0));
-      } else {
-        setZoom(Math.max(zoomLevel / 1.5, 1.0));
-      }
-    });
-
-    // Playback Engine
-    function startPlayback() {
-      const intervalDelay = Math.max(10, Math.round(50 / Math.min(simSpeed, 10)));
   <!-- Event Sequencer Modal Dialog -->
   <div class="modal-backdrop" id="event-modal">
     <div class="modal-dialog">
@@ -1672,12 +1217,12 @@
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label class="form-label">Start Time (Время начала, сек)</label>
-          <input type="number" step="0.1" min="0" max="15" class="form-input mono" id="input-start-sec" value="6.0">
+          <label class="form-label">Start Time (Время начала, сек или MM:SS)</label>
+          <input type="text" class="form-input mono" id="input-start-sec" value="00:06.00" placeholder="e.g. 6.0 or 01:30">
         </div>
         <div class="form-group">
           <label class="form-label">Duration (Длительность, сек)</label>
-          <input type="number" step="0.1" min="0.1" max="15" class="form-input mono" id="input-duration-sec" value="3.5">
+          <input type="number" step="0.1" min="0.1" class="form-input mono" id="input-duration-sec" value="3.5">
         </div>
       </div>
 
@@ -1696,12 +1241,36 @@
     </div>
   </div>
 
+  <!-- Custom Duration Modal Dialog -->
+  <div class="modal-backdrop" id="custom-duration-modal">
+    <div class="modal-dialog" style="width: 380px;">
+      <div class="modal-title">
+        <span>⏱ Set Custom Test Duration</span>
+        <button class="btn" id="btn-close-duration-modal" style="padding: 2px 6px;">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Total Duration (Общее время тестирования)</label>
+        <input type="text" class="form-input mono" id="input-custom-duration" value="15:00" placeholder="e.g. 15:00 (15 min) or 90s or 120">
+        <span class="text-dim" style="font-size: 11px; margin-top: 4px;">
+          Enter in format <code>MM:SS</code> (e.g. <code>15:00</code> for 15 min, <code>05:30</code>) or in seconds (e.g. <code>90</code>).
+        </span>
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+        <button class="btn" id="btn-cancel-duration-modal">Cancel</button>
+        <button class="btn btn-primary" id="btn-apply-custom-duration">Apply Duration</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Simulation & Visualization Script -->
   <script>
     // Scenario Library Presets
     const SCENARIOS = {
       'SIM-005': {
         name: 'SIM-005: Broach Precursor (12.5m Yacht, TWS 18→32kt)',
+        defaultDurationMs: 15000,
         baseTws: 18.0,
         baseTwd: 225.0,
         baseAwa: 135.0,
@@ -1715,6 +1284,7 @@
       },
       'SIM-006': {
         name: 'SIM-006: Squall Knockdown (Close-Hauled, TWS 40kt)',
+        defaultDurationMs: 30000,
         baseTws: 22.0,
         baseTwd: 045.0,
         baseAwa: 045.0,
@@ -1727,6 +1297,7 @@
       },
       'SIM-007': {
         name: 'SIM-007: IMU Sensor Loss & Drift (Heavy Sea)',
+        defaultDurationMs: 30000,
         baseTws: 25.0,
         baseTwd: 270.0,
         baseAwa: 120.0,
@@ -1739,13 +1310,14 @@
       },
       'CUSTOM': {
         name: 'Custom User Scenario (Студия пользователя)',
+        defaultDurationMs: 60000,
         baseTws: 20.0,
         baseTwd: 225.0,
         baseAwa: 135.0,
         baseHeel: 10.0,
         events: [
-          { id: 'USER_GUST', type: 'WIND', start: 3000, duration: 4000, label: '🌪️ User Gust +15kt', param: '+15kt (TWS 35kt)' },
-          { id: 'USER_WAVE', type: 'WAVE', start: 5000, duration: 3000, label: '🌊 User Wave 3.0m', param: 'H=3.0m Impact' }
+          { id: 'USER_GUST', type: 'WIND', start: 5000, duration: 8000, label: '🌪️ User Gust +15kt', param: '+15kt (TWS 35kt)' },
+          { id: 'USER_WAVE', type: 'WAVE', start: 10000, duration: 6000, label: '🌊 User Wave 3.0m', param: 'H=3.0m Impact' }
         ]
       }
     };
@@ -1754,16 +1326,16 @@
     let currentScenario = JSON.parse(JSON.stringify(SCENARIOS['SIM-005']));
     let editingEventId = null;
 
-    // State Variables
-    let simTimeMs = 4200; // 4.20s
+    // Simulation Clock & Duration State
+    let TOTAL_DURATION_MS = 15000; // Configurable: 15s, 30s, 1m, 5m, 15m, 30m, custom
+    let simTimeMs = 4200;
     let isPlaying = false;
     let playInterval = null;
-    let simSpeed = 1.0; // 0.5x to 50x
+    let simSpeed = 1.0;
     let currentSailConfig = null;
 
     // Timeline Zoom State
-    const TOTAL_DURATION_MS = 15000;
-    let zoomLevel = 1.0; // 1x, 2x, 5x, 10x
+    let zoomLevel = 1.0;
     let windowStartMs = 0;
     let windowEndMs = 15000;
 
@@ -1809,10 +1381,10 @@
       windCtx.save();
       windCtx.translate(cx, cy);
       windCtx.beginPath();
-      windCtx.moveTo(0, -18);
-      windCtx.quadraticCurveTo(8, 0, 6, 16);
-      windCtx.lineTo(-6, 16);
-      windCtx.quadraticCurveTo(-8, 0, 0, -18);
+      windCtx.moveTo(0, -16);
+      windCtx.quadraticCurveTo(7, 0, 5, 14);
+      windCtx.lineTo(-5, 14);
+      windCtx.quadraticCurveTo(-7, 0, 0, -16);
       windCtx.fillStyle = '#334a70';
       windCtx.fill();
       windCtx.restore();
@@ -1824,21 +1396,21 @@
 
       windCtx.beginPath();
       windCtx.moveTo(0, -r + 8);
-      windCtx.lineTo(5, -r + 22);
-      windCtx.lineTo(-5, -r + 22);
+      windCtx.lineTo(5, -r + 20);
+      windCtx.lineTo(-5, -r + 20);
       windCtx.closePath();
       windCtx.fillStyle = awaDeg >= 0 ? '#00e676' : '#ff1744';
       windCtx.fill();
       windCtx.restore();
 
       windCtx.fillStyle = '#ffffff';
-      windCtx.font = '700 14px "JetBrains Mono"';
+      windCtx.font = '700 13px "JetBrains Mono"';
       windCtx.textAlign = 'center';
-      windCtx.fillText(awsKt.toFixed(1) + ' kt', cx, cy + 34);
+      windCtx.fillText(awsKt.toFixed(1) + ' kt', cx, cy + 30);
 
       windCtx.fillStyle = '#94a3b8';
       windCtx.font = '500 10px "Inter"';
-      windCtx.fillText('AWA: ' + Math.round(awaDeg) + '°', cx, cy + 48);
+      windCtx.fillText('AWA: ' + Math.round(awaDeg) + '°', cx, cy + 44);
     }
 
     function drawHeelDial(heelDeg, rollRateDegS) {
@@ -1869,10 +1441,10 @@
       heelCtx.rotate(heelDeg * Math.PI / 180);
 
       heelCtx.beginPath();
-      heelCtx.moveTo(-28, -6);
-      heelCtx.quadraticCurveTo(0, 20, 28, -6);
-      heelCtx.lineTo(25, -11);
-      heelCtx.lineTo(-25, -11);
+      heelCtx.moveTo(-26, -5);
+      heelCtx.quadraticCurveTo(0, 18, 26, -5);
+      heelCtx.lineTo(23, -10);
+      heelCtx.lineTo(-23, -10);
       heelCtx.closePath();
       heelCtx.fillStyle = '#243552';
       heelCtx.fill();
@@ -1881,8 +1453,8 @@
       heelCtx.stroke();
 
       heelCtx.beginPath();
-      heelCtx.moveTo(0, -11);
-      heelCtx.lineTo(0, -38);
+      heelCtx.moveTo(0, -10);
+      heelCtx.lineTo(0, -35);
       heelCtx.strokeStyle = '#94a3b8';
       heelCtx.lineWidth = 2;
       heelCtx.stroke();
@@ -1890,13 +1462,13 @@
       heelCtx.restore();
 
       heelCtx.fillStyle = heelDeg >= 25 ? '#ff5252' : '#ffffff';
-      heelCtx.font = '700 15px "JetBrains Mono"';
+      heelCtx.font = '700 13px "JetBrains Mono"';
       heelCtx.textAlign = 'center';
-      heelCtx.fillText(heelDeg.toFixed(1) + '°', cx, cy + 34);
+      heelCtx.fillText(heelDeg.toFixed(1) + '°', cx, cy + 30);
 
       heelCtx.fillStyle = '#94a3b8';
       heelCtx.font = '500 10px "Inter"';
-      heelCtx.fillText('ROLL: +' + rollRateDegS.toFixed(1) + '°/s', cx, cy + 48);
+      heelCtx.fillText('ROLL: +' + rollRateDegS.toFixed(1) + '°/s', cx, cy + 44);
     }
 
     function drawPitchDial(pitchDeg, pitchRateDegS) {
@@ -1930,10 +1502,10 @@
       pitchCtx.rotate(-pitchDeg * Math.PI / 180);
 
       pitchCtx.beginPath();
-      pitchCtx.moveTo(-32, -4);
-      pitchCtx.lineTo(-26, 10);
+      pitchCtx.moveTo(-30, -4);
+      pitchCtx.lineTo(-24, 10);
       pitchCtx.lineTo(16, 10);
-      pitchCtx.lineTo(34, -4);
+      pitchCtx.lineTo(32, -4);
       pitchCtx.closePath();
       pitchCtx.fillStyle = '#243552';
       pitchCtx.fill();
@@ -1943,15 +1515,15 @@
 
       pitchCtx.beginPath();
       pitchCtx.moveTo(-4, 10);
-      pitchCtx.lineTo(-2, 22);
-      pitchCtx.lineTo(6, 22);
+      pitchCtx.lineTo(-2, 20);
+      pitchCtx.lineTo(6, 20);
       pitchCtx.lineTo(4, 10);
       pitchCtx.fillStyle = '#334a70';
       pitchCtx.fill();
 
       pitchCtx.beginPath();
       pitchCtx.moveTo(2, -4);
-      pitchCtx.lineTo(0, -38);
+      pitchCtx.lineTo(0, -35);
       pitchCtx.strokeStyle = '#94a3b8';
       pitchCtx.lineWidth = 2;
       pitchCtx.stroke();
@@ -1959,28 +1531,105 @@
       pitchCtx.restore();
 
       pitchCtx.fillStyle = Math.abs(pitchDeg) >= 5.0 ? '#ff5252' : '#ffffff';
-      pitchCtx.font = '700 15px "JetBrains Mono"';
+      pitchCtx.font = '700 13px "JetBrains Mono"';
       pitchCtx.textAlign = 'center';
       const trimText = (pitchDeg >= 0 ? '+' : '') + pitchDeg.toFixed(1) + '°';
-      pitchCtx.fillText(trimText, cx, cy + 34);
+      pitchCtx.fillText(trimText, cx, cy + 30);
 
       pitchCtx.fillStyle = '#94a3b8';
       pitchCtx.font = '500 10px "Inter"';
       const stateTxt = pitchDeg >= 0 ? 'BOW UP (Нос)' : 'BOW DOWN (Бак)';
-      pitchCtx.fillText(stateTxt, cx, cy + 48);
+      pitchCtx.fillText(stateTxt, cx, cy + 44);
     }
 
-    // Format milliseconds to MM:SS.SS
+    // Format milliseconds to MM:SS.SS or HH:MM:SS
     function formatTime(ms) {
-      const totalSec = ms / 1000;
-      const m = Math.floor(totalSec / 60);
-      const s = (totalSec % 60).toFixed(2);
-      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      const totalSec = Math.max(0, ms / 1000);
+      const hours = Math.floor(totalSec / 3600);
+      const minutes = Math.floor((totalSec % 3600) / 60);
+      const seconds = (totalSec % 60);
+
+      if (hours > 0) {
+        return (hours < 10 ? '0' : '') + hours + ':' +
+               (minutes < 10 ? '0' : '') + minutes + ':' +
+               (seconds < 10 ? '0' : '') + seconds.toFixed(1);
+      }
+      return (minutes < 10 ? '0' : '') + minutes + ':' +
+             (seconds < 10 ? '0' : '') + seconds.toFixed(2);
+    }
+
+    // Format duration for label
+    function formatDurationLabel(ms) {
+      const sec = ms / 1000;
+      if (sec >= 60) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return s > 0 ? `${m}m ${s}s` : `${m} min`;
+      }
+      return `${sec.toFixed(1)}s`;
+    }
+
+    // Parse time string (e.g. "15:00", "01:30", "90", "15m", "45s") to ms
+    function parseTimeToMs(str) {
+      if (!str) return 0;
+      str = str.toString().trim();
+      if (str.includes(':')) {
+        const parts = str.split(':');
+        if (parts.length === 2) {
+          const m = parseFloat(parts[0]) || 0;
+          const s = parseFloat(parts[1]) || 0;
+          return Math.round((m * 60 + s) * 1000);
+        } else if (parts.length === 3) {
+          const h = parseFloat(parts[0]) || 0;
+          const m = parseFloat(parts[1]) || 0;
+          const s = parseFloat(parts[2]) || 0;
+          return Math.round((h * 3600 + m * 60 + s) * 1000);
+        }
+      }
+      if (str.toLowerCase().endsWith('m')) {
+        return Math.round(parseFloat(str) * 60 * 1000);
+      }
+      if (str.toLowerCase().endsWith('s')) {
+        return Math.round(parseFloat(str) * 1000);
+      }
+      const val = parseFloat(str);
+      return isNaN(val) ? 0 : Math.round(val * 1000);
+    }
+
+    // Set Total Test Duration (15s, 30s, 1m, 5m, 15m, etc.)
+    function setTotalDuration(durationMs) {
+      TOTAL_DURATION_MS = Math.max(1000, durationMs);
+      
+      // Update UI labels
+      document.getElementById('seq-total-dur-txt').innerText = formatDurationLabel(TOTAL_DURATION_MS) + ` (${(TOTAL_DURATION_MS/1000).toFixed(1)}s)`;
+      
+      // Update Duration Select Dropdown if matching
+      const durSelect = document.getElementById('duration-select');
+      let foundOption = false;
+      for (let i = 0; i < durSelect.options.length; i++) {
+        if (parseInt(durSelect.options[i].value) === TOTAL_DURATION_MS) {
+          durSelect.selectedIndex = i;
+          foundOption = true;
+          break;
+        }
+      }
+      if (!foundOption) {
+        durSelect.value = 'custom';
+      }
+
+      // Reset or clamp sim time
+      if (simTimeMs > TOTAL_DURATION_MS) {
+        simTimeMs = 0;
+      }
+
+      // Reset zoom to 1x fit
+      zoomLevel = 1.0;
+      updateTimelineWindow();
+      updateUI(simTimeMs);
     }
 
     // Render Timeline Tracks and Sequencer Table
     function renderTimelineAndSequencer() {
-      // Clear tracks
       document.getElementById('lane-wind').innerHTML = '';
       document.getElementById('lane-wave').innerHTML = '';
       document.getElementById('lane-fault').innerHTML = '';
@@ -1993,10 +1642,7 @@
       document.getElementById('event-count-badge').innerText = currentScenario.events.length;
 
       currentScenario.events.forEach((ev) => {
-        const startSec = (ev.start / 1000).toFixed(2);
         const endMs = ev.start + ev.duration;
-        const endSec = (endMs / 1000).toFixed(2);
-        const durSec = (ev.duration / 1000).toFixed(2);
 
         // 1. Create block on timeline track
         const laneId = ev.type === 'WIND' ? 'lane-wind' : (ev.type === 'WAVE' ? 'lane-wave' : (ev.type === 'SENSOR' ? 'lane-fault' : 'lane-alert'));
@@ -2007,10 +1653,10 @@
           const cssClass = ev.type === 'WIND' ? 'event-gust' : (ev.type === 'WAVE' ? 'event-wave' : (ev.type === 'SENSOR' ? 'event-fault' : 'event-alert'));
           block.className = `event-block ${cssClass}`;
           block.innerText = ev.label;
-          block.title = `${ev.id}: ${ev.param} (${startSec}s — ${endSec}s)`;
+          block.title = `${ev.id}: ${ev.param} (${formatTime(ev.start)} — ${formatTime(endMs)})`;
 
           const leftPct = ((ev.start - windowStartMs) / winLen) * 100;
-          const widthPct = (ev.duration / winLen) * 100;
+          const widthPct = Math.max(0.5, (ev.duration / winLen) * 100);
 
           block.style.left = leftPct + '%';
           block.style.width = widthPct + '%';
@@ -2034,13 +1680,13 @@
         tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
-          <td style="padding: 6px 8px;"><span style="color: ${ev.type==='WIND'?'var(--cyan-accent)':(ev.type==='WAVE'?'#93c5fd':(ev.type==='SENSOR'?'var(--warning-amber)':'#ff80ab'))}">${ev.type}</span></td>
-          <td style="padding: 6px 8px; font-weight: 700;">${ev.id}</td>
-          <td style="padding: 6px 8px; color: #fff;">${formatTime(ev.start)} (${startSec}s)</td>
-          <td style="padding: 6px 8px; color: var(--text-muted);">${durSec}s</td>
-          <td style="padding: 6px 8px; color: #fff;">${formatTime(endMs)} (${endSec}s)</td>
-          <td style="padding: 6px 8px; color: var(--text-muted);">${ev.param}</td>
-          <td style="padding: 6px 8px; text-align: right;">
+          <td style="padding: 5px 8px;"><span style="color: ${ev.type==='WIND'?'var(--cyan-accent)':(ev.type==='WAVE'?'#93c5fd':(ev.type==='SENSOR'?'var(--warning-amber)':'#ff80ab'))}">${ev.type}</span></td>
+          <td style="padding: 5px 8px; font-weight: 700;">${ev.id}</td>
+          <td style="padding: 5px 8px; color: #fff;">${formatTime(ev.start)}</td>
+          <td style="padding: 5px 8px; color: var(--text-muted);">${(ev.duration / 1000).toFixed(1)}s</td>
+          <td style="padding: 5px 8px; color: #fff;">${formatTime(endMs)}</td>
+          <td style="padding: 5px 8px; color: var(--text-muted);">${ev.param}</td>
+          <td style="padding: 5px 8px; text-align: right;">
             <button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="openEditEventModal('${ev.id}')">Edit</button>
           </td>
         `;
@@ -2065,10 +1711,10 @@
         }
       }
 
-      const sStart = (windowStartMs / 1000).toFixed(2);
-      const sEnd = (windowEndMs / 1000).toFixed(2);
-      const zoomText = zoomLevel === 1.0 ? 'Full 15s' : (windowDuration / 1000).toFixed(1) + 's window';
-      document.getElementById('zoom-window-txt').innerText = `Window: ${sStart}s — ${sEnd}s (${zoomText})`;
+      const sStart = formatTime(windowStartMs);
+      const sEnd = formatTime(windowEndMs);
+      const zoomText = zoomLevel === 1.0 ? `Full (${formatDurationLabel(TOTAL_DURATION_MS)})` : `${formatDurationLabel(windowDuration)} window`;
+      document.getElementById('zoom-window-txt').innerText = `Window: ${sStart} — ${sEnd} (${zoomText})`;
 
       const ticksContainer = document.getElementById('timeline-axis-ticks');
       ticksContainer.innerHTML = '';
@@ -2076,7 +1722,7 @@
       for (let i = 0; i < numTicks; i++) {
         const tMs = windowStartMs + i * ((windowEndMs - windowStartMs) / (numTicks - 1));
         const span = document.createElement('span');
-        span.innerText = (tMs / 1000).toFixed(zoomLevel > 2 ? 2 : 1) + 's';
+        span.innerText = formatTime(tMs);
         ticksContainer.appendChild(span);
       }
 
@@ -2091,7 +1737,7 @@
         updateTimelineWindow();
       }
 
-      const winLen = windowEndMs - windowStartMs;
+      const winLen = Math.max(1, windowEndMs - windowStartMs);
       const pct = ((tMs - windowStartMs) / winLen) * 100;
       document.getElementById('scrub-line').style.left = Math.min(Math.max(pct, -5), 105) + '%';
 
@@ -2111,7 +1757,7 @@
         const endMs = ev.start + ev.duration;
         if (tMs >= ev.start && tMs <= endMs) {
           activeEventNames.push(ev.id);
-          const progress = (tMs - ev.start) / ev.duration;
+          const progress = (tMs - ev.start) / Math.max(1, ev.duration);
 
           if (ev.type === 'WIND') {
             tws += 14.0 * Math.sin(progress * Math.PI);
@@ -2132,6 +1778,7 @@
       document.getElementById('gt-pitch').innerText = (pitch >= 0 ? '+' : '') + pitch.toFixed(1) + '° (' + (pitch >= 0 ? 'Bow Up' : 'Bow Down') + ')';
       document.getElementById('gt-pitchrate').innerText = (pitchRate >= 0 ? '+' : '') + pitchRate.toFixed(1) + ' °/s';
       document.getElementById('gt-accelz').innerText = accelZ.toFixed(2) + ' g' + (accelZ > 1.25 ? ' (Slam)' : '');
+      document.getElementById('gt-active-events').innerText = activeEventNames.length > 0 ? `[${activeEventNames.join(', ')}]` : '[STEADY STATE]';
 
       drawWindDial(awa, aws);
       drawHeelDial(heel, Math.abs(rollRate));
@@ -2150,7 +1797,7 @@
       editingEventId = null;
       document.getElementById('modal-heading').innerText = 'Add Scenario Event';
       document.getElementById('input-event-id').value = 'EVENT_' + (currentScenario.events.length + 1);
-      document.getElementById('input-start-sec').value = (simTimeMs / 1000).toFixed(1);
+      document.getElementById('input-start-sec').value = formatTime(simTimeMs);
       document.getElementById('input-duration-sec').value = '3.0';
       document.getElementById('input-event-param').value = '+15kt Gust Load';
       document.getElementById('btn-delete-event').style.display = 'none';
@@ -2165,8 +1812,8 @@
       document.getElementById('modal-heading').innerText = `Edit Event: ${ev.id}`;
       document.getElementById('input-event-type').value = ev.type;
       document.getElementById('input-event-id').value = ev.id;
-      document.getElementById('input-start-sec').value = (ev.start / 1000).toFixed(2);
-      document.getElementById('input-duration-sec').value = (ev.duration / 1000).toFixed(2);
+      document.getElementById('input-start-sec').value = formatTime(ev.start);
+      document.getElementById('input-duration-sec').value = (ev.duration / 1000).toFixed(1);
       document.getElementById('input-event-param').value = ev.param;
       document.getElementById('btn-delete-event').style.display = 'block';
       document.getElementById('event-modal').style.display = 'flex';
@@ -2184,7 +1831,7 @@
     document.getElementById('btn-save-event').addEventListener('click', () => {
       const type = document.getElementById('input-event-type').value;
       const id = document.getElementById('input-event-id').value.trim() || 'EVENT';
-      const startMs = Math.round(parseFloat(document.getElementById('input-start-sec').value) * 1000);
+      const startMs = parseTimeToMs(document.getElementById('input-start-sec').value);
       const durationMs = Math.round(parseFloat(document.getElementById('input-duration-sec').value) * 1000);
       const param = document.getElementById('input-event-param').value.trim() || 'Parameter';
 
@@ -2215,6 +1862,38 @@
       }
     });
 
+    // Custom Duration Modal Handlers
+    function openDurationModal() {
+      document.getElementById('input-custom-duration').value = formatTime(TOTAL_DURATION_MS);
+      document.getElementById('custom-duration-modal').style.display = 'flex';
+    }
+
+    function closeDurationModal() {
+      document.getElementById('custom-duration-modal').style.display = 'none';
+    }
+
+    document.getElementById('btn-close-duration-modal').addEventListener('click', closeDurationModal);
+    document.getElementById('btn-cancel-duration-modal').addEventListener('click', closeDurationModal);
+
+    document.getElementById('btn-apply-custom-duration').addEventListener('click', () => {
+      const inputStr = document.getElementById('input-custom-duration').value;
+      const parsedMs = parseTimeToMs(inputStr);
+      if (parsedMs > 0) {
+        setTotalDuration(parsedMs);
+      }
+      closeDurationModal();
+    });
+
+    // Duration Select Dropdown Change
+    document.getElementById('duration-select').addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'custom') {
+        openDurationModal();
+      } else {
+        setTotalDuration(parseInt(val));
+      }
+    });
+
     // Toggle Sequencer Table Visibility
     document.getElementById('btn-toggle-sequencer').addEventListener('click', () => {
       const box = document.getElementById('sequencer-table-box');
@@ -2225,6 +1904,9 @@
     document.getElementById('scenario-select').addEventListener('change', (e) => {
       activeScenarioKey = e.target.value;
       currentScenario = JSON.parse(JSON.stringify(SCENARIOS[activeScenarioKey]));
+      if (currentScenario.defaultDurationMs) {
+        setTotalDuration(currentScenario.defaultDurationMs);
+      }
       simTimeMs = 0;
       updateTimelineWindow();
       updateUI(simTimeMs);
@@ -2386,8 +2068,7 @@
 
     // Initial Render & Setup
     setMode('live');
-    updateTimelineWindow();
-    updateUI(simTimeMs);
+    setTotalDuration(15000);
   </script>
 </body>
 </html>
