@@ -15,7 +15,7 @@ from typing import Any
 import polars as pl
 
 from sia_sim.contracts.data import GroundTruthFrame, SensorFrame
-from sia_sim.contracts.evaluation import DecisionPayload
+from sia_sim.contracts.evaluation import DecisionPayload, EvaluationResult, OracleResult
 
 SchemaDict = Mapping[str, type[pl.DataType] | pl.DataType]
 
@@ -251,3 +251,59 @@ class RunRecorder:
                     "decision": rec.decision.model_dump(mode="json"),
                 }
                 f.write(json.dumps(line_data) + "\n")
+
+    def export_parquet(self, output_dir: str | Path, prefix: str = "run") -> dict[str, Path]:
+        """Exports ground truth, sensor, and decision logs as compressed Parquet files.
+
+        Args:
+            output_dir: Destination directory.
+            prefix: Filename prefix (e.g. 'run' or 'sim005').
+
+        Returns:
+            Dictionary mapping dataset name to written Path.
+        """
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+
+        df_gt, df_sf, df_dec = self.to_polars()
+
+        gt_path = out / f"{prefix}_ground_truth.parquet"
+        sf_path = out / f"{prefix}_sensors.parquet"
+        dec_path = out / f"{prefix}_decisions.parquet"
+
+        df_gt.write_parquet(gt_path, compression="zstd")
+        df_sf.write_parquet(sf_path, compression="zstd")
+        df_dec.write_parquet(dec_path, compression="zstd")
+
+        return {
+            "ground_truth": gt_path,
+            "sensors": sf_path,
+            "decisions": dec_path,
+        }
+
+    def export_summary_json(
+        self,
+        path: str | Path,
+        evaluation: EvaluationResult,
+        oracle: OracleResult,
+    ) -> Path:
+        """Exports a structured JSON summary of the run and evaluation.
+
+        Args:
+            path: Destination file path.
+            evaluation: EvaluationResult.
+            oracle: OracleResult.
+
+        Returns:
+            Written Path.
+        """
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        summary_data = {
+            "evaluation": evaluation.model_dump(mode="json"),
+            "oracle": oracle.model_dump(mode="json"),
+            "total_ticks": len(self._records),
+        }
+        target.write_text(json.dumps(summary_data, indent=2), encoding="utf-8")
+        return target
