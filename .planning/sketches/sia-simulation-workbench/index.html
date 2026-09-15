@@ -111,6 +111,60 @@
       border: 1px solid var(--border);
     }
 
+    .speed-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 6px;
+    }
+
+    .speed-label, .zoom-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-right: 2px;
+      margin-left: 2px;
+    }
+
+    .speed-btn, .zoom-btn {
+      background: var(--surface-3);
+      border: 1px solid var(--border-light);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .speed-btn:hover, .zoom-btn:hover {
+      color: #fff;
+      border-color: var(--cyan-accent);
+      background: #243552;
+    }
+
+    .speed-btn.active, .zoom-btn.active {
+      background: var(--cyan-accent);
+      color: #000;
+      border-color: var(--cyan-accent);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 6px;
+    }
+
     .btn {
       background: var(--surface-3);
       color: var(--text-main);
@@ -201,6 +255,8 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .section-label {
@@ -231,6 +287,7 @@
       padding: 10px 0;
       cursor: pointer;
       overflow: hidden;
+      transition: all 0.15s ease;
     }
 
     .timeline-axis {
@@ -701,6 +758,17 @@
       <div class="clock-display mono" id="clock-txt">T = 00:04.20</div>
     </div>
 
+    <!-- Speed Controls (0.5x to 50x) -->
+    <div class="speed-controls">
+      <span class="speed-label">Speed:</span>
+      <button class="speed-btn" data-speed="0.5">0.5x</button>
+      <button class="speed-btn active" data-speed="1.0">1x</button>
+      <button class="speed-btn" data-speed="2.0">2x</button>
+      <button class="speed-btn" data-speed="5.0">5x</button>
+      <button class="speed-btn" data-speed="10.0">10x</button>
+      <button class="speed-btn" data-speed="50.0">MAX</button>
+    </div>
+
     <div class="mode-toggle">
       <div class="mode-btn active" id="btn-mode-live">● LIVE / OPERATION</div>
       <div class="mode-btn" id="btn-mode-debug">○ DEBUG / RESEARCH</div>
@@ -713,16 +781,29 @@
     <!-- Zone 1: Timeline & Temporal Debugger -->
     <section class="timeline-card">
       <div class="timeline-header">
-        <span class="section-label">1. Temporal Debugger & Scenario Timeline (0 — 15 Seconds)</span>
-        <span class="text-dim" style="font-size: 11px;">Click & drag cursor to scrub 100 Hz state</span>
+        <span class="section-label">1. Temporal Debugger & Scenario Timeline</span>
+        
+        <!-- Zoom & Time Window Controls -->
+        <div class="zoom-controls">
+          <span class="zoom-label">Zoom:</span>
+          <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out (Wider)">🔍 -</button>
+          <button class="zoom-btn active" data-zoom="1">1x (15s)</button>
+          <button class="zoom-btn" data-zoom="2">2x (7.5s)</button>
+          <button class="zoom-btn" data-zoom="5">5x (3.0s)</button>
+          <button class="zoom-btn" data-zoom="10">10x (1.5s)</button>
+          <button class="zoom-btn" id="btn-zoom-in" title="Zoom In (High Res)">🔍 +</button>
+          <button class="zoom-btn" id="btn-zoom-reset" title="Fit All (15s)">Fit All</button>
+        </div>
+
+        <span class="text-dim mono" id="zoom-window-txt" style="font-size: 11px;">Window: 0.00s — 15.00s (Full)</span>
       </div>
 
       <div class="timeline-tracks" id="timeline-box">
-        <div class="scrub-cursor" id="scrub-line" style="left: 38%;">
+        <div class="scrub-cursor" id="scrub-line" style="left: 28%;">
           <div class="scrub-handle"></div>
         </div>
 
-        <div class="timeline-axis mono">
+        <div class="timeline-axis mono" id="timeline-axis-ticks">
           <span>00.0s</span>
           <span>02.5s</span>
           <span>05.0s</span>
@@ -735,8 +816,8 @@
         <!-- Track 1: Wind Gust -->
         <div class="track-row">
           <div class="track-name">Wind</div>
-          <div class="track-lane">
-            <div class="event-block event-gust" style="left: 16%; width: 30%;">
+          <div class="track-lane" id="lane-gust">
+            <div class="event-block event-gust" id="ev-gust">
               🌪️ GUST +14kt (TWS 32kt)
             </div>
           </div>
@@ -745,8 +826,8 @@
         <!-- Track 2: Waves -->
         <div class="track-row">
           <div class="track-name">Waves</div>
-          <div class="track-lane">
-            <div class="event-block event-wave" style="left: 26%; width: 22%;">
+          <div class="track-lane" id="lane-wave">
+            <div class="event-block event-wave" id="ev-wave">
               🌊 QUARTERING WAVE (H=2.8m)
             </div>
           </div>
@@ -755,8 +836,8 @@
         <!-- Track 3: Sensor Fault -->
         <div class="track-row">
           <div class="track-name">Sensors</div>
-          <div class="track-lane">
-            <div class="event-block event-fault" style="left: 56%; width: 20%;">
+          <div class="track-lane" id="lane-fault">
+            <div class="event-block event-fault" id="ev-fault">
               ⚠️ GPS NO FIX (Dropout)
             </div>
           </div>
@@ -765,8 +846,8 @@
         <!-- Track 4: SIA Decision -->
         <div class="track-row">
           <div class="track-name">SIA Alert</div>
-          <div class="track-lane">
-            <div class="event-block event-alert" style="left: 23%; width: 35%;">
+          <div class="track-lane" id="lane-alert">
+            <div class="event-block event-alert" id="ev-alert">
               🚨 BROACH PRECURSOR (Risk 0.88)
             </div>
           </div>
@@ -1005,7 +1086,22 @@
     let simTimeMs = 4200; // 4.20s
     let isPlaying = false;
     let playInterval = null;
+    let simSpeed = 1.0; // 0.5x to 50x
     let currentSailConfig = null;
+
+    // Timeline Zoom State
+    const TOTAL_DURATION_MS = 15000;
+    let zoomLevel = 1.0; // 1x, 2x, 5x, 10x
+    let windowStartMs = 0;
+    let windowEndMs = 15000;
+
+    // Defined Scenario Events (Ground Truth Timings in ms)
+    const SCENARIO_EVENTS = {
+      gust: { start: 2500, end: 7000, el: document.getElementById('ev-gust') },
+      wave: { start: 4000, end: 7300, el: document.getElementById('ev-wave') },
+      fault: { start: 8500, end: 11500, el: document.getElementById('ev-fault') },
+      alert: { start: 3400, end: 8700, el: document.getElementById('ev-alert') }
+    };
 
     // Canvas Dials
     const windCanvas = document.getElementById('wind-dial');
@@ -1033,14 +1129,12 @@
       windCtx.stroke();
 
       // Port / Starboard sectors
-      // Starboard (0 to +180): Green
       windCtx.beginPath();
       windCtx.arc(cx, cy, r - 4, -Math.PI / 2, Math.PI / 2);
       windCtx.strokeStyle = 'rgba(0, 230, 118, 0.4)';
       windCtx.lineWidth = 4;
       windCtx.stroke();
 
-      // Port (0 to -180): Red
       windCtx.beginPath();
       windCtx.arc(cx, cy, r - 4, Math.PI / 2, -Math.PI / 2);
       windCtx.strokeStyle = 'rgba(255, 23, 68, 0.4)';
@@ -1065,7 +1159,6 @@
       windCtx.translate(cx, cy);
       windCtx.rotate(rad + Math.PI / 2);
 
-      // Arrow needle
       windCtx.beginPath();
       windCtx.moveTo(0, -r + 10);
       windCtx.lineTo(6, -r + 26);
@@ -1073,7 +1166,6 @@
       windCtx.closePath();
       windCtx.fillStyle = awaDeg >= 0 ? '#00e676' : '#ff1744';
       windCtx.fill();
-
       windCtx.restore();
 
       // Center readout
@@ -1151,13 +1243,72 @@
       heelCtx.fillText('RATE: +' + rollRateDegS.toFixed(1) + '°/s', cx, cy + 58);
     }
 
+    // Timeline Zoom & Layout Update
+    function updateTimelineWindow() {
+      const windowDuration = TOTAL_DURATION_MS / zoomLevel;
+      
+      if (zoomLevel === 1.0) {
+        windowStartMs = 0;
+        windowEndMs = TOTAL_DURATION_MS;
+      } else {
+        // Keep active cursor visible in window
+        let centerMs = simTimeMs;
+        windowStartMs = Math.max(0, centerMs - windowDuration / 2);
+        windowEndMs = windowStartMs + windowDuration;
+        if (windowEndMs > TOTAL_DURATION_MS) {
+          windowEndMs = TOTAL_DURATION_MS;
+          windowStartMs = Math.max(0, windowEndMs - windowDuration);
+        }
+      }
+
+      // Update Window Label
+      const sStart = (windowStartMs / 1000).toFixed(2);
+      const sEnd = (windowEndMs / 1000).toFixed(2);
+      const zoomText = zoomLevel === 1.0 ? 'Full 15s' : (windowDuration / 1000).toFixed(1) + 's window';
+      document.getElementById('zoom-window-txt').innerText = `Window: ${sStart}s — ${sEnd}s (${zoomText})`;
+
+      // Generate Dynamic Ticks (6 segments)
+      const ticksContainer = document.getElementById('timeline-axis-ticks');
+      ticksContainer.innerHTML = '';
+      const numTicks = 7;
+      for (let i = 0; i < numTicks; i++) {
+        const tMs = windowStartMs + i * ((windowEndMs - windowStartMs) / (numTicks - 1));
+        const span = document.createElement('span');
+        span.innerText = (tMs / 1000).toFixed(zoomLevel > 2 ? 2 : 1) + 's';
+        ticksContainer.appendChild(span);
+      }
+
+      // Reposition Event Blocks
+      const winLen = windowEndMs - windowStartMs;
+      for (const [key, ev] of Object.entries(SCENARIO_EVENTS)) {
+        const leftPct = ((ev.start - windowStartMs) / winLen) * 100;
+        const widthPct = ((ev.end - ev.start) / winLen) * 100;
+
+        ev.el.style.left = leftPct + '%';
+        ev.el.style.width = widthPct + '%';
+        
+        // Hide if totally out of view
+        if (ev.end < windowStartMs || ev.start > windowEndMs) {
+          ev.el.style.opacity = '0.15';
+        } else {
+          ev.el.style.opacity = '1.0';
+        }
+      }
+    }
+
     // Update UI from Simulation Time
     function updateUI(tMs) {
       const sec = (tMs / 1000).toFixed(2);
       document.getElementById('clock-txt').innerText = 'T = 00:' + (sec < 10 ? '0' : '') + sec;
       
-      const pct = (tMs / 15000) * 100;
-      document.getElementById('scrub-line').style.left = Math.min(Math.max(pct, 0), 100) + '%';
+      // Auto-pan timeline window if cursor leaves zoomed area during playback
+      if (zoomLevel > 1.0 && (tMs < windowStartMs || tMs > windowEndMs)) {
+        updateTimelineWindow();
+      }
+
+      const winLen = windowEndMs - windowStartMs;
+      const pct = ((tMs - windowStartMs) / winLen) * 100;
+      document.getElementById('scrub-line').style.left = Math.min(Math.max(pct, -5), 105) + '%';
 
       // Dynamic variables based on scenario curve
       let heel = 12.0;
@@ -1217,15 +1368,81 @@
       }
     }
 
-    // Playback buttons
+    // Simulation Speed Multiplier Controls
+    function setSpeed(speed) {
+      simSpeed = speed;
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
+      });
+
+      if (isPlaying) {
+        clearInterval(playInterval);
+        startPlayback();
+      }
+    }
+
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setSpeed(parseFloat(btn.dataset.speed));
+      });
+    });
+
+    // Zoom Level Controls
+    function setZoom(level) {
+      zoomLevel = Math.max(1.0, Math.min(level, 10.0));
+      document.querySelectorAll('.zoom-btn[data-zoom]').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.zoom) === zoomLevel);
+      });
+      updateTimelineWindow();
+      updateUI(simTimeMs);
+    }
+
+    document.querySelectorAll('.zoom-btn[data-zoom]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setZoom(parseFloat(btn.dataset.zoom));
+      });
+    });
+
+    document.getElementById('btn-zoom-in').addEventListener('click', () => {
+      const nextZoom = zoomLevel < 2 ? 2 : (zoomLevel < 5 ? 5 : 10);
+      setZoom(nextZoom);
+    });
+
+    document.getElementById('btn-zoom-out').addEventListener('click', () => {
+      const prevZoom = zoomLevel > 5 ? 5 : (zoomLevel > 2 ? 2 : 1);
+      setZoom(prevZoom);
+    });
+
+    document.getElementById('btn-zoom-reset').addEventListener('click', () => {
+      setZoom(1.0);
+    });
+
+    // Mouse wheel zoom over timeline
+    document.getElementById('timeline-box').addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        setZoom(Math.min(zoomLevel * 1.5, 10.0));
+      } else {
+        setZoom(Math.max(zoomLevel / 1.5, 1.0));
+      }
+    });
+
+    // Playback Engine
+    function startPlayback() {
+      const intervalDelay = Math.max(10, Math.round(50 / Math.min(simSpeed, 10)));
+      const stepIncrementMs = Math.round(50 * (simSpeed > 10 ? (simSpeed / 10) : 1));
+
+      playInterval = setInterval(() => {
+        simTimeMs += stepIncrementMs;
+        if (simTimeMs > TOTAL_DURATION_MS) simTimeMs = 0;
+        updateUI(simTimeMs);
+      }, intervalDelay);
+    }
+
     document.getElementById('btn-play').addEventListener('click', () => {
       if (!isPlaying) {
         isPlaying = true;
-        playInterval = setInterval(() => {
-          simTimeMs += 50;
-          if (simTimeMs > 15000) simTimeMs = 0;
-          updateUI(simTimeMs);
-        }, 50);
+        startPlayback();
       }
     });
 
@@ -1243,7 +1460,7 @@
 
     document.getElementById('btn-step').addEventListener('click', () => {
       simTimeMs += 10;
-      if (simTimeMs > 15000) simTimeMs = 0;
+      if (simTimeMs > TOTAL_DURATION_MS) simTimeMs = 0;
       updateUI(simTimeMs);
     });
 
@@ -1277,12 +1494,14 @@
       const rect = timelineBox.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const pct = Math.max(0, Math.min(clickX / rect.width, 1));
-      simTimeMs = Math.round(pct * 15000);
+      const winLen = windowEndMs - windowStartMs;
+      simTimeMs = Math.round(windowStartMs + (pct * winLen));
       updateUI(simTimeMs);
     });
 
-    // Initial Render
+    // Initial Render & Setup
     setMode('live');
+    updateTimelineWindow();
     updateUI(simTimeMs);
   </script>
 </body>
