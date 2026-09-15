@@ -52,10 +52,9 @@ function bindControls() {
       AppState.customWorld = null; // reset custom override on preset change
       AppState.durationS = 20;
       if (durationInput) durationInput.value = 20;
-      if (window.TimelineRenderer) {
-        window.TimelineRenderer.events = [];
-      }
-      loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS);
+      // Preserve any events placed by human, or keep timeline clean if empty
+      const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : [];
+      loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, existingEvents);
     });
   }
 
@@ -139,8 +138,9 @@ function bindControls() {
     btnResetEvents.addEventListener('click', () => {
       if (window.TimelineRenderer) {
         window.TimelineRenderer.events = [];
-        loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS);
+        window.TimelineRenderer.renderTracks();
       }
+      loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, []);
     });
   }
 

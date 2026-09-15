@@ -26,35 +26,13 @@ const TimelineRenderer = {
     this.cursor = document.getElementById('timelineCursor');
     this.container = document.getElementById('timelineContainer');
 
-    // 1. Initialize events from customEvents, or from scenario payload data.events, or default
+    // 1. Initialize events from customEvents, or from scenario payload data.events, or empty list
     if (customEvents && Array.isArray(customEvents)) {
       this.events = JSON.parse(JSON.stringify(customEvents));
-    } else if (data && data.events && Array.isArray(data.events) && data.events.length > 0) {
+    } else if (data && data.events && Array.isArray(data.events)) {
       this.events = JSON.parse(JSON.stringify(data.events));
-    } else if (this.events.length === 0) {
-      this.events = [
-        {
-          event_id: 'EVT-WAVE-01',
-          event_type: 'wave_impact',
-          sim_time_ms: 10000,
-          parameters: {
-            impact_force_n: 12000.0,
-            impact_roll_moment_nm: -25000.0,
-            duration_ms: 2000,
-          },
-        },
-        {
-          event_id: 'EVT-GUST-01',
-          event_type: 'wind_gust',
-          sim_time_ms: 12000,
-          parameters: {
-            tws_kt: 18.0,
-            duration_s: 4.0,
-            duration_ms: 4000,
-            direction_shift_deg: 15.0,
-          },
-        },
-      ];
+    } else {
+      this.events = [];
     }
 
     this.bindEvents();

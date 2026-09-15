@@ -209,12 +209,14 @@ def get_preset_by_id(
         return get_coastal_cruise_preset(seed=seed, duration_ms=duration_ms)
     if pid in ("fresh", "fresh_breeze", "chop", "rough"):
         return get_fresh_breeze_preset(seed=seed, duration_ms=duration_ms)
-    if pid in ("gale", "broach", "sim-005", "sim005"):
-        # For backwards compatibility, sim005 retains default events if requested
+    if pid in ("gale", "broach"):
+        return get_gale_broach_preset(seed=seed, duration_ms=duration_ms, with_events=with_events)
+    if pid in ("sim-005", "sim005"):
+        # Explicit SIM-005 scenario keeps default verification events
         return get_gale_broach_preset(
             seed=seed,
             duration_ms=duration_ms,
-            with_events=with_events or (pid in ("sim-005", "sim005")),
+            with_events=True,
         )
 
     # Fallback to cruise
