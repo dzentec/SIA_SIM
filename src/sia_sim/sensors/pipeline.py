@@ -73,19 +73,29 @@ class SensorPipeline:
 
         for evt in active_events:
             evt_type = evt.event_type.lower()
-            if evt_type in ("imu_fault", "imu_failure", "sensor_fault_imu"):
+            sensor_param = str(evt.parameters.get("sensor", "")).lower()
+
+            if evt_type in ("imu_fault", "imu_failure", "sensor_fault_imu") or (
+                evt_type == "sensor_fault" and sensor_param == "imu"
+            ):
                 imu_fault = True
             elif evt_type in ("imu_freeze", "sensor_freeze_imu"):
                 imu_freeze = True
-            elif evt_type in ("gps_loss", "gps_fix_loss", "sensor_fault_gps"):
+            elif evt_type in ("gps_loss", "gps_fix_loss", "sensor_fault_gps") or (
+                evt_type == "sensor_fault" and sensor_param == "gps"
+            ):
                 gps_fault = True
             elif evt_type in ("gps_freeze", "sensor_freeze_gps"):
                 gps_freeze = True
-            elif evt_type in ("wind_fault", "anemometer_failure", "sensor_fault_wind"):
+            elif evt_type in ("wind_fault", "anemometer_failure", "sensor_fault_wind") or (
+                evt_type == "sensor_fault" and sensor_param in ("wind", "anemometer")
+            ):
                 wind_fault = True
             elif evt_type in ("wind_freeze", "sensor_freeze_wind"):
                 wind_freeze = True
-            elif evt_type in ("actuator_fault", "rudder_sensor_fault", "sensor_fault_rudder"):
+            elif evt_type in ("actuator_fault", "rudder_sensor_fault", "sensor_fault_rudder") or (
+                evt_type == "sensor_fault" and sensor_param in ("actuator", "actuators", "rudder")
+            ):
                 actuator_fault = True
             elif evt_type in ("actuator_freeze", "rudder_sensor_freeze"):
                 actuator_freeze = True
