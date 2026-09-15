@@ -1,0 +1,48 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": null,
+  "phases": [
+    {
+      "number": "1",
+      "name": "Project Skeleton & Harness (M0)",
+      "status": "pending"
+    },
+    {
+      "number": "2",
+      "name": "Data Contracts & Validation (M1)",
+      "status": "pending"
+    },
+    {
+      "number": "3",
+      "name": "Simplified Deterministic Causal Dynamics (M2)",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "Sensor Degradation & Faults (M3)",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "SIACore Boundary & MockSIA (M4)",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "Oracle & Evaluator (M5)",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Complete Pipeline PASS (M6)",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 1 of 7 · 0% · executing"
+  },
+  "updated_at": "2026-09-10T21:03:10.037Z"
+}

@@ -87,6 +87,7 @@ class VesselDynamics:
         mainsheet_pct: float = 100.0,
         wave_impact_force_n: float = 0.0,
         wave_impact_roll_moment_nm: float = 0.0,
+        wave_impact_yaw_moment_nm: float = 0.0,
     ) -> VesselState:
         """Advance dynamics state by dt_s and return immutable VesselState."""
         self._rudder_angle_deg = rudder_deg
@@ -110,6 +111,7 @@ class VesselDynamics:
             x_sail, y_sail, k_sail, n_sail = sail_forces(
                 aws_m_s=aws_m_s,
                 awa_deg=awa_deg,
+                heel_deg=heel_deg,
                 mainsheet_pct=mainsheet_pct,
             )
 
@@ -140,7 +142,7 @@ class VesselDynamics:
             total_x = x_sail + x_drag
             total_y = y_sail + y_rudder + y_drag + wave_impact_force_n
             total_k = k_sail + k_roll_drag + k_righting + wave_impact_roll_moment_nm
-            total_n = n_sail + n_rudder + n_yaw_drag
+            total_n = n_sail + n_rudder + n_yaw_drag + wave_impact_yaw_moment_nm
 
             # Kinematics
             dx = u * math.cos(psi) - v * math.sin(psi)

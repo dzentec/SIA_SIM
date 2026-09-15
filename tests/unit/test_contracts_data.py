@@ -198,21 +198,18 @@ def ground_truth_frame(
 
 
 class TestSensorFrameConstruction:
-    def test_sensor_frame_all_failed_constructs(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_sensor_frame_all_failed_constructs(self, sensor_frame_all_failed: SensorFrame) -> None:
         assert sensor_frame_all_failed.sim_time_ms == 0
         assert sensor_frame_all_failed.sequence_number == 0
 
-    def test_sensor_frame_healthy_constructs(
-        self, sensor_frame_healthy: SensorFrame
-    ) -> None:
+    def test_sensor_frame_healthy_constructs(self, sensor_frame_healthy: SensorFrame) -> None:
         assert sensor_frame_healthy.sim_time_ms == 10
         assert sensor_frame_healthy.sequence_number == 1
         assert sensor_frame_healthy.imu.roll_deg == 15.0
 
     def test_sensor_frame_sequence_number_zero_valid(
-        self, imu_all_none: IMUReading,
+        self,
+        imu_all_none: IMUReading,
         gps_no_fix: GPSReading,
         wind_failed: WindReading,
         actuators_no_feedback: ActuatorState,
@@ -227,9 +224,7 @@ class TestSensorFrameConstruction:
         )
         assert frame.sequence_number == 0
 
-    def test_imu_fault_true_with_all_none_is_valid(
-        self, imu_all_none: IMUReading
-    ) -> None:
+    def test_imu_fault_true_with_all_none_is_valid(self, imu_all_none: IMUReading) -> None:
         """Complete IMU failure: fault=True and all signals None is valid."""
         assert imu_all_none.fault is True
         assert imu_all_none.roll_deg is None
@@ -254,9 +249,7 @@ class TestSensorFrameConstruction:
 
 
 class TestGroundTruthFrameConstruction:
-    def test_ground_truth_frame_constructs(
-        self, ground_truth_frame: GroundTruthFrame
-    ) -> None:
+    def test_ground_truth_frame_constructs(self, ground_truth_frame: GroundTruthFrame) -> None:
         assert ground_truth_frame.sim_time_ms == 0
         assert ground_truth_frame.sequence_number == 0
         assert ground_truth_frame.active_event_ids == ()
@@ -326,9 +319,7 @@ class TestNonePreservation:
 
 
 class TestImmutability:
-    def test_sensor_frame_is_frozen(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_sensor_frame_is_frozen(self, sensor_frame_all_failed: SensorFrame) -> None:
         with pytest.raises(ValidationError):
             setattr(sensor_frame_all_failed, "sequence_number", 999)  # noqa: B010
 
@@ -340,9 +331,7 @@ class TestImmutability:
         with pytest.raises(ValidationError):
             setattr(gps_no_fix, "fault", False)  # noqa: B010
 
-    def test_ground_truth_frame_is_frozen(
-        self, ground_truth_frame: GroundTruthFrame
-    ) -> None:
+    def test_ground_truth_frame_is_frozen(self, ground_truth_frame: GroundTruthFrame) -> None:
         with pytest.raises(ValidationError):
             setattr(ground_truth_frame, "sim_time_ms", 999)  # noqa: B010
 
@@ -439,30 +428,22 @@ class TestRoundTripSerialization:
         restored = SensorFrame.model_validate(dumped)
         assert restored == sensor_frame_all_failed
 
-    def test_sensor_frame_healthy_round_trips(
-        self, sensor_frame_healthy: SensorFrame
-    ) -> None:
+    def test_sensor_frame_healthy_round_trips(self, sensor_frame_healthy: SensorFrame) -> None:
         dumped = sensor_frame_healthy.model_dump()
         restored = SensorFrame.model_validate(dumped)
         assert restored == sensor_frame_healthy
 
-    def test_ground_truth_frame_round_trips(
-        self, ground_truth_frame: GroundTruthFrame
-    ) -> None:
+    def test_ground_truth_frame_round_trips(self, ground_truth_frame: GroundTruthFrame) -> None:
         dumped = ground_truth_frame.model_dump()
         restored = GroundTruthFrame.model_validate(dumped)
         assert restored == ground_truth_frame
 
-    def test_json_round_trip_sensor_frame(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_json_round_trip_sensor_frame(self, sensor_frame_all_failed: SensorFrame) -> None:
         json_str = sensor_frame_all_failed.model_dump_json()
         restored = SensorFrame.model_validate_json(json_str)
         assert restored == sensor_frame_all_failed
 
-    def test_json_round_trip_preserves_none(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_json_round_trip_preserves_none(self, sensor_frame_all_failed: SensorFrame) -> None:
         json_str = sensor_frame_all_failed.model_dump_json()
         restored = SensorFrame.model_validate_json(json_str)
         assert restored.imu.roll_deg is None

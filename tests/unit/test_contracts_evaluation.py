@@ -217,9 +217,7 @@ class TestOracleAndEvaluatorContracts:
 
 
 class TestImmutability:
-    def test_decision_payload_is_frozen(
-        self, sample_decision_payload: DecisionPayload
-    ) -> None:
+    def test_decision_payload_is_frozen(self, sample_decision_payload: DecisionPayload) -> None:
         with pytest.raises(ValidationError):
             setattr(sample_decision_payload, "decision_id", "HACKED")  # noqa: B010
 
@@ -227,9 +225,7 @@ class TestImmutability:
         with pytest.raises(ValidationError):
             setattr(sample_oracle_result, "recovery_achieved", False)  # noqa: B010
 
-    def test_evaluation_result_is_frozen(
-        self, sample_evaluation_result: EvaluationResult
-    ) -> None:
+    def test_evaluation_result_is_frozen(self, sample_evaluation_result: EvaluationResult) -> None:
         with pytest.raises(ValidationError):
             setattr(sample_evaluation_result, "verdict", "FAIL")  # noqa: B010
 

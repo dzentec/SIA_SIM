@@ -54,14 +54,15 @@ class ActiveWaveImpact:
     duration_ms: int
     impact_force_n: float
     impact_roll_moment_nm: float
+    impact_yaw_moment_nm: float = 0.0
 
-    def evaluate(self, current_time_ms: int) -> tuple[float, float]:
-        """Evaluate impact force (N) and roll moment (Nm) at current_time_ms."""
+    def evaluate(self, current_time_ms: int) -> tuple[float, float, float]:
+        """Evaluate impact force (N), roll moment (Nm), and yaw moment (Nm) at current_time_ms."""
         if current_time_ms < self.impact_time_ms:
-            return 0.0, 0.0
+            return 0.0, 0.0, 0.0
         elapsed = current_time_ms - self.impact_time_ms
         if elapsed >= self.duration_ms:
-            return 0.0, 0.0
+            return 0.0, 0.0, 0.0
 
         # Rapid exponential rise and decay envelope
         t_norm = elapsed / self.duration_ms
@@ -69,7 +70,17 @@ class ActiveWaveImpact:
         envelope = (t_norm / 0.15) * math.exp(1.0 - (t_norm / 0.15)) if t_norm > 0 else 0.0
         envelope = min(max(envelope, 0.0), 2.0) / 2.0  # Normalized peak approx 1.0
 
-        return self.impact_force_n * envelope, self.impact_roll_moment_nm * envelope
+        yaw_moment = (
+            self.impact_yaw_moment_nm
+            if self.impact_yaw_moment_nm != 0.0
+            else -0.35 * self.impact_roll_moment_nm
+        )
+
+        return (
+            self.impact_force_n * envelope,
+            self.impact_roll_moment_nm * envelope,
+            yaw_moment * envelope,
+        )
 
     def is_expired(self, current_time_ms: int) -> bool:
         return current_time_ms >= (self.impact_time_ms + self.duration_ms)
@@ -129,19 +140,21 @@ class WaveModel:
     def add_impact(self, impact: ActiveWaveImpact) -> None:
         self._impacts.append(impact)
 
-    def evaluate_impact(self, time_ms: int) -> tuple[float, float]:
-        """Returns active (force_n, roll_moment_nm) from wave impact events."""
+    def evaluate_impact(self, time_ms: int) -> tuple[float, float, float]:
+        """Returns active (force_n, roll_moment_nm, yaw_moment_nm) from wave impact events."""
         total_force = 0.0
-        total_moment = 0.0
+        total_roll_moment = 0.0
+        total_yaw_moment = 0.0
         active = []
         for impact in self._impacts:
             if not impact.is_expired(time_ms):
                 active.append(impact)
-                f, m = impact.evaluate(time_ms)
+                f, rm, ym = impact.evaluate(time_ms)
                 total_force += f
-                total_moment += m
+                total_roll_moment += rm
+                total_yaw_moment += ym
         self._impacts = active
-        return total_force, total_moment
+        return total_force, total_roll_moment, total_yaw_moment
 
     def wave_elevation(self, x_m: float, y_m: float, time_s: float) -> float:
         """Linear wave elevation eta at position (x, y) and time t."""

@@ -77,19 +77,22 @@ class TestWaveModel:
         wave.add_impact(impact)
 
         # Before impact
-        f0, m0 = wave.evaluate_impact(4000)
+        f0, rm0, ym0 = wave.evaluate_impact(4000)
         assert f0 == 0.0
-        assert m0 == 0.0
+        assert rm0 == 0.0
+        assert ym0 == 0.0
 
         # During impact
-        f_mid, m_mid = wave.evaluate_impact(5200)
+        f_mid, rm_mid, ym_mid = wave.evaluate_impact(5200)
         assert f_mid > 0.0
-        assert m_mid > 0.0
+        assert rm_mid > 0.0
+        assert ym_mid != 0.0
 
         # After impact
-        f_after, m_after = wave.evaluate_impact(7000)
+        f_after, rm_after, ym_after = wave.evaluate_impact(7000)
         assert f_after == 0.0
-        assert m_after == 0.0
+        assert rm_after == 0.0
+        assert ym_after == 0.0
 
 
 class TestCurrentModel:

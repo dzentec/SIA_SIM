@@ -62,6 +62,7 @@ def apparent_wind(
 def sail_forces(
     aws_m_s: float,
     awa_deg: float,
+    heel_deg: float = 0.0,
     mainsheet_pct: float = 100.0,
     reef_ratio: float = 1.0,
     sail_area_m2: float = 45.0,
@@ -80,7 +81,9 @@ def sail_forces(
         return 0.0, 0.0, 0.0, 0.0
 
     trim_factor = max(0.0, min(1.0, mainsheet_pct / 100.0))
-    effective_area = sail_area_m2 * max(0.1, reef_ratio) * trim_factor
+    heel_rad = math.radians(heel_deg)
+    cos_heel = max(0.1, math.cos(heel_rad))
+    effective_area = sail_area_m2 * max(0.1, reef_ratio) * trim_factor * cos_heel
     q = 0.5 * RHO_AIR * (aws_m_s**2) * effective_area
 
     awa_rad = math.radians(awa_deg)
@@ -88,34 +91,37 @@ def sail_forces(
     sign_awa = 1.0 if awa_deg >= 0 else -1.0  # +1 if wind from starboard, -1 from port
 
     # Aerodynamic lift and drag coefficients
-    # In irons (|AWA| < 25°), sails stall and produce mostly drag
+    # In irons (|AWA| < 20°), sails stall and produce mostly drag
     if abs_awa < math.radians(20.0):
         c_l = 0.2 * math.sin(abs_awa * 4.0)
-        c_d = 0.4
+        c_d = 0.35
     else:
-        # Optimal lift around 45-60°
-        c_l = 1.4 * math.sin(2.0 * min(abs_awa, math.radians(90.0)))
-        c_d = 0.15 + 1.1 * (1.0 - math.cos(abs_awa))
+        # Proper trimmed sail lift and drag polar
+        c_l = 1.6 * math.sin(abs_awa)
+        c_d = 0.15 + 1.2 * (1.0 - math.cos(abs_awa))
 
     # Decompose into body axes
     # Lift acts perpendicular to apparent wind; Drag acts parallel to apparent wind
-    # Thrust along vessel x-axis
     thrust = q * (c_l * math.sin(abs_awa) - c_d * math.cos(abs_awa))
     # Side force along y-axis (pushes away from wind side)
     side_force_mag = q * (c_l * math.cos(abs_awa) + c_d * math.sin(abs_awa))
     y_sail = -sign_awa * side_force_mag  # Wind from starboard (sign=+1) pushes vessel to port (-y)
 
-    # Heeling moment: side force acting at Center of Effort (CE height ~ 0.4 * mast_height)
-    h_ce = 0.4 * mast_height_m
-    # Wind from starboard (+sign) heels vessel to port (-K) or starboard (+K depending on sign)
-    # Convention: Heel is positive to starboard. Wind from port (awa < 0) heels to starboard (+K).
+    # Heeling moment: side force acting at Center of Effort (CE height ~ 0.35 * mast_height)
+    h_ce = 0.35 * mast_height_m
     k_sail = -y_sail * h_ce  # If pushed to port (-y), roll is + to leeward (starboard)
 
-    # Weather helm yaw moment: CE is aft of center of lateral resistance (CLR)
-    # Plus heel-induced asymmetric hull moment: as heel increases, sail CE moves leeward
-    # causing a strong turning moment into the wind (weather helm)
+    # Weather helm yaw moment:
+    # 1. Base aerodynamic CE offset aft of CLR
     x_ce = -0.5  # meters aft of origin
-    n_sail = y_sail * x_ce
+    n_aero = y_sail * x_ce
+    # 2. Heel-induced asymmetric hull & sail thrust arm moment:
+    # As heel increases, bow turns into the wind (weather helm round-up)
+    n_heel_weather_helm = sign_awa * (
+        thrust * h_ce * math.sin(abs(heel_rad)) + 4000.0 * math.sin(heel_rad)
+    )
+
+    n_sail = n_aero + n_heel_weather_helm
 
     return thrust, y_sail, k_sail, n_sail
 
@@ -198,8 +204,8 @@ def hydrodynamic_damping(
       (X_drag, Y_damping, K_roll_damping, N_yaw_damping)
     """
     # Surge resistance (viscous + wavemaking drag)
-    # Resistance R = 0.5 * rho * S * Cd * u^2 + wavemaking (u^4 at hull speed)
-    c_dx = 0.05
+    # Resistance R = 0.5 * rho * S * Cd * u^2
+    c_dx = 0.02
     wetted_surface = 2.5 * math.sqrt(mass_kg / RHO_WATER * loa_m)
     x_drag = -0.5 * RHO_WATER * wetted_surface * c_dx * u_m_s * abs(u_m_s)
 
