@@ -295,16 +295,24 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     v_overrides["loa_m"] = float(custom_vessel["loa_m"])
                 if "beam_m" in custom_vessel and custom_vessel["beam_m"] is not None:
                     v_overrides["beam_m"] = float(custom_vessel["beam_m"])
-                if "displacement_kg" in custom_vessel and custom_vessel["displacement_kg"] is not None:
+                if (
+                    "displacement_kg" in custom_vessel
+                    and custom_vessel["displacement_kg"] is not None
+                ):
                     v_overrides["displacement_kg"] = float(custom_vessel["displacement_kg"])
                 if "mast_height_m" in custom_vessel and custom_vessel["mast_height_m"] is not None:
                     v_overrides["mast_height_m"] = float(custom_vessel["mast_height_m"])
                 if "sail_area_m2" in custom_vessel and custom_vessel["sail_area_m2"] is not None:
                     v_overrides["sail_area_m2"] = float(custom_vessel["sail_area_m2"])
-                if "hull_type" in custom_vessel and custom_vessel["hull_type"]:
+                if custom_vessel.get("hull_type"):
                     v_overrides["hull_type"] = str(custom_vessel["hull_type"])
-                if "available_sails" in custom_vessel and custom_vessel["available_sails"] is not None:
-                    v_overrides["available_sails"] = tuple(str(s) for s in custom_vessel["available_sails"])
+                if (
+                    "available_sails" in custom_vessel
+                    and custom_vessel["available_sails"] is not None
+                ):
+                    v_overrides["available_sails"] = tuple(
+                        str(s) for s in custom_vessel["available_sails"]
+                    )
 
                 if v_overrides:
                     updates["vessel"] = curr_v.model_copy(update=v_overrides)
@@ -357,7 +365,6 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": str(e)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
             except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
                 pass
-
 
     def _handle_query_action(self, payload: dict[str, Any]) -> None:
         sail_set = payload.get("sail_set", "FULL_MAIN")

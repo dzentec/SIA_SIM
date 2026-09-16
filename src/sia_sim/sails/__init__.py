@@ -23,10 +23,10 @@ from sia_sim.sails.advisor import (
 
 __all__ = [
     "ALL_SAIL_IDS",
+    "SAIL_RULES_CATALOG_V1_1",
     "EffectiveSailDefinition",
     "HullType",
     "ReefRecommendation",
-    "SAIL_RULES_CATALOG_V1_1",
     "SailAdvisoryPayload",
     "SailBaseDefinition",
     "SailCategory",

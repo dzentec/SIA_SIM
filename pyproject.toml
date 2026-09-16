@@ -51,3 +51,17 @@ module = [
     "scipy.*",
 ]
 ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+ignore = [
+    "RUF001",  # Ambiguous unicode character in strings (Cyrillic descriptions)
+    "RUF002",  # Ambiguous unicode character in docstrings
+    "RUF003",  # Ambiguous unicode character in comments
+    "E501",    # Line length
+]
+
+

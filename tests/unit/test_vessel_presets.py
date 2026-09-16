@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
-from sia_sim.contracts.scenario import BENETEAU_OCEANIS_45_CONFIG, DEFAULT_VESSEL_CONFIG
 from sia_sim.engine.runner import SimulationRunner
 from sia_sim.scenarios import get_preset_by_id
 from sia_sim.scenarios.presets import (
-    SAIL_PLAN_PERCENTAGES,
     VESSEL_PRESETS,
     get_vessel_preset_config,
     list_vessel_presets,

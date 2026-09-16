@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
 
 import numpy as np
 
 from sia_sim.contracts.data import IMUReading, VesselState
 from sia_sim.sensors.degradation import ChannelDegrader, DegradationConfig
-
-if TYPE_CHECKING:
-    pass
 
 GRAVITY = 9.80665  # m/s^2
 

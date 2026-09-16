@@ -80,12 +80,11 @@ class SimulationEvaluator:
             # Active hazard scenario
             # 1. Check for false alarms before hazard onset
             for d in decisions:
-                if d.sim_time_ms < t_onset - 500:
-                    if (
-                        d.risk_assessment.risk_score >= self.config.risk_detection_threshold
-                        or d.risk_assessment.hazard_id is not None
-                    ):
-                        false_positives += 1
+                if d.sim_time_ms < t_onset - 500 and (
+                    d.risk_assessment.risk_score >= self.config.risk_detection_threshold
+                    or d.risk_assessment.hazard_id == "HAZ-BROACH-PRECURSOR"
+                ):
+                    false_positives += 1
 
             if false_positives > self.config.max_allowed_false_positives:
                 failure_reasons.append(

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from enum import StrEnum
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field
 
+from pydantic import BaseModel, ConfigDict, Field
 
 HullType = Literal["monohull", "catamaran"]
 
@@ -24,10 +24,10 @@ class SailCategory(StrEnum):
 
 
 class SailSuitabilityStatus(StrEnum):
-    OPTIMAL = "OPTIMAL"        # Ideal working sector (Score >= 0.85)
-    MARGINAL = "MARGINAL"      # Acceptable with reduced aerodynamic efficiency (Score ~ 0.50)
+    OPTIMAL = "OPTIMAL"  # Ideal working sector (Score >= 0.85)
+    MARGINAL = "MARGINAL"  # Acceptable with reduced aerodynamic efficiency (Score ~ 0.50)
     UNSUITABLE = "UNSUITABLE"  # Out of wind/angle bounds (Score = 0.0)
-    DANGEROUS = "DANGEROUS"    # Wind or gust exceeds safety limits (Safety hazard)
+    DANGEROUS = "DANGEROUS"  # Wind or gust exceeds safety limits (Safety hazard)
 
 
 class ReefRecommendation(BaseModel):

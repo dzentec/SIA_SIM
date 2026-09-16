@@ -80,50 +80,24 @@ def sail_forces(
     if aws_m_s <= 0.0 or sail_area_m2 <= 0.0 or mainsheet_pct <= 0.0:
         return 0.0, 0.0, 0.0, 0.0
 
-    trim_factor = max(0.0, min(1.0, mainsheet_pct / 100.0))
-    heel_rad = math.radians(heel_deg)
-    cos_heel = max(0.1, math.cos(heel_rad))
-    effective_area = sail_area_m2 * max(0.1, reef_ratio) * trim_factor * cos_heel
-    q = 0.5 * RHO_AIR * (aws_m_s**2) * effective_area
+    from sia_sim.physics.sails.rig import create_standard_sloop_rig
 
-    awa_rad = math.radians(awa_deg)
-    abs_awa = abs(awa_rad)
-    sign_awa = 1.0 if awa_deg >= 0 else -1.0  # +1 if wind from starboard, -1 from port
+    rig = create_standard_sloop_rig(
+        mainsail_area_m2=sail_area_m2 * 0.5,
+        headsail_area_m2=sail_area_m2 * 0.5,
+        mast_height_m=mast_height_m,
+    )
+    for s in rig.sails:
+        s.reefed_ratio = max(0.0, min(1.0, reef_ratio))
 
-    # Aerodynamic lift and drag coefficients
-    # In irons (|AWA| < 20°), sails stall and produce mostly drag
-    if abs_awa < math.radians(20.0):
-        c_l = 0.2 * math.sin(abs_awa * 4.0)
-        c_d = 0.35
-    else:
-        # Proper trimmed sail lift and drag polar
-        c_l = 1.6 * math.sin(abs_awa)
-        c_d = 0.15 + 1.2 * (1.0 - math.cos(abs_awa))
-
-    # Decompose into body axes
-    # Lift acts perpendicular to apparent wind; Drag acts parallel to apparent wind
-    thrust = q * (c_l * math.sin(abs_awa) - c_d * math.cos(abs_awa))
-    # Side force along y-axis (pushes away from wind side)
-    side_force_mag = q * (c_l * math.cos(abs_awa) + c_d * math.sin(abs_awa))
-    y_sail = -sign_awa * side_force_mag  # Wind from starboard (sign=+1) pushes vessel to port (-y)
-
-    # Heeling moment: side force acting at Center of Effort (CE height ~ 0.35 * mast_height)
-    h_ce = 0.35 * mast_height_m
-    k_sail = -y_sail * h_ce  # If pushed to port (-y), roll is + to leeward (starboard)
-
-    # Weather helm yaw moment:
-    # 1. Base aerodynamic CE offset aft of CLR
-    x_ce = -0.5  # meters aft of origin
-    n_aero = y_sail * x_ce
-    # 2. Heel-induced asymmetric hull & sail thrust arm moment:
-    # As heel increases, bow turns into the wind (weather helm round-up)
-    n_heel_weather_helm = sign_awa * (
-        thrust * h_ce * math.sin(abs(heel_rad)) + 4000.0 * math.sin(heel_rad)
+    res = rig.evaluate(
+        aws_m_s=aws_m_s,
+        awa_deg=awa_deg,
+        heel_deg=heel_deg,
+        mainsheet_pct=mainsheet_pct,
     )
 
-    n_sail = n_aero + n_heel_weather_helm
-
-    return thrust, y_sail, k_sail, n_sail
+    return res.thrust_n, res.side_force_n, res.heeling_moment_nm, res.yawing_moment_nm
 
 
 def rudder_forces(

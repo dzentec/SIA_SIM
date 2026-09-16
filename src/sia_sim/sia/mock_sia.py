@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from sia_sim.contracts.data import SensorFrame
 from sia_sim.contracts.evaluation import CandidateResponse, DecisionPayload, RiskAssessment
-from sia_sim.contracts.sails import ALL_SAIL_IDS, SailAdvisoryPayload, SailSuitabilityStatus
+from sia_sim.contracts.sails import ALL_SAIL_IDS, SailAdvisoryPayload
 from sia_sim.sails.advisor import generate_sail_advisory
 from sia_sim.sia.protocol import SIACore
 
@@ -34,7 +34,9 @@ class MockSIA(SIACore):
         self.heel_critical_deg = heel_critical_deg
         self.yaw_rate_threshold_deg_s = yaw_rate_threshold_deg_s
         self.hull_type = hull_type
-        self.available_sails = tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
+        self.available_sails = (
+            tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
+        )
         self._decision_count = 0
         self.last_sail_advisory: SailAdvisoryPayload | None = None
 
@@ -45,7 +47,9 @@ class MockSIA(SIACore):
     ) -> None:
         """Update active hull type and on-board sail inventory for the simulation."""
         self.hull_type = hull_type
-        self.available_sails = tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
+        self.available_sails = (
+            tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
+        )
 
     def reset(self) -> None:
         """Reset internal temporal counters and filters."""
@@ -88,7 +92,6 @@ class MockSIA(SIACore):
         awa = frame.wind.apparent_wind_angle_deg or 45.0
 
         # Estimate TWS / TWA approximation from observable SensorFrame (boundary compliant)
-        sog = frame.gps.sog_kt or 5.0
         # In beam/broad reach approximation:
         tws_approx = aws
         twa_approx = awa

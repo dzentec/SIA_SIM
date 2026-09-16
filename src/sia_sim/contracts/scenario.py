@@ -146,7 +146,11 @@ def create_vessel_config(
     mast_height_m: float | None = None,
 ) -> VesselConfig:
     """Create a VesselConfig by overriding initial state or archetype."""
-    base = BENETEAU_OCEANIS_45_CONFIG if "beneteau" in vessel_type.lower() or "oceanis" in vessel_type.lower() else DEFAULT_VESSEL_CONFIG
+    base = (
+        BENETEAU_OCEANIS_45_CONFIG
+        if "beneteau" in vessel_type.lower() or "oceanis" in vessel_type.lower()
+        else DEFAULT_VESSEL_CONFIG
+    )
     updates: dict[str, Any] = {
         "initial_heading_deg": initial_heading_deg,
         "initial_sog_kt": initial_sog_kt,
@@ -168,7 +172,6 @@ def create_vessel_config(
     if mast_height_m is not None:
         updates["mast_height_m"] = mast_height_m
     return base.model_copy(update=updates)
-
 
 
 class Scenario(BaseModel):

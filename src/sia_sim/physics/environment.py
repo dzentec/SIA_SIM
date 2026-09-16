@@ -120,9 +120,7 @@ class WindModel:
             (rng.uniform(2.5, 7.0), rng.uniform(0.015, 0.035)),
             (rng.uniform(1.2, 3.5), rng.uniform(0.008, 0.020)),
         ]
-        self._speed_harmonics = [
-            (2.0 * math.pi / period, amp) for period, amp in speed_specs
-        ]
+        self._speed_harmonics = [(2.0 * math.pi / period, amp) for period, amp in speed_specs]
 
         # Direction harmonic components: (omega, amplitude_deg)
         # Using sin(omega * t) so at t=0, dir = base_twa_deg exactly
@@ -136,9 +134,7 @@ class WindModel:
             # Micro yaw turbulence (2s - 8s)
             (rng.uniform(2.0, 8.0), rng.uniform(0.4, 1.2)),
         ]
-        self._dir_harmonics = [
-            (2.0 * math.pi / period, amp) for period, amp in dir_specs
-        ]
+        self._dir_harmonics = [(2.0 * math.pi / period, amp) for period, amp in dir_specs]
 
     def add_gust(self, gust: ActiveGust) -> None:
         self._gusts.append(gust)
@@ -168,9 +164,7 @@ class WindModel:
             speed_turb_factor = max(-0.5, min(0.8, speed_turb_factor))
             current_speed = max(0.0, current_speed * (1.0 + speed_turb_factor))
 
-            dir_turb = sum(
-                amp * math.sin(omega * t_s) for omega, amp in self._dir_harmonics
-            )
+            dir_turb = sum(amp * math.sin(omega * t_s) for omega, amp in self._dir_harmonics)
             dir_shift += dir_turb
 
         current_dir = (self.base_twa_deg + dir_shift) % 360.0

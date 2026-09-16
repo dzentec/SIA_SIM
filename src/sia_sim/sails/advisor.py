@@ -6,7 +6,8 @@ advisory payloads strictly constrained to on-board available sail inventory.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from sia_sim.contracts.sails import (
     ALL_SAIL_IDS,
@@ -59,7 +60,9 @@ def resolve_wardrobe_for_hull(hull_type: str = "monohull") -> dict[str, Effectiv
         reef_recs: list[ReefRecommendation] = []
         for r in merged.get("reef_recommendations_kt", []):
             if isinstance(r, dict):
-                reef_recs.append(ReefRecommendation(reef=int(r["reef"]), wind_speed_kt=float(r["wind_speed_kt"])))
+                reef_recs.append(
+                    ReefRecommendation(reef=int(r["reef"]), wind_speed_kt=float(r["wind_speed_kt"]))
+                )
             elif isinstance(r, ReefRecommendation):
                 reef_recs.append(r)
         merged["reef_recommendations_kt"] = tuple(reef_recs)
@@ -130,9 +133,13 @@ def evaluate_sail_suitability(
         )
 
     # 4. Check Catamaran dead-downwind hazard (accidental gybe / collapse)
-    if sail.hull_type == "catamaran" and sail.id in ("asymmetric_gennaker_a2", "parasailor"):
-        if abs_twa > opt_twa_max and abs_twa >= 165.0:
-            return SailSuitability(
+    if (
+        sail.hull_type == "catamaran"
+        and sail.id in ("asymmetric_gennaker_a2", "parasailor")
+        and abs_twa > opt_twa_max
+        and abs_twa >= 165.0
+    ):
+        return SailSuitability(
                 sail_id=sail.id,
                 name=sail.name,
                 category=sail.category,
@@ -249,7 +256,10 @@ def generate_sail_advisory(
             marginal_list.append(sail_id)
 
         # Pick best headsail/downwind sail strictly among available
-        if is_avail and suit.status in (SailSuitabilityStatus.OPTIMAL, SailSuitabilityStatus.MARGINAL):
+        if is_avail and suit.status in (
+            SailSuitabilityStatus.OPTIMAL,
+            SailSuitabilityStatus.MARGINAL,
+        ):
             if sail_def.category == "Main":
                 if suit.score > best_main_score:
                     best_main_score = suit.score

@@ -20,7 +20,15 @@ def test_static_assets_exist() -> None:
     css_file = STATIC_DIR / "css" / "workbench.css"
     assert css_file.exists() and css_file.stat().st_size > 500
 
-    js_files = ["instruments.js", "timeline.js", "query_loop.js", "state.js", "playback.js", "modals.js", "app.js"]
+    js_files = [
+        "instruments.js",
+        "timeline.js",
+        "query_loop.js",
+        "state.js",
+        "playback.js",
+        "modals.js",
+        "app.js",
+    ]
     for js_name in js_files:
         js_file = STATIC_DIR / "js" / js_name
         assert js_file.exists() and js_file.stat().st_size > 200

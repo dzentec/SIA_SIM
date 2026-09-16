@@ -72,8 +72,12 @@ class TestWindModel:
 
     def test_turbulence_seed_diversity(self) -> None:
         """Verify different seeds produce distinct wind trajectories."""
-        wind_seed42 = WindModel(base_tws_m_s=10.0, base_twa_deg=60.0, seed=42, enable_turbulence=True)
-        wind_seed99 = WindModel(base_tws_m_s=10.0, base_twa_deg=60.0, seed=99, enable_turbulence=True)
+        wind_seed42 = WindModel(
+            base_tws_m_s=10.0, base_twa_deg=60.0, seed=42, enable_turbulence=True
+        )
+        wind_seed99 = WindModel(
+            base_tws_m_s=10.0, base_twa_deg=60.0, seed=99, enable_turbulence=True
+        )
 
         samples42 = [wind_seed42.evaluate(t * 1000) for t in range(1, 20)]
         samples99 = [wind_seed99.evaluate(t * 1000) for t in range(1, 20)]

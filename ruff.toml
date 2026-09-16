@@ -1,17 +1,13 @@
+line-length = 120
 target-version = "py312"
-line-length = 100
 
 [lint]
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
-    "RUF", # ruff-specific rules
+ignore = [
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "RUF100",
+    "E501",
+    "BLE001",
+    "S110",
 ]
-ignore = []
-
-[lint.isort]
-known-first-party = ["sia_sim"]

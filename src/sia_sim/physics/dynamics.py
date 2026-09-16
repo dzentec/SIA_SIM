@@ -14,9 +14,9 @@ from sia_sim.physics.forces import (
     hydrodynamic_damping,
     righting_moment,
     rudder_forces,
-    sail_forces,
 )
 from sia_sim.physics.integrator import rk4_step
+from sia_sim.physics.sails.rig import SailRig, create_standard_sloop_rig
 
 
 class VesselDynamics:
@@ -33,7 +33,7 @@ class VesselDynamics:
       7: p (roll rate in rad/s)
     """
 
-    def __init__(self, config: VesselConfig) -> None:
+    def __init__(self, config: VesselConfig, rig: SailRig | None = None) -> None:
         self.config = config
         self.mass = config.displacement_kg
         self.loa = config.loa_m
@@ -42,6 +42,15 @@ class VesselDynamics:
         self.mast_height_m = config.mast_height_m
         self.sail_trim_pct = config.sail_trim_pct
         self.gm_m = 1.35 if self.beam >= 4.0 else 1.10
+
+        self.rig = rig or create_standard_sloop_rig(
+            mainsail_area_m2=self.sail_area_m2 * 0.5,
+            headsail_area_m2=self.sail_area_m2 * 0.5,
+            mast_height_m=self.mast_height_m,
+            loa_m=self.loa,
+        )
+        if hasattr(self.config, "sail_plan") and self.config.sail_plan:
+            self.rig.set_sail_plan(self.config.sail_plan)
 
         # Added mass approximations for displacement yacht
         self.m_u = self.mass * 1.08
@@ -77,6 +86,17 @@ class VesselDynamics:
             self.mast_height_m = config.mast_height_m
             self.sail_trim_pct = config.sail_trim_pct
             self.gm_m = 1.35 if self.beam >= 4.0 else 1.10
+            self.rig = create_standard_sloop_rig(
+                mainsail_area_m2=self.sail_area_m2 * 0.5,
+                headsail_area_m2=self.sail_area_m2 * 0.5,
+                mast_height_m=self.mast_height_m,
+                loa_m=self.loa,
+            )
+            if hasattr(self.config, "sail_plan") and self.config.sail_plan:
+                self.rig.set_sail_plan(self.config.sail_plan)
+        else:
+            if hasattr(self.config, "sail_plan") and self.config.sail_plan:
+                self.rig.set_sail_plan(self.config.sail_plan)
 
         init_u = self.config.initial_sog_kt * KNOTS_TO_M_S
         init_psi = math.radians(self.config.initial_heading_deg)
@@ -119,16 +139,17 @@ class VesselDynamics:
                 twa_deg=env.true_wind_angle_deg,
             )
 
-            # 2. Sail forces
-            x_sail, y_sail, k_sail, n_sail = sail_forces(
+            # 2. Sail forces from multi-sail aerodynamic rig
+            rig_res = self.rig.evaluate(
                 aws_m_s=aws_m_s,
                 awa_deg=awa_deg,
                 heel_deg=heel_deg,
                 mainsheet_pct=mainsheet_pct,
-                reef_ratio=max(0.0, self.sail_trim_pct / 100.0),
-                sail_area_m2=self.sail_area_m2,
-                mast_height_m=self.mast_height_m,
             )
+            x_sail = rig_res.thrust_n
+            y_sail = rig_res.side_force_n
+            k_sail = rig_res.heeling_moment_nm
+            n_sail = rig_res.yawing_moment_nm
 
             # 3. Rudder forces
             y_rudder, n_rudder = rudder_forces(

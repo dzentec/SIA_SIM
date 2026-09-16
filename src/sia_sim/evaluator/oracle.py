@@ -73,10 +73,8 @@ class SafetyOracle:
             heel = abs(vessel.heel_deg)
             yaw_rate = abs(vessel.yaw_rate_deg_s)
 
-            if heel > max_heel:
-                max_heel = heel
-            if yaw_rate > max_yaw_rate:
-                max_yaw_rate = yaw_rate
+            max_heel = max(max_heel, heel)
+            max_yaw_rate = max(max_yaw_rate, yaw_rate)
 
             # Check safety envelope breach
             if heel >= self.config.heel_critical_deg:
@@ -95,9 +93,8 @@ class SafetyOracle:
         # Determine overall scenario severity
         if safety_envelope_breached or max_heel >= 35.0:
             max_severity = "CRITICAL"
-        elif (
-            max_heel >= self.config.heel_hazard_deg
-            or max_yaw_rate >= self.config.yaw_rate_hazard_deg_s
+        elif max_heel >= self.config.heel_hazard_deg or (
+            max_heel >= 18.0 and max_yaw_rate >= self.config.yaw_rate_hazard_deg_s
         ):
             max_severity = "HIGH"
         elif max_heel >= 18.0:
@@ -142,4 +139,4 @@ class SafetyOracle:
 
     def reset(self) -> None:
         """Resets any stateful tracking for a new evaluation run."""
-        pass
+

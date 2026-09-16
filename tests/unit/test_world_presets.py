@@ -7,15 +7,8 @@ from sia_sim.scenarios.presets import (
     WORLD_PRESET_CONFIGS,
     get_calm_harbour_preset,
     get_coastal_cruise_preset,
-    get_fresh_breeze_preset,
     get_gale_force_preset,
-    get_hurricane_preset,
-    get_light_breeze_preset,
-    get_near_gale_preset,
-    get_ocean_swell_preset,
     get_preset_by_id,
-    get_storm_survival_preset,
-    get_strong_wind_preset,
     list_world_presets,
 )
 
@@ -124,4 +117,3 @@ def test_harbour_vs_gale_intensity() -> None:
     assert harbour.initial_tws_kt < gale.initial_tws_kt
     assert harbour.initial_wave_height_m < gale.initial_wave_height_m
     assert harbour.vessel.initial_sog_kt < gale.vessel.initial_sog_kt
-

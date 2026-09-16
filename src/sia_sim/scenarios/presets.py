@@ -20,7 +20,6 @@ from typing import Any
 
 from sia_sim.contracts.scenario import Scenario, ScenarioEvent, create_vessel_config
 
-
 # ---------------------------------------------------------------------------
 # Canonical World Preset Configurations (JSON-compatible metadata)
 # ---------------------------------------------------------------------------
@@ -192,6 +191,7 @@ WORLD_PRESET_CONFIGS: list[dict[str, Any]] = [
 # ---------------------------------------------------------------------------
 # Individual Preset Constructors
 # ---------------------------------------------------------------------------
+
 
 def get_calm_harbour_preset(seed: int = 42, duration_ms: int = 20000) -> Scenario:
     """Returns PRESET 1: Calm Harbour (Mirror) - 2 kt wind, 0.1 m wave."""
@@ -538,7 +538,9 @@ def get_preset_by_id(
     if pid in WORLD_PRESETS:
         fn = WORLD_PRESETS[pid]
         if fn is get_gale_force_preset:
-            return get_gale_force_preset(seed=seed, duration_ms=duration_ms, with_events=with_events)
+            return get_gale_force_preset(
+                seed=seed, duration_ms=duration_ms, with_events=with_events
+            )
         return fn(seed=seed, duration_ms=duration_ms)
 
     # Fallback to coastal cruise
@@ -612,7 +614,10 @@ def get_vessel_preset_config(
     initial_heel_deg: float = 0.0,
 ) -> Any:
     """Creates a VesselConfig for a given vessel preset ID and sail configuration."""
-    from sia_sim.contracts.scenario import BENETEAU_OCEANIS_45_CONFIG, DEFAULT_VESSEL_CONFIG, VesselConfig
+    from sia_sim.contracts.scenario import (
+        BENETEAU_OCEANIS_45_CONFIG,
+        DEFAULT_VESSEL_CONFIG,
+    )
 
     vid = vessel_id.lower().replace("-", "_")
     plan_key = sail_plan.upper()
@@ -638,4 +643,3 @@ def get_vessel_preset_config(
             "initial_heel_deg": initial_heel_deg,
         }
     )
-

@@ -120,5 +120,6 @@ class TestSimulationRunner:
         target_heading = scenario.vessel.initial_heading_deg
         for r in records[50:]:  # after initial settling
             heading_diff = abs((r.gt.vessel.heading_deg - target_heading + 180.0) % 360.0 - 180.0)
-            assert heading_diff < 15.0, f"Vessel drifted to {r.gt.vessel.heading_deg} deg (target {target_heading})"
-
+            assert heading_diff < 15.0, (
+                f"Vessel drifted to {r.gt.vessel.heading_deg} deg (target {target_heading})"
+            )
