@@ -523,22 +523,35 @@ function playSimulation() {
   document.getElementById('btnRun').disabled = true;
   document.getElementById('btnPause').disabled = false;
 
+  let lastWallTime = performance.now();
+  let currentTickFloat = AppState.currentTick;
+
   const totalFrames = AppState.data.ticks.length;
   const simDurationMs = AppState.data.duration_ms || 20000;
-  const simDtPerFrameMs = simDurationMs / Math.max(1, totalFrames);
+  const msPerFrame = simDurationMs / Math.max(1, totalFrames - 1);
 
-  // Smooth 60 FPS playback timer (16ms per frame)
-  const timerIntervalMs = 16;
+  // Smooth 60 FPS playback timer (~16ms)
   AppState.playInterval = setInterval(() => {
-    if (AppState.currentTick < totalFrames - 1) {
-      const simMsToAdvance = timerIntervalMs * AppState.speedMultiplier;
-      const framesToAdvance = Math.max(1, Math.round(simMsToAdvance / simDtPerFrameMs));
-      AppState.currentTick = Math.min(totalFrames - 1, AppState.currentTick + framesToAdvance);
+    const now = performance.now();
+    const elapsedWallMs = Math.min(100, now - lastWallTime);
+    lastWallTime = now;
+
+    // Advance simulation time proportionally to actual elapsed wall-clock time * speedMultiplier
+    const simMsToAdvance = elapsedWallMs * AppState.speedMultiplier;
+    const framesToAdvance = simMsToAdvance / msPerFrame;
+
+    currentTickFloat += framesToAdvance;
+    const nextTick = Math.floor(currentTickFloat);
+
+    if (nextTick >= totalFrames - 1) {
+      AppState.currentTick = totalFrames - 1;
       renderTick(AppState.currentTick);
-    } else {
       pauseSimulation();
+    } else if (nextTick !== AppState.currentTick) {
+      AppState.currentTick = nextTick;
+      renderTick(AppState.currentTick);
     }
-  }, timerIntervalMs);
+  }, 16);
 }
 
 function pauseSimulation() {
