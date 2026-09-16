@@ -124,11 +124,11 @@ function updateLivingSeaButtonState() {
   if (AppState.isLivingSeaRunning) {
     btn.className = 'btn-living-sea-toggle state-running';
     if (icon) icon.textContent = '⏹';
-    if (label) label.textContent = 'СТОП СИМУЛЯЦИИ (В НОЛЬ)';
+    if (label) label.textContent = 'STOP SIMULATION (RESET TO ZERO)';
   } else {
     btn.className = 'btn-living-sea-toggle state-stopped';
     if (icon) icon.textContent = '▶';
-    if (label) label.textContent = 'СТАРТ СИМУЛЯЦИИ';
+    if (label) label.textContent = 'START SIMULATION';
   }
 }
 

@@ -80,7 +80,7 @@
     <div class="timeline-canvas-container" id="timelineContainer">
       <canvas id="timelineCanvas" width="1600" height="68"></canvas>
       <div class="timeline-cursor" id="timelineCursor">
-        <div class="timeline-handle" id="timelineHandle" title="Перетащите ползунок для перемотки симуляции">
+        <div class="timeline-handle" id="timelineHandle" title="Drag handle to scrub simulation time">
           <div class="handle-grip"></div>
         </div>
       </div>
@@ -137,10 +137,10 @@
                 <option value="20" selected>20 s</option>
                 <option value="60">1 min</option>
                 <option value="300">5 min</option>
-                <option value="3600">1 hour (1 ч)</option>
-                <option value="14400">4 hours (4 ч)</option>
-                <option value="43200">12 hours (12 ч)</option>
-                <option value="86400">24 hours (24 ч)</option>
+                <option value="3600">1 hour (3,600s)</option>
+                <option value="14400">4 hours (14,400s)</option>
+                <option value="43200">12 hours (43,200s)</option>
+                <option value="86400">24 hours (86,400s)</option>
               </select>
             </div>
             <div class="control-item">
@@ -151,9 +151,9 @@
 
           <!-- Prominent Living Sea START / STOP Action Button -->
           <div class="living-sea-action-container">
-            <button id="btnLivingSeaToggle" class="btn-living-sea-toggle state-stopped" title="Запуск / Остановка симуляции Living Sea">
+            <button id="btnLivingSeaToggle" class="btn-living-sea-toggle state-stopped" title="Start / Stop Living Sea Simulation">
               <span class="sea-toggle-icon" id="seaToggleIcon">▶</span>
-              <span class="sea-toggle-label" id="seaToggleLabel">СТАРТ СИМУЛЯЦИИ</span>
+              <span class="sea-toggle-label" id="seaToggleLabel">START SIMULATION</span>
             </button>
           </div>
         </div>
@@ -309,9 +309,9 @@
               </div>
             </div>
 
-            <!-- 3. Pitch Inclinometer / Trim (Килевая качка) -->
+            <!-- 3. Pitch Inclinometer / Trim -->
             <div class="dial-card">
-              <div class="dial-title">PITCH / TRIM (КИЛЕВАЯ КАЧКА)</div>
+              <div class="dial-title">PITCH / TRIM INCLINOMETER</div>
               <div class="canvas-wrapper">
                 <canvas id="dialPitchCanvas" width="200" height="200"></canvas>
               </div>
@@ -333,9 +333,9 @@
               </div>
             </div>
 
-            <!-- 5. Heave & Vertical Accel (Вертикальная качка) -->
+            <!-- 5. Heave & Vertical Accel -->
             <div class="dial-card">
-              <div class="dial-title">HEAVE & ACCEL AZ (ВЕРТИКАЛЬНАЯ)</div>
+              <div class="dial-title">HEAVE & ACCEL AZ</div>
               <div class="canvas-wrapper">
                 <canvas id="dialHeaveCanvas" width="200" height="200"></canvas>
               </div>
@@ -345,9 +345,9 @@
               </div>
             </div>
 
-            <!-- 6. Slamming & Hull Shock Meter (Слеминг) -->
+            <!-- 6. Slamming & Hull Shock Meter -->
             <div class="dial-card" id="cardSlamming">
-              <div class="dial-title">SLAM IMPACT SHOCK (СЛЕМИНГ)</div>
+              <div class="dial-title">SLAM IMPACT SHOCK</div>
               <div class="canvas-wrapper">
                 <canvas id="dialSlamCanvas" width="200" height="200"></canvas>
               </div>
