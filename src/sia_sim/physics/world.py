@@ -30,10 +30,14 @@ class WorldModel:
         initial_wave_period_s: float,
         current_speed_m_s: float = 0.0,
         current_direction_deg: float = 0.0,
+        seed: int = 42,
+        enable_turbulence: bool = True,
     ) -> None:
         self._wind = WindModel(
             base_tws_m_s=initial_tws_kt * KNOTS_TO_M_S,
             base_twa_deg=initial_twa_deg,
+            seed=seed,
+            enable_turbulence=enable_turbulence,
         )
         self._wave = WaveModel(
             wave_height_m=initial_wave_height_m,
@@ -54,6 +58,8 @@ class WorldModel:
             initial_twa_deg=scenario.initial_twa_deg,
             initial_wave_height_m=scenario.initial_wave_height_m,
             initial_wave_period_s=scenario.initial_wave_period_s,
+            seed=scenario.seed,
+            enable_turbulence=scenario.enable_turbulence,
         )
 
     @property

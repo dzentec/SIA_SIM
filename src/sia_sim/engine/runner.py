@@ -101,8 +101,9 @@ class SimulationRunner:
         dt_s = dt_ms / 1000.0
         total_ticks = max(1, scenario.duration_ms // dt_ms)
 
+        target_heading_deg = scenario.vessel.initial_heading_deg
         active_rudder_cmd = 0.0
-        active_sail_cmd = 100.0
+        active_sail_cmd = scenario.vessel.sail_trim_pct
 
         start_time = time.perf_counter()
 
@@ -150,15 +151,28 @@ class SimulationRunner:
             # Step 4: Feed SensorFrame to SIA Core
             decision = self.sia_core.process(sf)
 
-            # Step 5: Closed-loop actuator feedback (if enabled)
+            # Step 5: Closed-loop actuator feedback / baseline course-keeping helmsman
+            if scenario.enable_autopilot:
+                curr_psi_deg = math.degrees(dynamics._state[2]) % 360.0
+                heading_err = (curr_psi_deg - target_heading_deg + 180.0) % 360.0 - 180.0
+                yaw_rate_deg_s = math.degrees(dynamics._state[5])
+                rudder_trim = 1.2 * heading_err + 1.8 * yaw_rate_deg_s
+                baseline_rudder = max(-25.0, min(25.0, rudder_trim))
+            else:
+                baseline_rudder = 0.0
+
             if apply_actuator_feedback and decision.selected_response is not None:
                 if decision.selected_response.rudder_command_deg is not None:
                     active_rudder_cmd = decision.selected_response.rudder_command_deg
+                else:
+                    active_rudder_cmd = baseline_rudder
                 if decision.selected_response.sail_command_pct is not None:
                     active_sail_cmd = decision.selected_response.sail_command_pct
+                else:
+                    active_sail_cmd = scenario.vessel.sail_trim_pct
             else:
-                active_rudder_cmd = 0.0
-                active_sail_cmd = 100.0
+                active_rudder_cmd = baseline_rudder
+                active_sail_cmd = scenario.vessel.sail_trim_pct
 
             # Step 6: Log telemetry and decision
             recorder.record(gt, sf, decision)

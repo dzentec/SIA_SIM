@@ -115,6 +115,8 @@ class TestBroachPrecursorDynamics:
             initial_twa_deg=0.0,
             initial_wave_height_m=3.0,
             initial_wave_period_s=7.0,
+            enable_turbulence=False,
+            enable_autopilot=False,
         )
 
         world = WorldModel.from_scenario(scenario)

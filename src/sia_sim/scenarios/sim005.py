@@ -47,6 +47,8 @@ def get_sim005_scenario(seed: int = 42) -> Scenario:
             ),
         ),
         seed=seed,
+        enable_turbulence=False,
+        enable_autopilot=False,
     )
 
 
@@ -69,6 +71,8 @@ def get_benign_scenario(seed: int = 100) -> Scenario:
         ),
         events=(),
         seed=seed,
+        enable_turbulence=False,
+        enable_autopilot=False,
     )
 
 
@@ -82,7 +86,7 @@ def load_scenario(path_or_name: str, seed: int = 42) -> Scenario:
 
     from sia_sim.scenarios.presets import WORLD_PRESETS, get_preset_by_id
 
-    if name_clean in WORLD_PRESETS or str(path_or_name).lower() in WORLD_PRESETS:
+    if name_clean in WORLD_PRESETS or path_or_name.lower() in WORLD_PRESETS:
         return get_preset_by_id(path_or_name, seed=seed)
 
     file_path = Path(path_or_name)

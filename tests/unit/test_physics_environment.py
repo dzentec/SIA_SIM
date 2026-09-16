@@ -50,6 +50,45 @@ class TestWindModel:
         assert s_after == 10.0
         assert d_after == 60.0
 
+    def test_turbulence_living_wind_fluctuations(self) -> None:
+        """Verify living wind model with enable_turbulence=True produces realistic continuous fluctuations."""
+        wind = WindModel(base_tws_m_s=10.0, base_twa_deg=60.0, seed=42, enable_turbulence=True)
+        # At T=0, matches initial state
+        s0, d0 = wind.evaluate(0)
+        assert math.isclose(s0, 10.0, rel_tol=1e-5)
+        assert math.isclose(d0, 60.0, rel_tol=1e-5)
+
+        speeds = [wind.evaluate(t * 1000)[0] for t in range(1, 30)]
+        directions = [wind.evaluate(t * 1000)[1] for t in range(1, 30)]
+
+        # Verify speeds and directions fluctuate and are not static
+        assert min(speeds) < max(speeds)
+        assert min(directions) < max(directions)
+        # Verify fluctuations stay within realistic marine bounds
+        for s in speeds:
+            assert 6.0 <= s <= 16.0
+        for d in directions:
+            assert 45.0 <= d <= 75.0
+
+    def test_turbulence_seed_diversity(self) -> None:
+        """Verify different seeds produce distinct wind trajectories."""
+        wind_seed42 = WindModel(base_tws_m_s=10.0, base_twa_deg=60.0, seed=42, enable_turbulence=True)
+        wind_seed99 = WindModel(base_tws_m_s=10.0, base_twa_deg=60.0, seed=99, enable_turbulence=True)
+
+        samples42 = [wind_seed42.evaluate(t * 1000) for t in range(1, 20)]
+        samples99 = [wind_seed99.evaluate(t * 1000) for t in range(1, 20)]
+
+        # Must diverge because different seeds create distinct harmonic profiles
+        assert samples42 != samples99
+
+    def test_turbulence_bit_for_bit_determinism(self) -> None:
+        """Verify same seed produces identical sequence across multiple instances."""
+        w1 = WindModel(base_tws_m_s=12.0, base_twa_deg=90.0, seed=123, enable_turbulence=True)
+        w2 = WindModel(base_tws_m_s=12.0, base_twa_deg=90.0, seed=123, enable_turbulence=True)
+
+        for t_ms in range(0, 30000, 100):
+            assert w1.evaluate(t_ms) == w2.evaluate(t_ms)
+
 
 class TestWaveModel:
     def test_dispersion_kinematics(self) -> None:

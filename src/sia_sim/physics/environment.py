@@ -87,18 +87,58 @@ class ActiveWaveImpact:
 
 
 class WindModel:
-    """Causal wind model computing true wind speed and direction."""
+    """Causal wind model computing true wind speed and direction with seed-driven multi-frequency harmonics."""
 
     def __init__(
         self,
         base_tws_m_s: float,
         base_twa_deg: float,
+        seed: int = 42,
         enable_turbulence: bool = False,
     ) -> None:
         self.base_tws_m_s = max(0.0, base_tws_m_s)
         self.base_twa_deg = base_twa_deg % 360.0
+        self.seed = seed
         self.enable_turbulence = enable_turbulence
         self._gusts: list[ActiveGust] = []
+
+        # Deterministically initialize multi-frequency harmonic components from seed
+        import random
+
+        rng = random.Random(self.seed)
+
+        # Speed harmonic components: (omega, amplitude_ratio)
+        # Using sin(omega * t) so at t=0, speed = base_tws_m_s exactly
+        speed_specs = [
+            # Macro speed variation (swelling/easing: 120s - 450s)
+            (rng.uniform(120.0, 450.0), rng.uniform(0.06, 0.14)),
+            (rng.uniform(60.0, 180.0), rng.uniform(0.04, 0.08)),
+            # Mesoscale gustiness (15s - 50s)
+            (rng.uniform(15.0, 50.0), rng.uniform(0.03, 0.07)),
+            (rng.uniform(8.0, 25.0), rng.uniform(0.02, 0.05)),
+            # High-frequency turbulence (1.5s - 6s)
+            (rng.uniform(2.5, 7.0), rng.uniform(0.015, 0.035)),
+            (rng.uniform(1.2, 3.5), rng.uniform(0.008, 0.020)),
+        ]
+        self._speed_harmonics = [
+            (2.0 * math.pi / period, amp) for period, amp in speed_specs
+        ]
+
+        # Direction harmonic components: (omega, amplitude_deg)
+        # Using sin(omega * t) so at t=0, dir = base_twa_deg exactly
+        dir_specs = [
+            # Macro direction shift / meandering (180s - 600s)
+            (rng.uniform(180.0, 600.0), rng.uniform(4.0, 10.0)),
+            # Medium-term wind shifts (40s - 120s)
+            (rng.uniform(40.0, 120.0), rng.uniform(2.0, 5.0)),
+            # Short-term yaw oscillation (10s - 35s)
+            (rng.uniform(10.0, 35.0), rng.uniform(1.0, 2.5)),
+            # Micro yaw turbulence (2s - 8s)
+            (rng.uniform(2.0, 8.0), rng.uniform(0.4, 1.2)),
+        ]
+        self._dir_harmonics = [
+            (2.0 * math.pi / period, amp) for period, amp in dir_specs
+        ]
 
     def add_gust(self, gust: ActiveGust) -> None:
         self._gusts.append(gust)
@@ -118,17 +158,19 @@ class WindModel:
                 dir_shift += d
         self._gusts = active
 
+        t_s = time_ms / 1000.0
         current_speed = max(0.0, self.base_tws_m_s + speed_extra)
-        # Add deterministic organic natural wind turbulence (~4-8% fluctuation) if enabled
+
         if self.enable_turbulence and self.base_tws_m_s > 0.0:
-            t_s = time_ms / 1000.0
-            turb = (
-                0.05 * math.sin(0.37 * t_s)
-                + 0.03 * math.cos(0.83 * t_s + 1.2)
-                + 0.02 * math.sin(1.71 * t_s + 2.5)
+            speed_turb_factor = sum(
+                amp * math.sin(omega * t_s) for omega, amp in self._speed_harmonics
             )
-            current_speed = max(0.0, current_speed * (1.0 + turb))
-            dir_turb = 2.0 * math.sin(0.29 * t_s + 0.7) + 1.2 * math.cos(0.71 * t_s)
+            speed_turb_factor = max(-0.5, min(0.8, speed_turb_factor))
+            current_speed = max(0.0, current_speed * (1.0 + speed_turb_factor))
+
+            dir_turb = sum(
+                amp * math.sin(omega * t_s) for omega, amp in self._dir_harmonics
+            )
             dir_shift += dir_turb
 
         current_dir = (self.base_twa_deg + dir_shift) % 360.0

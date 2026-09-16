@@ -214,3 +214,9 @@ class Scenario(BaseModel):
 
     initial_wave_period_s: float = Field(gt=0.0)
     """Wave period in seconds at T=0."""
+
+    enable_turbulence: bool = Field(default=True)
+    """Whether continuous multi-harmonic wind turbulence and direction wandering are active."""
+
+    enable_autopilot: bool = Field(default=True)
+    """Whether baseline course-keeping helmsman autopilot holds target heading during nominal sailing."""

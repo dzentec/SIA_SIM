@@ -106,3 +106,19 @@ class TestSimulationRunner:
         # Without SIA mitigation, the unmitigated broach causes False Negative
         assert result.evaluation.verdict == "FAIL"
         assert result.evaluation.false_negatives >= 1
+
+    def test_runner_autopilot_course_keeping(self) -> None:
+        """Verify baseline course-keeping autopilot holds target heading under living wind."""
+        from sia_sim.scenarios.presets import get_coastal_cruise_preset
+
+        runner = SimulationRunner()
+        scenario = get_coastal_cruise_preset(seed=42, duration_ms=10000)
+        result = runner.run(scenario)
+
+        # Check that throughout the run, heading stayed close to target (65.0 deg)
+        records = result.recorder.records
+        target_heading = scenario.vessel.initial_heading_deg
+        for r in records[50:]:  # after initial settling
+            heading_diff = abs((r.gt.vessel.heading_deg - target_heading + 180.0) % 360.0 - 180.0)
+            assert heading_diff < 15.0, f"Vessel drifted to {r.gt.vessel.heading_deg} deg (target {target_heading})"
+
