@@ -49,7 +49,9 @@ class VesselDynamics:
             mast_height_m=self.mast_height_m,
             loa_m=self.loa,
         )
-        if hasattr(self.config, "sail_plan") and self.config.sail_plan:
+        if hasattr(self.config, "active_sails") and self.config.active_sails:
+            self.rig.configure_active_sails(self.config.active_sails)
+        elif hasattr(self.config, "sail_plan") and self.config.sail_plan:
             self.rig.set_sail_plan(self.config.sail_plan)
 
         # Added mass approximations for displacement yacht
@@ -92,10 +94,14 @@ class VesselDynamics:
                 mast_height_m=self.mast_height_m,
                 loa_m=self.loa,
             )
-            if hasattr(self.config, "sail_plan") and self.config.sail_plan:
+            if hasattr(self.config, "active_sails") and self.config.active_sails:
+                self.rig.configure_active_sails(self.config.active_sails)
+            elif hasattr(self.config, "sail_plan") and self.config.sail_plan:
                 self.rig.set_sail_plan(self.config.sail_plan)
         else:
-            if hasattr(self.config, "sail_plan") and self.config.sail_plan:
+            if hasattr(self.config, "active_sails") and self.config.active_sails:
+                self.rig.configure_active_sails(self.config.active_sails)
+            elif hasattr(self.config, "sail_plan") and self.config.sail_plan:
                 self.rig.set_sail_plan(self.config.sail_plan)
 
         init_u = self.config.initial_sog_kt * KNOTS_TO_M_S

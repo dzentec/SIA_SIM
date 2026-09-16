@@ -261,6 +261,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
         scenario_name = payload.get("scenario", "cruise")
         vessel_preset = payload.get("vessel_preset")
         sail_plan = payload.get("sail_plan")
+        active_sails = payload.get("active_sails")
         seed = int(payload.get("seed", 42))
         duration_ms = payload.get("duration_ms")
         custom_events_data = payload.get("events")
@@ -288,7 +289,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                 )
                 updates["vessel"] = vessel_cfg
 
-            # Custom vessel overrides (physical geometry and available sail inventory)
+            # Custom vessel overrides (physical geometry, sail inventory, active sails)
             if isinstance(custom_vessel, dict):
                 curr_v = updates.get("vessel", scenario.vessel)
                 v_overrides: dict[str, Any] = {}
@@ -314,9 +315,24 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     v_overrides["available_sails"] = tuple(
                         str(s) for s in custom_vessel["available_sails"]
                     )
+                if (
+                    "active_sails" in custom_vessel
+                    and custom_vessel["active_sails"] is not None
+                    and isinstance(custom_vessel["active_sails"], dict)
+                ):
+                    v_overrides["active_sails"] = {
+                        str(k): float(v) for k, v in custom_vessel["active_sails"].items()
+                    }
 
                 if v_overrides:
                     updates["vessel"] = curr_v.model_copy(update=v_overrides)
+
+            # Direct active_sails override if provided in payload
+            if active_sails is not None and isinstance(active_sails, dict):
+                curr_v = updates.get("vessel", scenario.vessel)
+                updates["vessel"] = curr_v.model_copy(
+                    update={"active_sails": {str(k): float(v) for k, v in active_sails.items()}}
+                )
 
             # Custom world parameters if provided
             if isinstance(custom_world, dict):

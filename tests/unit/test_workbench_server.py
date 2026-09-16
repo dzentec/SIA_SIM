@@ -142,3 +142,28 @@ def test_run_simulation_with_custom_events_and_duration(workbench_server: None) 
         assert "pitch_deg" in sample_tick["sensor_frame"]["imu"]
         assert "pitch_rate_deg_s" in sample_tick["sensor_frame"]["imu"]
         assert sample_tick["ground_truth"]["slam_force_kn"] > 0
+
+
+def test_run_simulation_with_custom_active_sails(workbench_server: None) -> None:
+    """Verifies /api/run accepts active_sails multi-sail mapping."""
+    url = "http://127.0.0.1:8099/api/run"
+    req_body = json.dumps(
+        {
+            "scenario": "cruise",
+            "seed": 42,
+            "duration_ms": 2000,
+            "active_sails": {
+                "mainsail": 0.75,
+                "genoa": 1.0,
+                "code_zero": 1.0,
+            },
+        }
+    ).encode("utf-8")
+    req = Request(url, data=req_body, headers={"Content-Type": "application/json"}, method="POST")
+
+    with urlopen(req) as response:
+        assert response.status == 200
+        data = json.loads(response.read().decode("utf-8"))
+        assert data["total_ticks"] == 200
+        assert len(data["ticks"]) == 200
+        assert data["ticks"][-1]["ground_truth"]["sog_kt"] > 0.0

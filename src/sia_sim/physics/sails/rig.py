@@ -117,10 +117,49 @@ class SailRig:
         self.sails.append(sail)
 
     def get_sail(self, sail_id: str) -> Sail | None:
+        target = sail_id.lower().replace("-", "_").strip()
         for s in self.sails:
-            if s.config.sail_id == sail_id:
+            if s.config.sail_id.lower() == target:
                 return s
+        # Aliases fallback
+        if target in ("headsail", "genoa", "jib"):
+            for s in self.sails:
+                if s.config.sail_id.lower() in ("headsail", "genoa", "jib") or s.config.sail_type in (SailType.GENOA, SailType.JIB):
+                    return s
+        if target in ("mainsail", "main"):
+            for s in self.sails:
+                if s.config.sail_id.lower() in ("mainsail", "main") or s.config.sail_type == SailType.MAINSAIL:
+                    return s
+        if target in ("code_zero", "code0", "code_0"):
+            for s in self.sails:
+                if s.config.sail_id.lower() in ("code_zero", "code0", "code_0") or s.config.sail_type == SailType.CODE_ZERO:
+                    return s
+        if target in ("gennaker", "spinnaker", "a2"):
+            for s in self.sails:
+                if s.config.sail_id.lower() in ("gennaker", "spinnaker", "a2") or s.config.sail_type in (SailType.GENNAKER, SailType.SPINNAKER):
+                    return s
+        if target in ("storm_jib", "stormjib", "storm"):
+            for s in self.sails:
+                if s.config.sail_id.lower() in ("storm_jib", "stormjib", "storm") or s.config.sail_type == SailType.STORM_JIB:
+                    return s
         return None
+
+    def configure_active_sails(self, active_sails: dict[str, float]) -> None:
+        """Activate specified sails with custom reef ratios and deactivate unlisted sails.
+
+        Args:
+            active_sails: Mapping of sail_id / alias to reef ratio (0.0 to 1.0).
+                          e.g. {"mainsail": 0.75, "genoa": 1.0, "code_zero": 1.0}
+        """
+        for s in self.sails:
+            s.is_active = False
+
+        for sail_id, reef_ratio in active_sails.items():
+            if reef_ratio > 0.0:
+                sail = self.get_sail(sail_id)
+                if sail:
+                    sail.is_active = True
+                    sail.reefed_ratio = max(0.01, min(1.0, float(reef_ratio)))
 
     def set_sail_plan(self, plan_name: str) -> None:
         """Configure active sails and reefing levels based on high-level sail plan."""

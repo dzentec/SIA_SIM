@@ -286,16 +286,26 @@
             </div>
           </div>
 
-          <!-- Sail Plan Selection Chips -->
+          <!-- Sail Plan Selection Chips / Multi-Sail Active Rig -->
           <div class="sail-plan-group">
-            <div class="sail-plan-title">ACTIVE SAIL RIG STATE (AERODYNAMIC DRIVE):</div>
-            <div class="sail-chips-grid" id="sailChipsGrid">
-              <button class="btn-sail-chip highlight-code0" data-sail="CODE_ZERO" title="Code Zero + Full Main (130% Power)">⛵ CODE 0 (130%)</button>
-              <button class="btn-sail-chip active" data-sail="FULL_MAIN" title="Full Main + Genoa (100% Power)">⛵ FULL MAIN (100%)</button>
-              <button class="btn-sail-chip" data-sail="REEF_1" title="Reef 1 Main (75% Power)">📉 REEF 1 (75%)</button>
-              <button class="btn-sail-chip" data-sail="REEF_2" title="Reef 2 Main (50% Power)">📉 REEF 2 (50%)</button>
-              <button class="btn-sail-chip" data-sail="STORM_JIB" title="Storm Jib Only (25% Power)">⛈ STORM JIB (25%)</button>
-              <button class="btn-sail-chip" data-sail="BARE_POLES" title="Bare Poles / Motoring (0% Power)">⚙ BARE POLES (0%)</button>
+            <div class="sail-deck-header">
+              <span class="sail-plan-title">ACTIVE SAIL RIG DECK (HOISTED SAILS & REEF CONTROLS):</span>
+              <div class="deck-quick-actions">
+                <button class="btn btn-tool btn-hoist" id="btnHoistSail" title="Hoist an additional sail from inventory">+ Hoist Sail</button>
+              </div>
+            </div>
+            <div class="active-sails-deck" id="activeSailsDeck">
+              <!-- Dynamically populated by renderActiveSailsDeck() -->
+            </div>
+            <div class="sail-preset-strip" id="sailPresetStrip">
+              <span class="preset-strip-lbl">PRESETS:</span>
+              <button class="btn-preset-chip" data-preset="FULL_MAIN" title="Full Main + Genoa (100% Power)">⛵ Full Main</button>
+              <button class="btn-preset-chip" data-preset="CODE_ZERO" title="Code 0 + Main (130% Power)">⚡ Code 0</button>
+              <button class="btn-preset-chip" data-preset="GENNAKER" title="Gennaker + Main (150% Power)">🎈 Gennaker</button>
+              <button class="btn-preset-chip" data-preset="REEF_1" title="Reef 1 Main + Genoa (75% Power)">📉 Reef 1</button>
+              <button class="btn-preset-chip" data-preset="REEF_2" title="Reef 2 Main + Genoa (50% Power)">📉 Reef 2</button>
+              <button class="btn-preset-chip" data-preset="STORM_JIB" title="Storm Jib Solo (25% Power)">⛈ Storm Jib</button>
+              <button class="btn-preset-chip" data-preset="BARE_POLES" title="Bare Poles / Engine (0% Power)">⚙ Bare Poles</button>
             </div>
           </div>
         </div>
@@ -701,6 +711,36 @@
           <label class="sail-inv-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(16, 26, 46, 0.6); padding: 6px 8px; border-radius: 4px; border: 1px solid #1f2d47; cursor: pointer;">
             <input type="checkbox" id="inv_storm_jib" value="storm_jib" checked>
             <span>⛈ <b>Storm Jib / Stay</b></span>
+          </label>
+        </div>
+
+        <!-- SECTION 3: Currently Hoisted Active Rig -->
+        <div style="font-size: 12px; font-weight: 700; color: #60a5fa; margin-top: 16px; margin-bottom: 8px; border-bottom: 1px solid #1f2d47; padding-bottom: 4px;">
+          3. CURRENTLY HOISTED ACTIVE SAILS
+        </div>
+        <div style="font-size: 11px; color: #8892b0; margin-bottom: 8px;">
+          Select which sails from the wardrobe above are hoisted right now (simultaneous multi-sail drive):
+        </div>
+        <div class="sail-hoisted-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <label class="sail-hoisted-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(37, 99, 235, 0.15); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.35); cursor: pointer;">
+            <input type="checkbox" id="hoist_mainsail" value="mainsail" checked>
+            <span>⛵ <b>Mainsail</b> (Hoisted)</span>
+          </label>
+          <label class="sail-hoisted-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(37, 99, 235, 0.15); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.35); cursor: pointer;">
+            <input type="checkbox" id="hoist_genoa" value="genoa" checked>
+            <span>⛵ <b>Genoa / Jib</b> (Unfurled)</span>
+          </label>
+          <label class="sail-hoisted-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(37, 99, 235, 0.15); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.35); cursor: pointer;">
+            <input type="checkbox" id="hoist_code_zero" value="code_zero">
+            <span>⚡ <b>Code 0</b> (Hoisted)</span>
+          </label>
+          <label class="sail-hoisted-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(37, 99, 235, 0.15); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.35); cursor: pointer;">
+            <input type="checkbox" id="hoist_gennaker" value="gennaker">
+            <span>🎈 <b>Gennaker / Parasailor</b></span>
+          </label>
+          <label class="sail-hoisted-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(37, 99, 235, 0.15); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.35); cursor: pointer;">
+            <input type="checkbox" id="hoist_storm_jib" value="storm_jib">
+            <span>⛈ <b>Storm Jib</b></span>
           </label>
         </div>
       </div>

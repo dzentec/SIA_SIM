@@ -80,6 +80,9 @@ class VesselConfig(BaseModel):
     )
     """On-board sail wardrobe available for use."""
 
+    active_sails: dict[str, float] | None = Field(default=None)
+    """Explicit mapping of active hoisted sails to reef ratios (e.g. {'mainsail': 0.75, 'genoa': 1.0})."""
+
     initial_heel_deg: float
     """Starting heel angle in degrees (+ starboard)."""
 

@@ -111,6 +111,18 @@ function bindCustomVesselControls() {
         if (cb) cb.checked = avail.includes(id);
       });
 
+      const currentActive = window.AppState.activeSails || { mainsail: 1.0, genoa: 1.0 };
+      const cbMain = document.getElementById('hoist_mainsail');
+      if (cbMain) cbMain.checked = Boolean(currentActive.mainsail || currentActive.main);
+      const cbGenoa = document.getElementById('hoist_genoa');
+      if (cbGenoa) cbGenoa.checked = Boolean(currentActive.genoa || currentActive.headsail || currentActive.jib);
+      const cbCode0 = document.getElementById('hoist_code_zero');
+      if (cbCode0) cbCode0.checked = Boolean(currentActive.code_zero || currentActive.code0);
+      const cbGennaker = document.getElementById('hoist_gennaker');
+      if (cbGennaker) cbGennaker.checked = Boolean(currentActive.gennaker || currentActive.parasailor);
+      const cbStorm = document.getElementById('hoist_storm_jib');
+      if (cbStorm) cbStorm.checked = Boolean(currentActive.storm_jib || currentActive.storm);
+
       backdrop.style.display = 'flex';
     });
   }
@@ -141,6 +153,20 @@ function bindCustomVesselControls() {
         return;
       }
 
+      const newActiveSails = {};
+      const cbMain = document.getElementById('hoist_mainsail');
+      if (cbMain && cbMain.checked) newActiveSails.mainsail = window.AppState.activeSails?.mainsail || 1.0;
+      const cbGenoa = document.getElementById('hoist_genoa');
+      if (cbGenoa && cbGenoa.checked) newActiveSails.genoa = window.AppState.activeSails?.genoa || 1.0;
+      const cbCode0 = document.getElementById('hoist_code_zero');
+      if (cbCode0 && cbCode0.checked) newActiveSails.code_zero = window.AppState.activeSails?.code_zero || 1.0;
+      const cbGennaker = document.getElementById('hoist_gennaker');
+      if (cbGennaker && cbGennaker.checked) newActiveSails.gennaker = window.AppState.activeSails?.gennaker || 1.0;
+      const cbStorm = document.getElementById('hoist_storm_jib');
+      if (cbStorm && cbStorm.checked) newActiveSails.storm_jib = window.AppState.activeSails?.storm_jib || 1.0;
+
+      window.AppState.activeSails = newActiveSails;
+
       window.AppState.customVessel = {
         hull_type: hullType,
         loa_m: loa,
@@ -149,6 +175,7 @@ function bindCustomVesselControls() {
         mast_height_m: mast,
         sail_area_m2: sailArea,
         available_sails: checkedSails,
+        active_sails: newActiveSails,
       };
 
       if (vspecLoa) vspecLoa.textContent = `${loa.toFixed(2)} m`;
@@ -156,8 +183,8 @@ function bindCustomVesselControls() {
       if (vspecMass) vspecMass.textContent = `${mass.toLocaleString()} kg`;
       if (vspecArea) vspecArea.textContent = `${sailArea.toFixed(0)} m²`;
 
-      if (window.updateSailChipsGrid) {
-        window.updateSailChipsGrid(checkedSails);
+      if (window.renderActiveSailsDeck) {
+        window.renderActiveSailsDeck();
       }
 
       closeCustomVesselModal();

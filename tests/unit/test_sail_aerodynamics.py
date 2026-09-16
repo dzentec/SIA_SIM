@@ -121,6 +121,32 @@ class TestRigInteractionsAndMoments:
         rig.set_sail_plan("BARE_POLES")
         assert not main.is_active and not headsail.is_active and not storm.is_active
 
+    def test_configure_active_sails_multi_sail_combination(self) -> None:
+        rig = create_standard_sloop_rig()
+        main = rig.get_sail("mainsail")
+        headsail = rig.get_sail("headsail")
+        code0 = rig.get_sail("code_zero")
+        storm = rig.get_sail("storm_jib")
+        assert main is not None and headsail is not None and code0 is not None and storm is not None
+
+        # Activate 3 sails simultaneously (Mainsail R1 + Genoa Full + Code 0 Full)
+        rig.configure_active_sails({"mainsail": 0.75, "genoa": 1.0, "code_zero": 1.0})
+        assert main.is_active and math.isclose(main.reefed_ratio, 0.75)
+        assert headsail.is_active and math.isclose(headsail.reefed_ratio, 1.0)
+        assert code0.is_active and math.isclose(code0.reefed_ratio, 1.0)
+        assert not storm.is_active
+
+        # Evaluate 3-sail rig
+        res = rig.evaluate(aws_m_s=12.0, awa_deg=65.0, heel_deg=18.0)
+        assert res.thrust_n > 800.0
+        assert res.total_effective_area_m2 > 80.0
+
+    def test_configure_active_sails_empty_deactivates_all(self) -> None:
+        rig = create_standard_sloop_rig()
+        rig.configure_active_sails({})
+        for s in rig.sails:
+            assert not s.is_active
+
 
 class TestExtensibilityHooks:
     def test_protocol_compliance_and_hooks_assignment(self) -> None:

@@ -6,6 +6,7 @@ const AppState = {
   scenarioId: 'coastal_cruise',
   vesselPreset: 'beneteau_oceanis_45',
   sailPlan: 'FULL_MAIN',
+  activeSails: { mainsail: 1.0, genoa: 1.0 },
   seed: 42,
   durationS: 600,
   imuRate: 10,
