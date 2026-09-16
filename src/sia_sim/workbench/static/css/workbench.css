@@ -564,6 +564,59 @@ body.is-scrubbing .timeline-handle {
   gap: 2px;
 }
 
+.living-sea-action-container {
+  margin-top: 4px;
+}
+
+.btn-living-sea-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 5px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
+}
+
+.btn-living-sea-toggle.state-stopped {
+  background: linear-gradient(135deg, #00e5ff 0%, #0284c7 100%);
+  color: #040810;
+  border-color: #38bdf8;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.35);
+}
+
+.btn-living-sea-toggle.state-stopped:hover {
+  background: linear-gradient(135deg, #38bdf8 0%, #0369a1 100%);
+  box-shadow: 0 0 22px rgba(0, 229, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-living-sea-toggle.state-running {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  color: #ffffff;
+  border-color: #f87171;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.45);
+  animation: pulse-stop 2s infinite ease-in-out;
+}
+
+.btn-living-sea-toggle.state-running:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.7);
+  transform: translateY(-1px);
+}
+
+@keyframes pulse-stop {
+  0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.35); }
+  50% { box-shadow: 0 0 22px rgba(239, 68, 68, 0.75); }
+}
+
 .badge-ground-truth {
   background: rgba(148, 163, 184, 0.15);
   color: var(--ground-truth-slate);

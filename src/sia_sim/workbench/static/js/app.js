@@ -14,6 +14,7 @@ const AppState = {
   data: null,
   currentTick: 0,
   isPlaying: false,
+  isLivingSeaRunning: false,
   playInterval: null,
   mode: 'live', // 'live' | 'debug'
   selectedEvent: null,
@@ -28,7 +29,9 @@ async function initApp() {
   bindVesselControls();
   bindModalControls();
   bindCustomWorldControls();
+  bindLivingSeaToggle();
   await loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS);
+  renderZeroState(); // Initial state: boat is stationary at zero
 }
 
 function bindVesselControls() {
@@ -83,6 +86,48 @@ function bindVesselControls() {
   }
 }
 
+function bindLivingSeaToggle() {
+  const btn = document.getElementById('btnLivingSeaToggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (!AppState.isLivingSeaRunning) {
+      startLivingSea();
+    } else {
+      stopLivingSeaToZero();
+    }
+  });
+}
+
+function startLivingSea() {
+  AppState.isLivingSeaRunning = true;
+  updateLivingSeaButtonState();
+  playSimulation();
+}
+
+function stopLivingSeaToZero() {
+  AppState.isLivingSeaRunning = false;
+  pauseSimulation();
+  resetSimulation();
+  renderZeroState();
+  updateLivingSeaButtonState();
+}
+
+function updateLivingSeaButtonState() {
+  const btn = document.getElementById('btnLivingSeaToggle');
+  const icon = document.getElementById('seaToggleIcon');
+  const label = document.getElementById('seaToggleLabel');
+  if (!btn) return;
+
+  if (AppState.isLivingSeaRunning) {
+    btn.className = 'btn-living-sea-toggle state-running';
+    if (icon) icon.textContent = '⏹';
+    if (label) label.textContent = 'СТОП СИМУЛЯЦИИ (В НОЛЬ)';
+  } else {
+    btn.className = 'btn-living-sea-toggle state-stopped';
+    if (icon) icon.textContent = '▶';
+    if (label) label.textContent = 'СТАРТ СИМУЛЯЦИИ';
+  }
+}
 
 function bindControls() {
   const btnRun = document.getElementById('btnRun');
@@ -92,22 +137,30 @@ function bindControls() {
   const scenarioSelect = document.getElementById('scenarioSelect');
   const imuRateSelect = document.getElementById('imuRateSelect');
   const dampingSelect = document.getElementById('dampingSelect');
-  const durationInput = document.getElementById('durationInput');
+  const durationSelect = document.getElementById('durationSelect');
   const seedInput = document.getElementById('seedInput');
   const btnModeLive = document.getElementById('btnModeLive');
   const btnModeDebug = document.getElementById('btnModeDebug');
 
-  btnRun.addEventListener('click', () => playSimulation());
-  btnPause.addEventListener('click', () => pauseSimulation());
-  btnStep.addEventListener('click', () => stepSimulation(1));
-  btnReset.addEventListener('click', () => resetSimulation());
+  btnRun.addEventListener('click', () => startLivingSea());
+  btnPause.addEventListener('click', () => {
+    pauseSimulation();
+    AppState.isLivingSeaRunning = false;
+    updateLivingSeaButtonState();
+  });
+  btnStep.addEventListener('click', () => {
+    stepSimulation(1);
+    AppState.isLivingSeaRunning = true;
+    updateLivingSeaButtonState();
+  });
+  btnReset.addEventListener('click', () => stopLivingSeaToZero());
 
   if (scenarioSelect) {
     scenarioSelect.addEventListener('change', (e) => {
       AppState.scenarioId = e.target.value;
       AppState.customWorld = null; // reset custom override on preset change
       AppState.durationS = 20;
-      if (durationInput) durationInput.value = 20;
+      if (durationSelect) durationSelect.value = 20;
       // Preserve any events placed by human, or keep timeline clean if empty
       const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : [];
       loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, existingEvents);
@@ -135,10 +188,9 @@ function bindControls() {
     });
   }
 
-  if (durationInput) {
-    durationInput.addEventListener('change', (e) => {
-      AppState.durationS = Math.max(5, Math.min(120, parseInt(e.target.value, 10) || 20));
-      e.target.value = AppState.durationS;
+  if (durationSelect) {
+    durationSelect.addEventListener('change', (e) => {
+      AppState.durationS = parseInt(e.target.value, 10) || 20;
       loadScenario(
         AppState.scenarioId,
         AppState.seed,
@@ -475,7 +527,130 @@ function resetSimulation() {
     window.InstrumentRenderer.reset();
   }
   AppState.currentTick = 0;
-  renderTick(0);
+  renderZeroState();
+}
+
+function renderZeroState() {
+  if (window.InstrumentRenderer) {
+    window.InstrumentRenderer.reset();
+  }
+
+  // 1. Clock Display at zero
+  document.getElementById('simTimeValue').textContent = '00:00.00';
+  const totalTicks = AppState.data ? AppState.data.total_ticks : 2000;
+  document.getElementById('simTickValue').textContent = `[Tick 0/${totalTicks}]`;
+
+  if (window.TimelineRenderer) {
+    window.TimelineRenderer.updateCursor(0, totalTicks);
+  }
+
+  // 2. Ground truth zeros
+  document.getElementById('gtTws').innerHTML = `0.00 <span class="term-unit">kt</span>`;
+  document.getElementById('gtTwd').innerHTML = `000.0 <span class="term-unit">°</span>`;
+  document.getElementById('gtWave').innerHTML = `0.00 <span class="term-unit">m</span>`;
+  document.getElementById('gtHeave').innerHTML = `0.00 <span class="term-unit">m</span>`;
+  document.getElementById('gtSlamForce').innerHTML = `0.0 <span class="term-unit">kN</span>`;
+  document.getElementById('gtHeel').innerHTML = `0.00 <span class="term-unit">°</span>`;
+  document.getElementById('gtPitch').innerHTML = `0.00 <span class="term-unit">°</span>`;
+  document.getElementById('gtYaw').innerHTML = `000.0 <span class="term-unit">°</span>`;
+  document.getElementById('gtSog').innerHTML = `0.00 <span class="term-unit">kt</span>`;
+  document.getElementById('gtRudder').innerHTML = `0.0 <span class="term-unit">°</span>`;
+  document.getElementById('gtHydroLoss').textContent = `0 %`;
+  document.getElementById('gtActiveEvents').textContent = 'NONE';
+  const gtStateTag = document.getElementById('gtStateTag');
+  if (gtStateTag) {
+    gtStateTag.textContent = 'STATUS: DOCKED / IDLE';
+    gtStateTag.style.color = '#94a3b8';
+  }
+
+  // 3. Marine Dials Zeros
+  const dialWindCanvas = document.getElementById('dialWindCanvas');
+  const dialHeelCanvas = document.getElementById('dialHeelCanvas');
+  const dialPitchCanvas = document.getElementById('dialPitchCanvas');
+  const dialNavCanvas = document.getElementById('dialNavCanvas');
+  const dialHeaveCanvas = document.getElementById('dialHeaveCanvas');
+  const dialSlamCanvas = document.getElementById('dialSlamCanvas');
+
+  if (dialWindCanvas && window.InstrumentRenderer) {
+    InstrumentRenderer.drawWindDial(dialWindCanvas, 0.0, 0.0, false);
+  }
+  if (dialHeelCanvas && window.InstrumentRenderer) {
+    InstrumentRenderer.drawHeelInclinometer(dialHeelCanvas, 0.0, false);
+  }
+  if (dialPitchCanvas && window.InstrumentRenderer) {
+    InstrumentRenderer.drawPitchInclinometer(dialPitchCanvas, 0.0, 0.0, false);
+  }
+  if (dialNavCanvas && window.InstrumentRenderer) {
+    InstrumentRenderer.drawNavigationCompass(dialNavCanvas, 0.0, 0.0, false);
+  }
+  if (dialHeaveCanvas && window.InstrumentRenderer) {
+    InstrumentRenderer.drawHeaveIndicator(dialHeaveCanvas, 0.0, 9.80665, false);
+  }
+  if (dialSlamCanvas && window.InstrumentRenderer) {
+    InstrumentRenderer.drawSlammingGauge(dialSlamCanvas, 0.0, false, 15.0, false);
+  }
+
+  document.getElementById('valAws').innerHTML = `0.0 <span class="unit">kt</span>`;
+  document.getElementById('valHeel').innerHTML = `0.0 <span class="unit">°</span>`;
+  document.getElementById('valPitch').innerHTML = `0.0 <span class="unit">°</span>`;
+  document.getElementById('valSog').innerHTML = `0.0 <span class="unit">kt</span>`;
+  document.getElementById('valHeave').innerHTML = `1.00 <span class="unit">g</span>`;
+  document.getElementById('valSlamForce').innerHTML = `0.0 <span class="unit">kN</span>`;
+
+  document.getElementById('valPitchRate').textContent = '0.0 °/s';
+  document.getElementById('valYawRate').textContent = '0.0 °/s';
+  document.getElementById('valRudderSensor').textContent = '0.0 °';
+  document.getElementById('valSailSensor').textContent = '100 %';
+
+  document.getElementById('chipImu').className = 'health-chip chip-ok';
+  document.getElementById('chipImu').textContent = 'IMU: IDLE';
+  document.getElementById('chipGps').className = 'health-chip chip-ok';
+  document.getElementById('chipGps').textContent = 'GPS: IDLE';
+  document.getElementById('chipWind').className = 'health-chip chip-ok';
+  document.getElementById('chipWind').textContent = 'WIND: IDLE';
+
+  // 4. SIA Advisory Panel at IDLE
+  const siaHazardBadge = document.getElementById('siaHazardBadge');
+  if (siaHazardBadge) {
+    siaHazardBadge.className = 'hazard-badge nominal';
+    siaHazardBadge.style.background = '';
+    siaHazardBadge.style.color = '';
+    siaHazardBadge.textContent = 'IDLE';
+  }
+  document.getElementById('siaRiskVal').textContent = '0.00';
+  document.getElementById('siaRiskBar').style.width = '0%';
+  document.getElementById('siaConfVal').textContent = '1.00';
+  document.getElementById('siaConfBar').style.width = '100%';
+
+  const primaryCardTag = document.getElementById('primaryCardTag');
+  if (primaryCardTag) primaryCardTag.textContent = 'SYSTEM IDLE (PRESS START TO SAIL)';
+  document.getElementById('primaryScore').textContent = 'STATUS: IDLE';
+  document.getElementById('primaryActionTitle').textContent = 'BOAT AT MOORINGS / STANDBY';
+  document.getElementById('cmdRudder').textContent = '0.0°';
+  document.getElementById('cmdSail').textContent = '0%';
+  document.getElementById('siaReasoningNote').textContent = 'Simulation stopped. Boat is stationary at moorings with all dials at zero.';
+
+  const candList = document.getElementById('candidatesList');
+  if (candList) candList.innerHTML = '<div class="candidate-row empty">Simulation stopped (Waiting for START)</div>';
+
+  // 5. Query loop at standby
+  const queryCard = document.getElementById('zoneQueryLoop');
+  const queryPrompt = document.getElementById('queryPromptText');
+  if (queryCard) {
+    queryCard.className = 'zone-card zone-query-loop standby';
+  }
+  if (queryPrompt) {
+    queryPrompt.textContent = 'SIA Core: "Living sea standby. Start simulation to monitor dynamics."';
+  }
+
+  // 6. Evaluator at Standby
+  const footerVerdict = document.getElementById('footerVerdict');
+  if (footerVerdict) {
+    footerVerdict.className = 'verdict-badge';
+    footerVerdict.style.background = 'rgba(148, 163, 184, 0.15)';
+    footerVerdict.style.color = '#94a3b8';
+    footerVerdict.textContent = 'VERDICT: STANDBY';
+  }
 }
 
 function renderTick(index) {
@@ -483,11 +658,20 @@ function renderTick(index) {
   const tick = AppState.data.ticks[index];
   const totalTicks = AppState.data.total_ticks;
 
-  // 1. Clock Display
+  // 1. Clock Display (Adaptive for seconds, minutes, and hours)
   const totalSeconds = tick.sim_time_ms / 1000;
-  const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-  const secs = (totalSeconds % 60).toFixed(2).padStart(5, '0');
-  document.getElementById('simTimeValue').textContent = `${mins}:${secs}`;
+  let timeStr = '';
+  if (AppState.data && AppState.data.duration_ms >= 3600000) {
+    const hh = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const mm = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const ss = (totalSeconds % 60).toFixed(2).padStart(5, '0');
+    timeStr = `${hh}:${mm}:${ss}`;
+  } else {
+    const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const secs = (totalSeconds % 60).toFixed(2).padStart(5, '0');
+    timeStr = `${mins}:${secs}`;
+  }
+  document.getElementById('simTimeValue').textContent = timeStr;
   document.getElementById('simTickValue').textContent = `[Tick ${index}/${totalTicks}]`;
 
   // 2. Timeline Cursor

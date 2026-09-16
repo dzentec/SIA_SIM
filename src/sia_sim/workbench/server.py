@@ -18,9 +18,12 @@ STATIC_DIR = Path(__file__).parent / "static"
 def format_run_payload(runner_result: Any) -> dict[str, Any]:
     """Formats SimulationRunResult into a structured JSON dictionary for the UI."""
     records = runner_result.recorder.records
+    total_recs = len(records)
+    stride = max(1, total_recs // 2000)
+    sampled_records = records[::stride] if stride > 1 else records
     ticks: list[dict[str, Any]] = []
 
-    for r in records:
+    for r in sampled_records:
         gt = r.gt
         sf = r.sf
         dec = r.decision

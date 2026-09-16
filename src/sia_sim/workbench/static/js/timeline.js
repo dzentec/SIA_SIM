@@ -426,11 +426,17 @@ const TimelineRenderer = {
     ctx.lineTo(w, 18);
     ctx.stroke();
 
-    // Time Ruler Grid Vertical Lines
+    // Time Ruler Grid Vertical Lines with adaptive steps for seconds, minutes, and hours
     let stepSec = 5;
     if (viewDurationS <= 5) stepSec = 0.5;
     else if (viewDurationS <= 10) stepSec = 1;
-    else if (viewDurationS <= 20) stepSec = 2;
+    else if (viewDurationS <= 30) stepSec = 5;
+    else if (viewDurationS <= 120) stepSec = 15;
+    else if (viewDurationS <= 600) stepSec = 60;
+    else if (viewDurationS <= 3600) stepSec = 300; // 5 min
+    else if (viewDurationS <= 14400) stepSec = 1800; // 30 min
+    else if (viewDurationS <= 43200) stepSec = 3600; // 1 hr
+    else stepSec = 7200; // 2 hr for 24h
 
     const firstSec = Math.floor(viewStartMs / 1000 / stepSec) * stepSec;
     const lastSec = Math.ceil(viewEndMs / 1000 / stepSec) * stepSec;
@@ -449,9 +455,20 @@ const TimelineRenderer = {
       ctx.fillStyle = '#64748b';
       ctx.font = '10px "JetBrains Mono", monospace';
       ctx.textAlign = 'left';
-      const m = Math.floor(sec / 60).toString().padStart(2, '0');
-      const s = (sec % 60).toFixed(stepSec < 1 ? 1 : 0).padStart(stepSec < 1 ? 4 : 2, '0');
-      ctx.fillText(`${m}:${s}`, x + 4, 13);
+
+      let timeStr = '';
+      if (this.data.duration_ms >= 3600000 || viewDurationS >= 3600) {
+        const hh = Math.floor(sec / 3600).toString().padStart(2, '0');
+        const mm = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
+        const ss = Math.floor(sec % 60).toString().padStart(2, '0');
+        timeStr = `${hh}:${mm}:${ss}`;
+      } else {
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toFixed(stepSec < 1 ? 1 : 0).padStart(stepSec < 1 ? 4 : 2, '0');
+        timeStr = `${m}:${s}`;
+      }
+
+      ctx.fillText(timeStr, x + 4, 13);
     }
 
     // =========================================================================
