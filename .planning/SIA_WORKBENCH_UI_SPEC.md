@@ -50,24 +50,21 @@
 
 ```text
 +-------------------------------------------------------------------------------------------------------------------------+
-| [SIA SIMULATION WORKBENCH]  [Режим: ● LIVE / ○ DEBUG]  [T = 00:04.20 / 00:20.00]  [▶ Play] [⏸ Pause] [↺ Reset] [1x/10x] |
-+-------------------------------------------------------------------------------------------------------------------------+
-| ЛЕВАЯ КОЛОНКА                    | ЦЕНТРАЛЬНАЯ КОЛОНКА               | ПРАВАЯ КОЛОНКА                                   |
-| 1. WORLD PRESETS & ENV           | 4. 6-DIAL MARINE CONSOLE          | 5. SKIPPER INTERACTIVE QUERY LOOP                |
-| [ Harbour | Cruise | Fresh | Gale]│ [ AWA/AWS ] [ HEEL ]   [ PITCH ]  │ 💡 Context refinement under ambiguity            |
-| Duration: [ 20 ] s | Seed: 42    | [ COMPASS ] [ HEAVE ]  [ SLAM  ]  │ [ FULL MAIN ]   [ REEF 1 ]                       |
-| ─────────────────────────────────┤                                   │ [ REEF 2 ]      [ STORM JIB ]                    |
-| 2. GROUND TRUTH PHYSICS LAB      | SOG 7.8 kt | HDG 043° | AWA 135°  ├──────────────────────────────────────────────────┤
-| ● NOT AVAILABLE TO SIA           | IMU ● OK | GPS ● OK | WIND ● OK   | 6. SIA CORE ADVISORY ENGINE                      |
-| TWS 24.0 kt | TWD 225° | Wave 2.2m│ Pitch Rate 0.0°/s | YawRate 0.0°/s│ ⚠ BROACH PRECURSOR | CRITICAL                   |
-| True Roll 28.1° | Pitch -2.4°    | Rudder 0.0° | Mainsail: UNKNOWN   │ Primary: BEAR AWAY (Score 0.95)                  |
-| SOG 8.2 kt | Rudder Hydro -42%   │                                   │ Candidates: EASE MAIN, PREPARE CREW              |
-| ─────────────────────────────────┤                                   │ Latency: 240 ms | Rules: R_BROACH_01,02          |
-| 3. VESSEL & SAIL CONFIGURATION   │                                   ├──────────────────────────────────────────────────┤
-| Preset: [ Beneteau Oceanis 45 ▼ ]│                                   | 7. ORACLE EVALUATION & ARBITRATION               |
-| LOA 13.94m | B 4.50m | 10.5t|100m²│                                   | Safety Envelope: INTACT (Margin 18%)             |
-| [⛵CODE 0 (130%)][FULL MAIN(100%)]│                                   | Verdict: [ PASS ] (Deterministic Ground Truth)   |
-| [REEF 1(75%)][REEF 2(50%)][STORM]│                                   │                                                  |
+| КОЛОНКА 1: LIVING SEA & PHYSICS  | КОЛОНКА 2: VESSEL & MARINE SENSORS| КОЛОНКА 3: SIA CORE & ARBITRATION                |
++----------------------------------+-----------------------------------+--------------------------------------------------+
+| 1. WORLD PRESET & SIM CONFIG     | 3. VESSEL & SAIL CONFIGURATION    | 5. SKIPPER QUERY LOOP                            |
+| Preset: [ Coastal Cruise ▼ ]     | Preset: [ Beneteau Oceanis 45 ▼ ] | ❓ RISK DETECTED: CONFIRM RIG STATE              |
+| Wind: 13 kt | Waves: 1.0m        | LOA 13.94m | B 4.50m | 10.5t|100m² | [⛵CODE 0 (130%)][FULL MAIN(100%)][REEF 1(75%)]  |
+| IMU Rate: 100 Hz | Duration: 20s | [⛵CODE 0][FULL MAIN][REEF 1/2]    ├──────────────────────────────────────────────────┤
+├──────────────────────────────────┼───────────────────────────────────┤ 6. SIA CORE ADVISORY ENGINE                      |
+| 2. GROUND TRUTH PHYSICS LAB      | 4. MARINE CONSOLE (6 DIALS)       | ⚠ BROACH PRECURSOR | CRITICAL                   |
+| ● NOT AVAILABLE TO SIA           | [Wind AWA/AWS]   [Heel Roll]      | Primary: BEAR AWAY (Score 0.95)                  |
+| TWS 24.0 kt | TWD 225° | Wave 2.2m│ [Pitch/Trim]     [Nav SOG/COG]    | Candidates: EASE MAIN, PREPARE CREW              |
+| True Roll 28.1° | Pitch -2.4°    | [Heave/Vert Acc] [Slam Shock]     | Latency: 240 ms | Rules: R_BROACH_01,02          |
+| SOG 8.2 kt | Rudder Hydro -42%   | IMU ● OK | GPS ● OK | WIND ● OK   ├──────────────────────────────────────────────────┤
+|                                  |                                   | 7. ORACLE EVALUATION & ARBITRATION               |
+|                                  |                                   | Safety Envelope: INTACT (Margin 18%)             |
+|                                  |                                   | Verdict: [ PASS ] (Deterministic Ground Truth)   |
 +----------------------------------+-----------------------------------+--------------------------------------------------+
 | 8. MULTI-TRACK TIMELINE & EVENT BUILDER (Интерактивный скруббер 100 Гц)                                                 |
 |  00s        02s        04s        06s        08s        10s        12s        14s        16s        18s        20s         |
@@ -84,16 +81,16 @@
 
 ## 3. Детализация ключевых блоков
 
-### А. World Presets & Environment (Слева вверху)
+### А. World Presets & Environment (Колонка 1, Слева вверху)
 1. **Быстрый выбор 4 погодных пресетов:** `Harbour` (4 kt), `Cruise` (13 kt), `Fresh` (21 kt), `Gale` (28 kt).
 2. **Параметры мира:** Настройка длительности симуляции (от 5 до 120 с) и PRNG Seed для побитовой воспроизводимости.
 
-### Б. Ground Truth Physics Lab (Слева по центру)
+### Б. Ground Truth Physics Lab (Колонка 1, Слева по центру)
 1. **Лабораторный монитор физической реальности:** Полная телеметрия гидродинамики и среды ($TWS$, $TWD$, $H_s$, $T_p$, истинный крен Roll, дифферент Pitch, истинная скорость SOG, угол пера руля).
 2. **Индикатор срыва руля (`RUDDER HYDRO LOSS`):** Мониторинг процента гидродинамической потери эффективности пера руля при крене и аэрации.
 3. **Маркировка изоляции:** Яркая индикация `● NOT AVAILABLE TO SIA` (подтверждение соблюдения архитектурного инварианта Hard Boundary INV-01/02).
 
-### В. Vessel Presets & Sail Rig Configuration (Слева внизу под Ground Truth)
+### В. Vessel Presets & Sail Rig Configuration (Колонка 2, По центру над Marine Console)
 1. **Каталог судов (Vessel Presets):**
    - **`Beneteau Oceanis 45`** (Основной современный круизер): $LOA = 13.94\text{ м}$, $Beam = 4.50\text{ м}$, $Mass = 10550\text{ кг}$, $S = 100\text{ м}^2$, $H_{\text{mast}} = 19.5\text{ м}$, $GM = 1.35\text{ м}$.
    - **`IOR Classic 34ft`** (Классический монокорпус 10.5м): $LOA = 10.50\text{ м}$, $Beam = 3.40\text{ м}$, $Mass = 5200\text{ кг}$, $S = 65\text{ м}^2$, $H_{\text{mast}} = 14.2\text{ м}$, $GM = 1.10\text{ м}$.

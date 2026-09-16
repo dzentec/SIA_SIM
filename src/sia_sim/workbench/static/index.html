@@ -210,8 +210,12 @@
           </div>
         </div>
       </section>
+    </div>
 
-      <!-- BLOCK 3: VESSEL ARCHETYPE & SAIL CONFIG (UNDER GROUND TRUTH) -->
+    <!-- COLUMN 2: VESSEL PRESET & 6-DIAL MARINE CONSOLE -->
+    <div class="core-col core-col-center">
+
+      <!-- BLOCK 3: VESSEL ARCHETYPE & SAIL CONFIG (ABOVE MARINE CONSOLE) -->
       <section class="zone-card zone-vessel-preset" id="zoneVesselPreset">
         <div class="card-header">
           <div class="header-title-group">
@@ -221,20 +225,22 @@
           <span class="vessel-plan-tag" id="vesselPlanTag">FULL MAIN (100%)</span>
         </div>
         <div class="card-content vessel-preset-content">
-          <div class="form-row-preset">
-            <label for="vesselSelect" class="preset-label">YACHT:</label>
-            <select id="vesselSelect" class="select-dropdown full-width">
-              <option value="beneteau_oceanis_45" selected>Beneteau Oceanis 45 (13.9m)</option>
-              <option value="monohull_ior">IOR Classic 10.5m (4.5t)</option>
-            </select>
-          </div>
+          <div class="vessel-top-row">
+            <div class="form-row-preset vessel-select-container">
+              <label for="vesselSelect" class="preset-label">YACHT:</label>
+              <select id="vesselSelect" class="select-dropdown full-width">
+                <option value="beneteau_oceanis_45" selected>Beneteau Oceanis 45 (13.9m)</option>
+                <option value="monohull_ior">IOR Classic 10.5m (4.5t)</option>
+              </select>
+            </div>
 
-          <!-- Vessel Spec Quick Chips -->
-          <div class="vessel-specs-strip" id="vesselSpecsStrip">
-            <div class="vspec-item"><span class="vspec-lbl">LOA:</span> <span class="vspec-val" id="vspecLoa">13.94 m</span></div>
-            <div class="vspec-item"><span class="vspec-lbl">BEAM:</span> <span class="vspec-val" id="vspecBeam">4.50 m</span></div>
-            <div class="vspec-item"><span class="vspec-lbl">MASS:</span> <span class="vspec-val" id="vspecMass">10,550 kg</span></div>
-            <div class="vspec-item"><span class="vspec-lbl">SAILS:</span> <span class="vspec-val" id="vspecArea">100 m²</span></div>
+            <!-- Vessel Spec Quick Chips -->
+            <div class="vessel-specs-strip" id="vesselSpecsStrip">
+              <div class="vspec-item"><span class="vspec-lbl">LOA:</span> <span class="vspec-val" id="vspecLoa">13.94 m</span></div>
+              <div class="vspec-item"><span class="vspec-lbl">BEAM:</span> <span class="vspec-val" id="vspecBeam">4.50 m</span></div>
+              <div class="vspec-item"><span class="vspec-lbl">MASS:</span> <span class="vspec-val" id="vspecMass">10,550 kg</span></div>
+              <div class="vspec-item"><span class="vspec-lbl">SAILS:</span> <span class="vspec-val" id="vspecArea">100 m²</span></div>
+            </div>
           </div>
 
           <!-- Sail Plan Selection Chips -->
@@ -251,12 +257,8 @@
           </div>
         </div>
       </section>
-    </div>
 
-    <!-- COLUMN 2: 6-DIAL MARINE CONSOLE -->
-    <div class="core-col core-col-center">
-
-      <!-- BLOCK 3: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
+      <!-- BLOCK 4: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
       <section class="zone-card zone-sensor-view" id="zoneSensorView">
         <div class="card-header">
           <div class="header-title-group">

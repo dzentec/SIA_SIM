@@ -600,7 +600,7 @@ body.is-scrubbing .timeline-handle {
 .zone-vessel-preset {
   border-color: rgba(59, 130, 246, 0.3);
   background: #080d1a;
-  margin-top: var(--space-md);
+  margin-top: 0;
 }
 
 .zone-vessel-preset .card-header {
@@ -641,11 +641,22 @@ body.is-scrubbing .timeline-handle {
 .vessel-preset-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  padding: 10px 12px 12px 12px;
+  gap: 10px;
+  padding: 10px 14px 12px 14px;
+}
+
+.vessel-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vessel-select-container {
+  flex: 0 0 280px;
 }
 
 .vessel-specs-strip {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-xs);
@@ -688,15 +699,15 @@ body.is-scrubbing .timeline-handle {
 
 .sail-chips-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
 }
 
 .btn-sail-chip {
   background: #0b1324;
   border: 1px solid var(--border-color);
   color: var(--text-dim);
-  padding: 7px 6px;
+  padding: 8px 6px;
   border-radius: 4px;
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -1416,4 +1427,25 @@ body.is-scrubbing .timeline-handle {
   background: rgba(255, 23, 68, 0.25);
   border: 1px solid var(--marine-port);
   color: var(--marine-port);
+}
+
+@media (max-width: 1400px) {
+  .vessel-top-row {
+    flex-wrap: wrap;
+  }
+  .vessel-select-container {
+    flex: 1 1 200px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .sail-chips-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .sail-chips-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
