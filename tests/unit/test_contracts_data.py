@@ -448,3 +448,52 @@ class TestRoundTripSerialization:
         restored = SensorFrame.model_validate_json(json_str)
         assert restored.imu.roll_deg is None
         assert restored.gps.latitude_deg is None
+
+
+class TestSafetyChannelStatusContracts:
+    def test_default_safety_channel_status_is_wired_verified(
+        self, sensor_frame_healthy: SensorFrame
+    ) -> None:
+        from sia_sim.contracts.data import SafetyChannelStatus
+
+        assert sensor_frame_healthy.safety_channel_status == SafetyChannelStatus.WIRED_VERIFIED
+
+    def test_explicit_safety_channel_status(self, sensor_frame_healthy: SensorFrame) -> None:
+        from sia_sim.contracts.data import SafetyChannelStatus
+
+        frame_wireless = SensorFrame(
+            sim_time_ms=100,
+            imu=sensor_frame_healthy.imu,
+            gps=sensor_frame_healthy.gps,
+            wind=sensor_frame_healthy.wind,
+            actuators=sensor_frame_healthy.actuators,
+            sequence_number=1,
+            safety_channel_status=SafetyChannelStatus.WIRELESS_ADVISORY,
+        )
+        assert frame_wireless.safety_channel_status == SafetyChannelStatus.WIRELESS_ADVISORY
+
+        frame_mixed = SensorFrame(
+            sim_time_ms=100,
+            imu=sensor_frame_healthy.imu,
+            gps=sensor_frame_healthy.gps,
+            wind=sensor_frame_healthy.wind,
+            actuators=sensor_frame_healthy.actuators,
+            sequence_number=1,
+            safety_channel_status=SafetyChannelStatus.MIXED,
+        )
+        assert frame_mixed.safety_channel_status == SafetyChannelStatus.MIXED
+
+    def test_invalid_safety_channel_status_raises_validation_error(
+        self, sensor_frame_healthy: SensorFrame
+    ) -> None:
+        with pytest.raises(ValidationError):
+            SensorFrame(
+                sim_time_ms=100,
+                imu=sensor_frame_healthy.imu,
+                gps=sensor_frame_healthy.gps,
+                wind=sensor_frame_healthy.wind,
+                actuators=sensor_frame_healthy.actuators,
+                sequence_number=1,
+                safety_channel_status="INVALID_STATUS",  # type: ignore[arg-type]
+            )
+

@@ -150,6 +150,7 @@ def format_run_payload(runner_result: Any) -> dict[str, Any]:
                         "mainsheet_pct": mainsheet,
                         "fault": sf.actuators.fault,
                     },
+                    "safety_channel_status": sf.safety_channel_status.value,
                 },
                 "sia_decision": {
                     "decision_id": dec.decision_id,

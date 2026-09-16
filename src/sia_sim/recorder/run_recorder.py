@@ -65,6 +65,7 @@ SENSOR_SCHEMA: SchemaDict = {
     "actuators_rudder_angle_deg": pl.Float64,
     "actuators_mainsheet_pct": pl.Float64,
     "actuators_fault": pl.Boolean,
+    "safety_channel_status": pl.Utf8,
 }
 
 DECISIONS_SCHEMA: SchemaDict = {
@@ -205,6 +206,7 @@ class RunRecorder:
                     "actuators_rudder_angle_deg": sf.actuators.rudder_angle_deg,
                     "actuators_mainsheet_pct": sf.actuators.mainsheet_pct,
                     "actuators_fault": sf.actuators.fault,
+                    "safety_channel_status": sf.safety_channel_status.value,
                 }
             )
 

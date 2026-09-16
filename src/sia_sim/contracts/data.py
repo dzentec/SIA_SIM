@@ -12,6 +12,8 @@ Critical null semantics:
 
 from __future__ import annotations
 
+from enum import Enum
+
 from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
@@ -95,7 +97,7 @@ class WindReading(BaseModel):
 
 
 class ActuatorState(BaseModel):
-    """Actuator feedback state (rudder, sail controls)."""
+    """Rudder angle and mainsheet actuator feedback."""
 
     model_config = ConfigDict(frozen=True, strict=True)
 
@@ -107,6 +109,19 @@ class ActuatorState(BaseModel):
 
     fault: bool
     """True if actuator feedback is in fault state."""
+
+
+class SafetyChannelStatus(str, Enum):
+    """Hardware channel classification for safety-critical latency guarantees (MDA v2.2 §3.5.2).
+
+    - WIRED_VERIFIED: Critical sensors (IMU, rudder) connected via RS-485 (<20ms / <1.0s CRITICAL guarantee).
+    - WIRELESS_ADVISORY: Critical sensors connected via RF / 802.15.4 (advisory only, no formal latency guarantee).
+    - MIXED: Hybrid wired/wireless configuration (effective safety status degraded to advisory).
+    """
+
+    WIRED_VERIFIED = "WIRED_VERIFIED"
+    WIRELESS_ADVISORY = "WIRELESS_ADVISORY"
+    MIXED = "MIXED"
 
 
 class SensorFrame(BaseModel):
@@ -141,6 +156,11 @@ class SensorFrame(BaseModel):
 
     sequence_number: int = Field(ge=0)
     """Monotonically increasing frame counter (starts at 0, never negative)."""
+
+    safety_channel_status: SafetyChannelStatus = Field(
+        default=SafetyChannelStatus.WIRED_VERIFIED,
+        description="Physical channel classification for safety-critical latency guarantees (MDA v2.2 §3.5.2).",
+    )
 
 
 # ---------------------------------------------------------------------------

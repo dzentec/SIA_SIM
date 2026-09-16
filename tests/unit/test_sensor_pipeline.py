@@ -130,3 +130,60 @@ class TestSensorPipelineIntegration:
         assert len(frames1) == len(frames2)
         for f1, f2 in zip(frames1, frames2, strict=True):
             assert f1 == f2
+
+    def test_safety_channel_status_propagation(self) -> None:
+        from sia_sim.contracts.data import SafetyChannelStatus
+
+        scenario = create_test_scenario()
+        world = WorldModel.from_scenario(scenario)
+        dynamics = VesselDynamics.from_config(scenario.vessel)
+
+        # Default wired verified
+        pipeline_wired = SensorPipeline(master_seed=42)
+        env = world.step(0)
+        vessel = dynamics.step(0.01, env)
+        gt = GroundTruthFrame(
+            sim_time_ms=0,
+            vessel=vessel,
+            environment=env,
+            sequence_number=0,
+            active_event_ids=(),
+        )
+        sf_wired = pipeline_wired.process(gt)
+        assert sf_wired.safety_channel_status == SafetyChannelStatus.WIRED_VERIFIED
+
+        # Custom wireless advisory pipeline
+        pipeline_wireless = SensorPipeline(
+            master_seed=42, safety_channel_status=SafetyChannelStatus.WIRELESS_ADVISORY
+        )
+        sf_wireless = pipeline_wireless.process(gt)
+        assert sf_wireless.safety_channel_status == SafetyChannelStatus.WIRELESS_ADVISORY
+
+    def test_safety_channel_event_override(self) -> None:
+        from sia_sim.contracts.data import SafetyChannelStatus
+
+        scenario = create_test_scenario()
+        world = WorldModel.from_scenario(scenario)
+        dynamics = VesselDynamics.from_config(scenario.vessel)
+        pipeline = SensorPipeline(master_seed=42)
+
+        env = world.step(0)
+        vessel = dynamics.step(0.01, env)
+        gt = GroundTruthFrame(
+            sim_time_ms=0,
+            vessel=vessel,
+            environment=env,
+            sequence_number=0,
+            active_event_ids=(),
+        )
+
+        # Event overriding to wireless
+        override_event = ScenarioEvent(
+            sim_time_ms=0,
+            event_id="EVT-RF-MODE",
+            event_type="channel_status_override",
+            parameters={"status": "WIRELESS_ADVISORY"},
+        )
+        sf = pipeline.process(gt, active_events=(override_event,))
+        assert sf.safety_channel_status == SafetyChannelStatus.WIRELESS_ADVISORY
+
