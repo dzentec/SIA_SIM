@@ -647,6 +647,9 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
     }
     AppState.data = json;
     AppState.currentSimTimeMs = 0.0;
+    window.userConfirmedSail = null;
+    window.queryActiveUntilMs = 0;
+    window.queryTriggeredAtMs = 0;
     if (window.InstrumentRenderer) {
       window.InstrumentRenderer.reset();
     }

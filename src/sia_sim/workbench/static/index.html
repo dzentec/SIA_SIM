@@ -420,6 +420,10 @@
           <div class="query-header-row">
             <div class="query-prompt-icon">🛡️</div>
             <div class="query-title">SKIPPER QUERY LOOP (STANDBY)</div>
+            <div class="query-countdown-badge" id="queryCountdownBadge" style="display: none; margin-left: auto; font-size: 11px; font-weight: 700; color: #ffb703; background: rgba(255, 183, 3, 0.15); padding: 2px 8px; border-radius: 10px; border: 1px solid rgba(255, 183, 3, 0.3);">⏱ 10.0s</div>
+          </div>
+          <div class="query-timer-bar-container" id="queryTimerBarContainer" style="display: none; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; margin: 6px 0 8px 0; overflow: hidden;">
+            <div class="query-timer-bar-fill" id="queryTimerBarFill" style="height: 100%; width: 100%; background: linear-gradient(90deg, #ffb703, #ef4444); transition: width 0.08s linear;"></div>
           </div>
           <div class="query-prompt-text" id="queryPromptText">
             SIA Core: "Living sea standby. Continuous background telemetry monitoring active."
@@ -656,7 +660,7 @@
           <span class="input-unit">m</span>
         </div>
         <div class="form-row">
-          <label class="form-label">SAIL AREA (100%):</label>
+          <label class="form-label">BASE SAIL AREA (S₀):</label>
           <input type="number" id="customSailArea" class="input-number" value="100.0" min="10" max="500" step="1">
           <span class="input-unit">m²</span>
         </div>
@@ -676,7 +680,7 @@
           </label>
           <label class="sail-inv-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(16, 26, 46, 0.6); padding: 6px 8px; border-radius: 4px; border: 1px solid #1f2d47; cursor: pointer;">
             <input type="checkbox" id="inv_genoa_furling" value="genoa_furling" checked>
-            <span>⛵ <b>Genoa 120-140%</b></span>
+            <span>⛵ <b>Genoa (120-140% Overlap)</b></span>
           </label>
           <label class="sail-inv-checkbox" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: rgba(16, 26, 46, 0.6); padding: 6px 8px; border-radius: 4px; border: 1px solid #1f2d47; cursor: pointer;">
             <input type="checkbox" id="inv_code_zero" value="code_zero" checked>
