@@ -12,7 +12,8 @@ This roadmap delivers the MVP Milestone (M0–M6) for SIA Simulation: an end-to-
 - [x] **Phase 4: Deterministic Sensor Degradation & Fault Verification (M3)** - Transform ground truth to SensorFrame with deterministic noise, bias, drift, latency, and fault modes.
 - [x] **Phase 5: SIACore Boundary & Deterministic MockSIA (M4)** - Strict boundary isolation protocol (`SIACore`) and deterministic `MockSIA` with candidate responses and conflict resolution.
 - [x] **Phase 6: Oracle & Evaluator (M5)** - Independent physical safety oracle and objective PASS/FAIL evaluator.
-- [x] **Phase 7: Complete End-to-End Pipeline PASS (M6)** - End-to-end integration and automated verification of the complete simulation loop on SIM-005 Broach Precursor.
+- [x] **Phase 8: SIA Simulation Workbench UI** - Single-screen night bridge cockpit, 6-dial marine console, 100 Hz lab terminal, and event timeline builder.
+- [ ] **Phase 9: Architecture Decoupling, Modular Frontend & 3D Sail Aerodynamics Engine** - Frontend ES-modularization, physics/sails submodule with individual sails, dynamic 3D CoE & boom kinematics, and MDA v2.2 safety channel status.
 
 ## Phase Details
 
@@ -173,10 +174,31 @@ Plans:
  - [x] 08-03: Temporal Debugger Scrubber, Interactive Query Loop, 6-Dial Suite & Event Builder.
  - [x] 08-04: Vessel Presets (Beneteau Oceanis 45 & IOR Classic) & Interactive Sail Rig Plan (Code 0 to Bare Poles) integrated with 4-DOF dynamic aerodynamics.
 
+### Phase 9: Architecture Decoupling, Modular Frontend & 3D Sail Aerodynamics Engine
+
+**Goal**: Eliminate architectural tension points by modularizing the Workbench frontend into ES-modules, decoupling sail aerodynamics into `physics/sails/` with isolated `Sail` instances, dynamic boom kinematics $\theta_{\text{boom}}$, 3D $CoE(x,y,z)$ coordinates, and integrating MDA v2.2 `SafetyChannelStatus`.  
+**Depends on**: Phase 8  
+**Requirements**: ARCH-01, ARCH-02, SAIL-01..SAIL-06, MDA-01  
+**Success Criteria**:  
+
+1. `app.js` is cleanly decomposed into `state.js`, `playback.js`, `modals.js`, and `app.js` without any external bundling dependency (pure Zero-Build ES modules).  
+2. `physics/sails/` submodule provides standalone `Sail` and `RigKinematics` with nominal areas in $\text{m}^2$, dynamic boom angle $\theta_{\text{boom}}$, 3D $CoE$ displacement, and cross-product moments $\vec{M} = \sum (\vec{r}_i \times \vec{F}_i)$.  
+3. Downwind blanketing ($TWA > 130^\circ$) and slot effect ($TWA = 30^\circ\dots 60^\circ$) are modeled.  
+4. `SafetyChannelStatus` (`WIRED_VERIFIED`, `WIRELESS_ADVISORY`, `MIXED`) is incorporated into `SensorFrame` and sensor pipeline.  
+5. All tests pass with zero regression across the existing test suite.  
+
+**Plans**: 0/3 plans executed  
+
+Plans:
+
+- [ ] 09-01: Modularize Workbench UI into ES modules (`state.js`, `playback.js`, `modals.js`, `app.js`).
+- [ ] 09-02: Implement `src/sia_sim/physics/sails/` with standalone `Sail` objects, dynamic boom angle, 3D $CoE$, and moment cross-products.
+- [ ] 09-03: Integrate MDA v2.2 `SafetyChannelStatus`, update data contracts, and verify end-to-end test suite.
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -188,7 +210,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 6. Oracle & Evaluator (M5) | 3/3 | Completed | 2026-09-15 |
 | 7. Complete Pipeline PASS (M6) | 3/3 | Completed | 2026-09-15 |
 | 8. SIA Simulation Workbench UI | 4/4 | Completed | 2026-09-16 |
+| 9. Architecture Decoupling & 3D Sails | 0/3 | In Progress | - |
 
 ---
 *Roadmap defined: 2026-09-10*
 *Last updated: 2026-09-16*
+
