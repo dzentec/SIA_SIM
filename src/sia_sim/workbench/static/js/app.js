@@ -23,56 +23,213 @@ async function initApp() {
   }
 }
 
-function bindVesselControls() {
-  const vesselSelect = document.getElementById('vesselSelect');
-  const sailChips = document.querySelectorAll('.btn-sail-chip');
-  const vesselPlanTag = document.getElementById('vesselPlanTag');
+const ALL_SAIL_PLAN_DEFS = [
+  {
+    id: 'GENNAKER',
+    name: '⛵ GENNAKER (150%)',
+    powerPct: 150,
+    reqSails: ['asymmetric_gennaker_a2', 'asymmetric_gennaker_a3'],
+    cssClass: 'highlight-code0',
+    title: 'Gennaker A2/A3 + Main (150% Power)'
+  },
+  {
+    id: 'PARASAILOR',
+    name: '🪁 PARASAILOR (140%)',
+    powerPct: 140,
+    reqSails: ['parasailor'],
+    cssClass: 'highlight-code0',
+    title: 'Winged Parasailor (140% Power)'
+  },
+  {
+    id: 'CODE_ZERO',
+    name: '⛵ CODE 0 (130%)',
+    powerPct: 130,
+    reqSails: ['code_zero'],
+    cssClass: 'highlight-code0',
+    title: 'Code Zero + Main (130% Power)'
+  },
+  {
+    id: 'FULL_MAIN',
+    name: '⛵ FULL MAIN (100%)',
+    powerPct: 100,
+    reqSails: ['mainsail_square_top'],
+    cssClass: '',
+    title: 'Full Main + Genoa/Jib (100% Power)'
+  },
+  {
+    id: 'REEF_1',
+    name: '📉 REEF 1 (75%)',
+    powerPct: 75,
+    reqSails: ['mainsail_square_top'],
+    cssClass: '',
+    title: 'Reef 1 Main (75% Power)'
+  },
+  {
+    id: 'REEF_2',
+    name: '📉 REEF 2 (50%)',
+    powerPct: 50,
+    reqSails: ['mainsail_square_top'],
+    cssClass: '',
+    title: 'Reef 2 Main (50% Power)'
+  },
+  {
+    id: 'REEF_3',
+    name: '📉 REEF 3 (35%)',
+    powerPct: 35,
+    reqSails: ['mainsail_square_top'],
+    cssClass: '',
+    title: 'Reef 3 Main (35% Power)'
+  },
+  {
+    id: 'GENOA_ONLY',
+    name: '⛵ GENOA (50%)',
+    powerPct: 50,
+    reqSails: ['genoa_furling'],
+    cssClass: '',
+    title: 'Furling Genoa Only (50% Power)'
+  },
+  {
+    id: 'JIB_ONLY',
+    name: '⛵ JIB (40%)',
+    powerPct: 40,
+    reqSails: ['solent_jib'],
+    cssClass: '',
+    title: 'Solent Jib Only (40% Power)'
+  },
+  {
+    id: 'STORM_JIB',
+    name: '⛈ STORM JIB (25%)',
+    powerPct: 25,
+    reqSails: ['storm_jib'],
+    cssClass: '',
+    title: 'Storm Jib (25% Power)'
+  },
+  {
+    id: 'BARE_POLES',
+    name: '⚙ BARE POLES (0%)',
+    powerPct: 0,
+    reqSails: [], // Always available
+    cssClass: '',
+    title: 'Bare Poles / Motoring (0% Power)'
+  },
+];
+
+function getAvailableSailsForCurrentVessel() {
+  if (window.AppState.customVessel && window.AppState.customVessel.available_sails) {
+    return window.AppState.customVessel.available_sails;
+  }
+  if (window.AppState.vesselPreset === 'monohull_ior') {
+    return ['mainsail_square_top', 'solent_jib', 'genoa_furling', 'storm_jib'];
+  }
+  return ['mainsail_square_top', 'solent_jib', 'genoa_furling', 'code_zero', 'asymmetric_gennaker_a2', 'storm_jib'];
+}
+
+function updateVesselSpecsDisplay(vid) {
   const vspecLoa = document.getElementById('vspecLoa');
   const vspecBeam = document.getElementById('vspecBeam');
   const vspecMass = document.getElementById('vspecMass');
   const vspecArea = document.getElementById('vspecArea');
 
-  const updateVesselSpecsDisplay = (vid) => {
-    if (vid === 'beneteau_oceanis_45') {
-      if (vspecLoa) vspecLoa.textContent = '13.94 m';
-      if (vspecBeam) vspecBeam.textContent = '4.50 m';
-      if (vspecMass) vspecMass.textContent = '10,550 kg';
-      if (vspecArea) vspecArea.textContent = window.AppState.sailPlan === 'CODE_ZERO' ? '130 m²' : '100 m²';
+  const baseArea = window.AppState.customVessel?.sail_area_m2
+    || (vid === 'beneteau_oceanis_45' ? 100.0 : 45.0);
+  const planDef = ALL_SAIL_PLAN_DEFS.find(p => p.id === window.AppState.sailPlan);
+  const powerFactor = planDef ? (planDef.powerPct / 100.0) : 1.0;
+  const effectiveArea = baseArea * powerFactor;
+
+  if (window.AppState.customVessel) {
+    if (vspecLoa) vspecLoa.textContent = `${window.AppState.customVessel.loa_m.toFixed(2)} m`;
+    if (vspecBeam) vspecBeam.textContent = `${window.AppState.customVessel.beam_m.toFixed(2)} m`;
+    if (vspecMass) vspecMass.textContent = `${Math.round(window.AppState.customVessel.displacement_kg).toLocaleString()} kg`;
+  } else if (vid === 'beneteau_oceanis_45') {
+    if (vspecLoa) vspecLoa.textContent = '13.94 m';
+    if (vspecBeam) vspecBeam.textContent = '4.50 m';
+    if (vspecMass) vspecMass.textContent = '10,550 kg';
+  } else {
+    if (vspecLoa) vspecLoa.textContent = '10.50 m';
+    if (vspecBeam) vspecBeam.textContent = '3.20 m';
+    if (vspecMass) vspecMass.textContent = '4,500 kg';
+  }
+
+  if (vspecArea) {
+    vspecArea.textContent = effectiveArea === 0 ? '0 m² (Motor)' : `${effectiveArea.toFixed(0)} m²`;
+  }
+}
+
+function updateSailChipsGrid(availableSails = null) {
+  const sails = availableSails || getAvailableSailsForCurrentVessel();
+  const container = document.getElementById('sailChipsGrid');
+  const vesselPlanTag = document.getElementById('vesselPlanTag');
+  if (!container) return;
+
+  // Filter plans matching current available wardrobe
+  const validPlans = ALL_SAIL_PLAN_DEFS.filter(plan => {
+    if (!plan.reqSails || plan.reqSails.length === 0) return true;
+    return plan.reqSails.some(s => sails.includes(s));
+  });
+
+  const validPlanIds = validPlans.map(p => p.id);
+  if (!validPlanIds.includes(window.AppState.sailPlan)) {
+    if (validPlanIds.includes('FULL_MAIN')) {
+      window.AppState.sailPlan = 'FULL_MAIN';
+    } else if (validPlanIds.length > 0) {
+      window.AppState.sailPlan = validPlanIds[0];
     } else {
-      if (vspecLoa) vspecLoa.textContent = '10.50 m';
-      if (vspecBeam) vspecBeam.textContent = '3.20 m';
-      if (vspecMass) vspecMass.textContent = '4,500 kg';
-      if (vspecArea) vspecArea.textContent = '45 m²';
+      window.AppState.sailPlan = 'BARE_POLES';
     }
-  };
+  }
+
+  // Render buttons
+  container.innerHTML = validPlans.map(plan => {
+    const isActive = plan.id === window.AppState.sailPlan ? 'active' : '';
+    const extraClass = plan.cssClass ? ` ${plan.cssClass}` : '';
+    return `<button class="btn-sail-chip ${isActive}${extraClass}" data-sail="${plan.id}" title="${plan.title}">${plan.name}</button>`;
+  }).join('');
+
+  // Update tag
+  const activePlanDef = validPlans.find(p => p.id === window.AppState.sailPlan);
+  if (vesselPlanTag && activePlanDef) {
+    vesselPlanTag.textContent = activePlanDef.name.replace(/^[^\w\dа-яА-ЯёЁ]+/, '').trim();
+  }
+
+  // Bind click listeners
+  const chips = container.querySelectorAll('.btn-sail-chip');
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const plan = chip.getAttribute('data-sail');
+      window.AppState.sailPlan = plan;
+      chips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      if (vesselPlanTag) {
+        vesselPlanTag.textContent = chip.textContent.trim();
+      }
+      updateVesselSpecsDisplay(window.AppState.vesselPreset);
+
+      const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
+      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
+    });
+  });
+
+  updateVesselSpecsDisplay(window.AppState.vesselPreset);
+}
+
+window.updateSailChipsGrid = updateSailChipsGrid;
+window.updateVesselSpecsDisplay = updateVesselSpecsDisplay;
+
+function bindVesselControls() {
+  const vesselSelect = document.getElementById('vesselSelect');
 
   if (vesselSelect) {
     vesselSelect.addEventListener('change', (e) => {
       window.AppState.vesselPreset = e.target.value;
-      updateVesselSpecsDisplay(window.AppState.vesselPreset);
+      window.AppState.customVessel = null; // reset custom override when preset switches
+      updateSailChipsGrid();
       const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
       loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
     });
   }
 
-  if (sailChips) {
-    sailChips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        const plan = chip.getAttribute('data-sail');
-        window.AppState.sailPlan = plan;
-        sailChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-
-        if (vesselPlanTag) {
-          vesselPlanTag.textContent = chip.textContent.trim();
-        }
-        updateVesselSpecsDisplay(window.AppState.vesselPreset);
-
-        const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
-        loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
-      });
-    });
-  }
+  updateSailChipsGrid();
 }
 
 function bindLivingSeaToggle() {

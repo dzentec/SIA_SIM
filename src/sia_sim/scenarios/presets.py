@@ -552,10 +552,15 @@ def get_preset_by_id(
 # ---------------------------------------------------------------------------
 
 SAIL_PLAN_PERCENTAGES: dict[str, float] = {
+    "GENNAKER": 150.0,
+    "PARASAILOR": 140.0,
     "CODE_ZERO": 130.0,
     "FULL_MAIN": 100.0,
     "REEF_1": 75.0,
     "REEF_2": 50.0,
+    "REEF_3": 35.0,
+    "GENOA_ONLY": 50.0,
+    "JIB_ONLY": 40.0,
     "STORM_JIB": 25.0,
     "BARE_POLES": 0.0,
 }

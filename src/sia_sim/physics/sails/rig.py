@@ -165,12 +165,13 @@ class SailRig:
             if headsail:
                 headsail.is_active = True
                 headsail.reefed_ratio = 0.40
-        elif plan_upper in ("STORM_JIB_ONLY", "HEAVY_WEATHER"):
+        elif plan_upper in ("STORM_JIB", "STORM_JIB_ONLY", "HEAVY_WEATHER"):
             if main:
                 main.is_active = False
             storm_jib = self.get_sail("storm_jib")
             if storm_jib:
                 storm_jib.is_active = True
+                storm_jib.reefed_ratio = 1.0
             elif headsail:
                 headsail.is_active = True
                 headsail.reefed_ratio = 0.25
@@ -183,7 +184,7 @@ class SailRig:
                 code0.reefed_ratio = 1.0
             if headsail:
                 headsail.is_active = False
-        elif plan_upper in ("GENNAKER", "SPINNAKER", "A2"):
+        elif plan_upper in ("GENNAKER", "SPINNAKER", "A2", "A3"):
             if main:
                 main.is_active = True
                 main.reefed_ratio = 1.0
@@ -192,6 +193,20 @@ class SailRig:
                 gennaker.reefed_ratio = 1.0
             if headsail:
                 headsail.is_active = False
+        elif plan_upper in ("PARASAILOR", "WING_SAIL"):
+            if main:
+                main.is_active = False  # Parasailor is flown solo on dead runs
+            if gennaker:
+                gennaker.is_active = True
+                gennaker.reefed_ratio = 1.0
+            if headsail:
+                headsail.is_active = False
+        elif plan_upper in ("JIB_ONLY", "GENOA_ONLY"):
+            if main:
+                main.is_active = False
+            if headsail:
+                headsail.is_active = True
+                headsail.reefed_ratio = 1.0
 
     def evaluate_interactions(self, awa_deg: float) -> tuple[dict[str, float], dict[str, float]]:
         """Calculate mutual interference factors: blanketing ratio and slot effect boost."""
