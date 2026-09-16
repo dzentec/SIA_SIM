@@ -60,7 +60,9 @@ const TimelineRenderer = {
     this.updateZoomDisplay();
     this.renderTracks();
     if (window.AppState && this.data) {
-      this.updateCursor(window.AppState.currentTick, this.data.total_ticks);
+      const curTime = window.AppState.currentSimTimeMs || 0;
+      const totalDur = this.data.duration_ms || 20000;
+      this.updateCursor(curTime, totalDur);
     }
   },
 
@@ -106,7 +108,9 @@ const TimelineRenderer = {
         this.scrollOffset = Math.max(0.0, Math.min(1.0 - visibleFraction, this.scrollOffset + panDelta));
         this.renderTracks();
         if (window.AppState && this.data) {
-          this.updateCursor(window.AppState.currentTick, this.data.total_ticks);
+          const curTime = window.AppState.currentSimTimeMs || 0;
+          const totalDur = this.data.duration_ms || 20000;
+          this.updateCursor(curTime, totalDur);
         }
       }
     }, { passive: false });
@@ -208,10 +212,10 @@ const TimelineRenderer = {
       // 3. Otherwise (clicking handle, ruler, or empty tracks), scrub playback
       this.isDraggingScrub = true;
       document.body.classList.add('is-scrubbing');
-      const targetTick = getTickFromClientX(clientX);
+      const targetTimeMs = getTimeFromClientX(clientX);
       if (window.AppState) {
-        window.AppState.currentTick = targetTick;
-        if (window.renderTick) window.renderTick(targetTick);
+        window.AppState.currentSimTimeMs = targetTimeMs;
+        if (window.renderAtTime) window.renderAtTime(targetTimeMs);
       }
     });
 
@@ -233,10 +237,10 @@ const TimelineRenderer = {
       } else {
         this.isDraggingScrub = true;
         document.body.classList.add('is-scrubbing');
-        const targetTick = getTickFromClientX(touch.clientX);
+        const targetTimeMs = getTimeFromClientX(touch.clientX);
         if (window.AppState) {
-          window.AppState.currentTick = targetTick;
-          if (window.renderTick) window.renderTick(targetTick);
+          window.AppState.currentSimTimeMs = targetTimeMs;
+          if (window.renderAtTime) window.renderAtTime(targetTimeMs);
         }
       }
     }, { passive: true });
@@ -253,10 +257,10 @@ const TimelineRenderer = {
         this.draggedEvent.sim_time_ms = newTime;
         this.renderTracks();
       } else if (this.isDraggingScrub) {
-        const targetTick = getTickFromClientX(touchX);
+        const targetTimeMs = getTimeFromClientX(touchX);
         if (window.AppState) {
-          window.AppState.currentTick = targetTick;
-          if (window.renderTick) window.renderTick(targetTick);
+          window.AppState.currentSimTimeMs = targetTimeMs;
+          if (window.renderAtTime) window.renderAtTime(targetTimeMs);
         }
       }
     }, { passive: true });
@@ -284,10 +288,10 @@ const TimelineRenderer = {
         this.draggedEvent.sim_time_ms = newTime;
         this.renderTracks();
       } else if (this.isDraggingScrub) {
-        const targetTick = getTickFromClientX(clientX);
+        const targetTimeMs = getTimeFromClientX(clientX);
         if (window.AppState) {
-          window.AppState.currentTick = targetTick;
-          if (window.renderTick) window.renderTick(targetTick);
+          window.AppState.currentSimTimeMs = targetTimeMs;
+          if (window.renderAtTime) window.renderAtTime(targetTimeMs);
         }
       }
     });
@@ -373,11 +377,11 @@ const TimelineRenderer = {
     }
   },
 
-  updateCursor(currentTick, totalTicks) {
-    if (!this.cursor || totalTicks <= 0 || !this.data) return;
-    const tickRatio = currentTick / (totalTicks - 1);
+  updateCursor(simTimeMs, totalDurationMs) {
+    if (!this.cursor || !this.data || totalDurationMs <= 0) return;
+    const timeRatio = Math.max(0, Math.min(1.0, simTimeMs / totalDurationMs));
     const visibleFraction = 1.0 / this.zoomLevel;
-    const screenRatio = (tickRatio - this.scrollOffset) / visibleFraction;
+    const screenRatio = (timeRatio - this.scrollOffset) / visibleFraction;
 
     if (screenRatio < 0 || screenRatio > 1.0) {
       this.cursor.style.display = 'none';

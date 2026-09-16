@@ -12,11 +12,12 @@ const AppState = {
   damping: 'normal',
   customWorld: null,
   data: null,
-  currentTick: 0,
+  currentSimTimeMs: 0.0,
   isPlaying: false,
   isLivingSeaRunning: false,
   speedMultiplier: 2.0,
-  playInterval: null,
+  rafId: null,
+  lastWallTimestamp: null,
   mode: 'live', // 'live' | 'debug'
   selectedEvent: null,
 };
@@ -102,8 +103,8 @@ function bindLivingSeaToggle() {
 function startLivingSea() {
   AppState.isLivingSeaRunning = true;
   updateLivingSeaButtonState();
-  if (AppState.currentTick === 0) {
-    renderTick(0);
+  if (AppState.currentSimTimeMs === 0) {
+    renderAtTime(0);
   }
   playSimulation();
 }
@@ -461,12 +462,57 @@ function setMode(mode) {
   document.getElementById('btnModeDebug').classList.toggle('active', mode === 'debug');
 }
 
+function lerp(a, b, t) {
+  if (a === null || a === undefined) return b;
+  if (b === null || b === undefined) return a;
+  return a + (b - a) * t;
+}
+
+function lerpAngle(a, b, t) {
+  if (a === null || a === undefined) return b;
+  if (b === null || b === undefined) return a;
+  let diff = (b - a) % 360;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return a + diff * t;
+}
+
+function getInterpolatedStateAtTime(simTimeMs) {
+  if (!AppState.data || !AppState.data.ticks || AppState.data.ticks.length === 0) {
+    return null;
+  }
+  const ticks = AppState.data.ticks;
+  if (simTimeMs <= ticks[0].sim_time_ms) {
+    return { tick: ticks[0], nextTick: ticks[0], alpha: 0, timeMs: simTimeMs };
+  }
+  if (simTimeMs >= ticks[ticks.length - 1].sim_time_ms) {
+    const last = ticks[ticks.length - 1];
+    return { tick: last, nextTick: last, alpha: 0, timeMs: simTimeMs };
+  }
+
+  // Binary search for left bounding keyframe
+  let low = 0;
+  let high = ticks.length - 1;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    if (ticks[mid].sim_time_ms <= simTimeMs) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  const idxA = Math.max(0, high);
+  const idxB = Math.min(ticks.length - 1, idxA + 1);
+  const tA = ticks[idxA].sim_time_ms;
+  const tB = ticks[idxB].sim_time_ms;
+  const alpha = (tB > tA) ? Math.max(0, Math.min(1, (simTimeMs - tA) / (tB - tA))) : 0;
+  return { tick: ticks[idxA], nextTick: ticks[idxB], alpha: alpha, timeMs: simTimeMs };
+}
+
 async function loadScenario(scenarioId, seed, durationS = 20, customEvents = null) {
   pauseSimulation();
   window.userConfirmedSail = null;
-
-  const btnToggle = document.getElementById('btnLivingSeaToggle');
-  const durStr = durationS >= 3600 ? `${(durationS / 3600).toFixed(0)}h` : `${durationS}s`;
 
   try {
     const payload = {
@@ -495,7 +541,7 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
       return;
     }
     AppState.data = json;
-    AppState.currentTick = 0;
+    AppState.currentSimTimeMs = 0.0;
     if (window.InstrumentRenderer) {
       window.InstrumentRenderer.reset();
     }
@@ -510,7 +556,7 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
     if (!AppState.isLivingSeaRunning) {
       renderZeroState();
     } else {
-      renderTick(AppState.currentTick);
+      renderAtTime(AppState.currentSimTimeMs);
     }
   } catch (err) {
     console.error('Failed to load scenario:', err);
@@ -522,50 +568,48 @@ function playSimulation() {
   AppState.isPlaying = true;
   document.getElementById('btnRun').disabled = true;
   document.getElementById('btnPause').disabled = false;
+  AppState.lastWallTimestamp = performance.now();
 
-  let lastWallTime = performance.now();
-  let currentTickFloat = AppState.currentTick;
+  function loop(now) {
+    if (!AppState.isPlaying) return;
+    const elapsedWallMs = Math.min(200, now - AppState.lastWallTimestamp);
+    AppState.lastWallTimestamp = now;
 
-  const totalFrames = AppState.data.ticks.length;
-  const simDurationMs = AppState.data.duration_ms || 20000;
-  const msPerFrame = simDurationMs / Math.max(1, totalFrames - 1);
+    const simMsDelta = elapsedWallMs * AppState.speedMultiplier;
+    AppState.currentSimTimeMs += simMsDelta;
 
-  // Smooth 60 FPS playback timer (~16ms)
-  AppState.playInterval = setInterval(() => {
-    const now = performance.now();
-    const elapsedWallMs = Math.min(100, now - lastWallTime);
-    lastWallTime = now;
-
-    // Advance simulation time proportionally to actual elapsed wall-clock time * speedMultiplier
-    const simMsToAdvance = elapsedWallMs * AppState.speedMultiplier;
-    const framesToAdvance = simMsToAdvance / msPerFrame;
-
-    currentTickFloat += framesToAdvance;
-    const nextTick = Math.floor(currentTickFloat);
-
-    if (nextTick >= totalFrames - 1) {
-      AppState.currentTick = totalFrames - 1;
-      renderTick(AppState.currentTick);
+    const totalDurationMs = AppState.data.duration_ms || 20000;
+    if (AppState.currentSimTimeMs >= totalDurationMs) {
+      AppState.currentSimTimeMs = totalDurationMs;
+      renderAtTime(AppState.currentSimTimeMs);
       pauseSimulation();
-    } else if (nextTick !== AppState.currentTick) {
-      AppState.currentTick = nextTick;
-      renderTick(AppState.currentTick);
+      return;
     }
-  }, 16);
+
+    renderAtTime(AppState.currentSimTimeMs);
+    AppState.rafId = requestAnimationFrame(loop);
+  }
+
+  AppState.rafId = requestAnimationFrame(loop);
 }
 
 function pauseSimulation() {
   AppState.isPlaying = false;
-  clearInterval(AppState.playInterval);
+  if (AppState.rafId) {
+    cancelAnimationFrame(AppState.rafId);
+    AppState.rafId = null;
+  }
+  AppState.lastWallTimestamp = null;
   document.getElementById('btnRun').disabled = false;
   document.getElementById('btnPause').disabled = true;
 }
 
-function stepSimulation(stepCount = 1) {
+function stepSimulation(stepSeconds = 0.5) {
   if (!AppState.data) return;
   pauseSimulation();
-  AppState.currentTick = Math.min(AppState.data.ticks.length - 1, AppState.currentTick + stepCount);
-  renderTick(AppState.currentTick);
+  const totalDurationMs = AppState.data.duration_ms || 20000;
+  AppState.currentSimTimeMs = Math.min(totalDurationMs, AppState.currentSimTimeMs + (stepSeconds * 1000));
+  renderAtTime(AppState.currentSimTimeMs);
 }
 
 function resetSimulation() {
@@ -573,7 +617,7 @@ function resetSimulation() {
   if (window.InstrumentRenderer) {
     window.InstrumentRenderer.reset();
   }
-  AppState.currentTick = 0;
+  AppState.currentSimTimeMs = 0.0;
   renderZeroState();
 }
 
@@ -584,17 +628,11 @@ function renderZeroState() {
 
   // 1. Clock Display at zero
   const durationMs = AppState.data ? AppState.data.duration_ms : AppState.durationS * 1000;
-  const totalPhysicalTicks = AppState.data ? (AppState.data.total_ticks || Math.round(durationMs / 10)) : Math.round(durationMs / 10);
-  const totalFrames = AppState.data ? AppState.data.ticks.length : 2000;
-
-  let timeStr = '00:00.00';
-  if (durationMs >= 3600000) {
-    timeStr = '00:00:00';
-  }
+  let timeStr = durationMs >= 3600000 ? '00:00:00' : '00:00.00';
   document.getElementById('simTimeValue').textContent = timeStr;
 
   if (window.TimelineRenderer && AppState.data) {
-    window.TimelineRenderer.updateCursor(0, totalFrames);
+    window.TimelineRenderer.updateCursor(0, AppState.data.duration_ms);
   }
 
   // 2. Ground truth zeros
@@ -736,17 +774,20 @@ function renderZeroState() {
   }
 }
 
-function renderTick(index) {
-  if (!AppState.data || !AppState.data.ticks[index]) return;
-  const tick = AppState.data.ticks[index];
-  const totalPhysicalTicks = AppState.data.total_ticks || Math.round(AppState.data.duration_ms / 10);
-  const currentPhysicalTick = Math.round(tick.sim_time_ms / 10);
-  const totalFrames = AppState.data.ticks.length;
+function renderAtTime(simTimeMs) {
+  if (!AppState.data) return;
+  const state = getInterpolatedStateAtTime(simTimeMs);
+  if (!state) return;
 
-  // 1. Clock Display (Adaptive for seconds, minutes, and hours)
-  const totalSeconds = tick.sim_time_ms / 1000;
+  const tA = state.tick;
+  const tB = state.nextTick;
+  const alpha = state.alpha;
+  const activeTick = alpha < 0.5 ? tA : tB;
+
+  // 1. Clock Display (Continuous 60 FPS update)
+  const totalSeconds = Math.max(0, simTimeMs / 1000);
   let timeStr = '';
-  if (AppState.data && AppState.data.duration_ms >= 3600000) {
+  if (AppState.data.duration_ms >= 3600000) {
     const hh = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
     const mm = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
     const ss = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
@@ -760,32 +801,47 @@ function renderTick(index) {
 
   // 2. Timeline Cursor
   if (window.TimelineRenderer) {
-    window.TimelineRenderer.updateCursor(index, totalFrames);
+    window.TimelineRenderer.updateCursor(simTimeMs, AppState.data.duration_ms || 20000);
   }
 
-  // 3. Zone 2: Ground Truth Lab Terminal
-  const gt = tick.ground_truth;
-  document.getElementById('gtTws').innerHTML = `${gt.tws_kt.toFixed(2)} <span class="term-unit">kt</span>`;
-  document.getElementById('gtTwd').innerHTML = `${gt.twd_deg.toFixed(1)} <span class="term-unit">°</span>`;
-  document.getElementById('gtWave').innerHTML = `${gt.wave_elevation_m.toFixed(2)} <span class="term-unit">m</span>`;
-  document.getElementById('gtHeave').innerHTML = `${(gt.heave_m || 0.0).toFixed(2)} <span class="term-unit">m</span>`;
-  document.getElementById('gtSlamForce').innerHTML = `${(gt.slam_force_kn || 0.0).toFixed(1)} <span class="term-unit">kN</span>`;
-  document.getElementById('gtHeel').innerHTML = `${gt.heel_deg.toFixed(2)} <span class="term-unit">°</span>`;
-  document.getElementById('gtPitch').innerHTML = `${(gt.pitch_deg || 0.0).toFixed(2)} <span class="term-unit">°</span>`;
-  document.getElementById('gtYaw').innerHTML = `${gt.yaw_deg.toFixed(1)} <span class="term-unit">°</span>`;
-  document.getElementById('gtSog').innerHTML = `${gt.sog_kt.toFixed(2)} <span class="term-unit">kt</span>`;
-  document.getElementById('gtRudder').innerHTML = `${gt.rudder_deg.toFixed(1)} <span class="term-unit">°</span>`;
-  document.getElementById('gtHydroLoss').textContent = `${Math.round(gt.rudder_hydro_loss * 100)} %`;
+  // 3. Zone 2: Ground Truth Lab Terminal (Interpolated physics)
+  const gtA = tA.ground_truth;
+  const gtB = tB.ground_truth;
+  const tws = lerp(gtA.tws_kt, gtB.tws_kt, alpha);
+  const twd = lerpAngle(gtA.twd_deg, gtB.twd_deg, alpha);
+  const waveElev = lerp(gtA.wave_elevation_m, gtB.wave_elevation_m, alpha);
+  const heave = lerp(gtA.heave_m || 0.0, gtB.heave_m || 0.0, alpha);
+  const slamForce = lerp(gtA.slam_force_kn || 0.0, gtB.slam_force_kn || 0.0, alpha);
+  const heel = lerp(gtA.heel_deg, gtB.heel_deg, alpha);
+  const pitch = lerp(gtA.pitch_deg || 0.0, gtB.pitch_deg || 0.0, alpha);
+  const yaw = lerpAngle(gtA.yaw_deg, gtB.yaw_deg, alpha);
+  const sog = lerp(gtA.sog_kt, gtB.sog_kt, alpha);
+  const rudder = lerp(gtA.rudder_deg, gtB.rudder_deg, alpha);
+  const hydroLoss = lerp(gtA.rudder_hydro_loss, gtB.rudder_hydro_loss, alpha);
+
+  document.getElementById('gtTws').innerHTML = `${tws.toFixed(2)} <span class="term-unit">kt</span>`;
+  document.getElementById('gtTwd').innerHTML = `${twd.toFixed(1)} <span class="term-unit">°</span>`;
+  document.getElementById('gtWave').innerHTML = `${waveElev.toFixed(2)} <span class="term-unit">m</span>`;
+  document.getElementById('gtHeave').innerHTML = `${heave.toFixed(2)} <span class="term-unit">m</span>`;
+  document.getElementById('gtSlamForce').innerHTML = `${slamForce.toFixed(1)} <span class="term-unit">kN</span>`;
+  document.getElementById('gtHeel').innerHTML = `${heel.toFixed(2)} <span class="term-unit">°</span>`;
+  document.getElementById('gtPitch').innerHTML = `${pitch.toFixed(2)} <span class="term-unit">°</span>`;
+  document.getElementById('gtYaw').innerHTML = `${yaw.toFixed(1)} <span class="term-unit">°</span>`;
+  document.getElementById('gtSog').innerHTML = `${sog.toFixed(2)} <span class="term-unit">kt</span>`;
+  document.getElementById('gtRudder').innerHTML = `${rudder.toFixed(1)} <span class="term-unit">°</span>`;
+  document.getElementById('gtHydroLoss').textContent = `${Math.round(hydroLoss * 100)} %`;
   
-  const activeEvents = gt.active_events.length > 0 ? gt.active_events.join(', ') : 'NONE';
+  const activeEvents = activeTick.ground_truth.active_events.length > 0
+    ? activeTick.ground_truth.active_events.join(', ')
+    : 'NONE';
   document.getElementById('gtActiveEvents').textContent = activeEvents;
 
   // Hydro status tag
   const gtStateTag = document.getElementById('gtStateTag');
-  if (gt.rudder_hydro_loss > 0.4) {
+  if (hydroLoss > 0.4) {
     gtStateTag.textContent = 'HYDRO: STALL / SEPARATION';
     gtStateTag.style.color = '#ff1744';
-  } else if (gt.rudder_hydro_loss > 0.1) {
+  } else if (hydroLoss > 0.1) {
     gtStateTag.textContent = 'HYDRO: REDUCED LIFT';
     gtStateTag.style.color = '#ffb300';
   } else {
@@ -793,8 +849,25 @@ function renderTick(index) {
     gtStateTag.style.color = '#94a3b8';
   }
 
-  // 4. Zone 3: Sensor View (6 Marine Console Canvas Dials)
-  const sf = tick.sensor_frame;
+  // 4. Zone 3: Sensor View (6 Marine Console Canvas Dials with continuous needle interpolation)
+  const sfA = tA.sensor_frame;
+  const sfB = tB.sensor_frame;
+  const awa = lerpAngle(sfA.wind.apparent_wind_angle_deg, sfB.wind.apparent_wind_angle_deg, alpha);
+  const aws = lerp(sfA.wind.apparent_wind_speed_kt, sfB.wind.apparent_wind_speed_kt, alpha);
+  const imuRoll = lerp(sfA.imu.roll_deg, sfB.imu.roll_deg, alpha);
+  const imuPitch = lerp(sfA.imu.pitch_deg, sfB.imu.pitch_deg, alpha);
+  const imuPitchRate = lerp(sfA.imu.pitch_rate_deg_s, sfB.imu.pitch_rate_deg_s, alpha);
+  const imuYawRate = lerp(sfA.imu.yaw_rate_deg_s, sfB.imu.yaw_rate_deg_s, alpha);
+  const imuAccelZ = lerp(sfA.imu.accel_z_m_s2, sfB.imu.accel_z_m_s2, alpha);
+  const gpsCog = lerpAngle(sfA.gps.cog_deg, sfB.gps.cog_deg, alpha);
+  const gpsSog = lerp(sfA.gps.sog_kt, sfB.gps.sog_kt, alpha);
+  const actRudder = lerp(sfA.actuators.rudder_angle_deg, sfB.actuators.rudder_angle_deg, alpha);
+  const actSail = lerp(sfA.actuators.mainsheet_pct, sfB.actuators.mainsheet_pct, alpha);
+
+  const windFault = activeTick.sensor_frame.wind.fault;
+  const imuFault = activeTick.sensor_frame.imu.fault;
+  const gpsFault = activeTick.sensor_frame.gps.fault || activeTick.sensor_frame.gps.fix_loss;
+
   const dialWindCanvas = document.getElementById('dialWindCanvas');
   const dialHeelCanvas = document.getElementById('dialHeelCanvas');
   const dialPitchCanvas = document.getElementById('dialPitchCanvas');
@@ -803,85 +876,85 @@ function renderTick(index) {
   const dialSlamCanvas = document.getElementById('dialSlamCanvas');
 
   // 1. Wind Dial
-  if (dialWindCanvas) {
+  if (dialWindCanvas && window.InstrumentRenderer) {
     InstrumentRenderer.drawWindDial(
       dialWindCanvas,
-      sf.wind.apparent_wind_angle_deg,
-      sf.wind.apparent_wind_speed_kt,
-      sf.wind.fault
+      awa !== null ? awa : 0.0,
+      aws !== null ? aws : 0.0,
+      windFault
     );
   }
-  document.getElementById('valAws').innerHTML = sf.wind.apparent_wind_speed_kt !== null
-    ? `${sf.wind.apparent_wind_speed_kt.toFixed(1)} <span class="unit">kt</span>`
+  document.getElementById('valAws').innerHTML = aws !== null
+    ? `${aws.toFixed(1)} <span class="unit">kt</span>`
     : `--- <span class="unit">NO SIGNAL</span>`;
 
   // 2. Heel Dial
-  if (dialHeelCanvas) {
+  if (dialHeelCanvas && window.InstrumentRenderer) {
     InstrumentRenderer.drawHeelDial(
       dialHeelCanvas,
-      sf.imu.roll_deg,
-      sf.imu.fault
+      imuRoll !== null ? imuRoll : 0.0,
+      imuFault
     );
   }
-  document.getElementById('valHeel').innerHTML = sf.imu.roll_deg !== null
-    ? `${sf.imu.roll_deg.toFixed(1)} <span class="unit">°</span>`
+  document.getElementById('valHeel').innerHTML = imuRoll !== null
+    ? `${imuRoll.toFixed(1)} <span class="unit">°</span>`
     : `--- <span class="unit">NO FIX</span>`;
 
   // 3. Pitch Dial (Килевая качка)
-  if (dialPitchCanvas) {
+  if (dialPitchCanvas && window.InstrumentRenderer) {
     InstrumentRenderer.drawPitchDial(
       dialPitchCanvas,
-      sf.imu.pitch_deg,
-      sf.imu.pitch_rate_deg_s,
-      sf.imu.fault
+      imuPitch !== null ? imuPitch : 0.0,
+      imuPitchRate !== null ? imuPitchRate : 0.0,
+      imuFault
     );
   }
   const valPitchEl = document.getElementById('valPitch');
   if (valPitchEl) {
-    valPitchEl.innerHTML = sf.imu.pitch_deg !== null
-      ? `${sf.imu.pitch_deg.toFixed(1)} <span class="unit">°</span>`
+    valPitchEl.innerHTML = imuPitch !== null
+      ? `${imuPitch.toFixed(1)} <span class="unit">°</span>`
       : `--- <span class="unit">NO FIX</span>`;
   }
 
   // 4. Nav / SOG Dial
-  if (dialNavCanvas) {
+  if (dialNavCanvas && window.InstrumentRenderer) {
     InstrumentRenderer.drawNavDial(
       dialNavCanvas,
-      sf.gps.cog_deg,
-      sf.gps.sog_kt,
-      sf.gps.fault || sf.gps.fix_loss
+      gpsCog !== null ? gpsCog : 0.0,
+      gpsSog !== null ? gpsSog : 0.0,
+      gpsFault
     );
   }
-  document.getElementById('valSog').innerHTML = sf.gps.sog_kt !== null
-    ? `${sf.gps.sog_kt.toFixed(1)} <span class="unit">kt</span>`
+  document.getElementById('valSog').innerHTML = gpsSog !== null
+    ? `${gpsSog.toFixed(1)} <span class="unit">kt</span>`
     : `--- <span class="unit">NO FIX</span>`;
 
   // 5. Heave & Accel Az Dial (Вертикальная качка)
-  if (dialHeaveCanvas) {
+  if (dialHeaveCanvas && window.InstrumentRenderer) {
     InstrumentRenderer.drawHeaveGauge(
       dialHeaveCanvas,
-      gt.heave_m || 0.0,
-      sf.imu.accel_z_m_s2 !== null ? sf.imu.accel_z_m_s2 : 9.81,
-      sf.imu.fault
+      heave,
+      imuAccelZ !== null ? imuAccelZ : 9.81,
+      imuFault
     );
   }
   const valHeaveEl = document.getElementById('valHeaveAccel');
   if (valHeaveEl) {
-    const gVal = sf.imu.accel_z_m_s2 !== null ? (sf.imu.accel_z_m_s2 / 9.80665).toFixed(2) : '1.00';
-    valHeaveEl.innerHTML = sf.imu.accel_z_m_s2 !== null
+    const gVal = imuAccelZ !== null ? (imuAccelZ / 9.80665).toFixed(2) : '1.00';
+    valHeaveEl.innerHTML = imuAccelZ !== null
       ? `${gVal} <span class="unit">g</span>`
       : `--- <span class="unit">NO FIX</span>`;
   }
 
   // 6. Slamming & Hull Shock Meter (Слеминг)
-  const isSlamming = gt.slam_active || (gt.slam_force_kn && gt.slam_force_kn > 5.0);
-  if (dialSlamCanvas) {
+  const isSlamming = activeTick.ground_truth.slam_active || slamForce > 5.0;
+  if (dialSlamCanvas && window.InstrumentRenderer) {
     InstrumentRenderer.drawSlammingGauge(
       dialSlamCanvas,
-      gt.slam_force_kn || 0.0,
+      slamForce,
       isSlamming,
       15.0,
-      sf.imu.fault
+      imuFault
     );
   }
   const cardSlam = document.getElementById('cardSlamming');
@@ -890,30 +963,30 @@ function renderTick(index) {
   }
   const valSlamEl = document.getElementById('valSlamForce');
   if (valSlamEl) {
-    valSlamEl.innerHTML = `${(gt.slam_force_kn || 0.0).toFixed(1)} <span class="unit">kN</span>`;
+    valSlamEl.innerHTML = `${slamForce.toFixed(1)} <span class="unit">kN</span>`;
   }
 
   // Sensor strip
-  document.getElementById('valPitchRate').textContent = sf.imu.pitch_rate_deg_s !== null ? `${sf.imu.pitch_rate_deg_s.toFixed(1)} °/s` : '---';
-  document.getElementById('valYawRate').textContent = sf.imu.yaw_rate_deg_s !== null ? `${sf.imu.yaw_rate_deg_s.toFixed(1)} °/s` : '---';
-  document.getElementById('valRudderSensor').textContent = sf.actuators.rudder_angle_deg !== null ? `${sf.actuators.rudder_angle_deg.toFixed(1)} °` : '---';
-  document.getElementById('valSailSensor').textContent = sf.actuators.mainsheet_pct !== null ? `${sf.actuators.mainsheet_pct.toFixed(0)} %` : 'UNKNOWN (ABSENT)';
+  document.getElementById('valPitchRate').textContent = imuPitchRate !== null ? `${imuPitchRate.toFixed(1)} °/s` : '---';
+  document.getElementById('valYawRate').textContent = imuYawRate !== null ? `${imuYawRate.toFixed(1)} °/s` : '---';
+  document.getElementById('valRudderSensor').textContent = actRudder !== null ? `${actRudder.toFixed(1)} °` : '---';
+  document.getElementById('valSailSensor').textContent = actSail !== null ? `${actSail.toFixed(0)} %` : 'UNKNOWN (ABSENT)';
 
   // Health chips
   const chipImu = document.getElementById('chipImu');
-  chipImu.className = sf.imu.fault ? 'health-chip chip-fault' : 'health-chip chip-ok';
-  chipImu.textContent = sf.imu.fault ? 'IMU: FAULT' : 'IMU: OK';
+  chipImu.className = activeTick.sensor_frame.imu.fault ? 'health-chip chip-fault' : 'health-chip chip-ok';
+  chipImu.textContent = activeTick.sensor_frame.imu.fault ? 'IMU: FAULT' : 'IMU: OK';
 
   const chipGps = document.getElementById('chipGps');
-  chipGps.className = (sf.gps.fault || sf.gps.fix_loss) ? 'health-chip chip-fault' : 'health-chip chip-ok';
-  chipGps.textContent = sf.gps.fault ? 'GPS: FAULT' : (sf.gps.fix_loss ? 'GPS: NO FIX' : 'GPS: OK');
+  chipGps.className = gpsFault ? 'health-chip chip-fault' : 'health-chip chip-ok';
+  chipGps.textContent = activeTick.sensor_frame.gps.fault ? 'GPS: FAULT' : (activeTick.sensor_frame.gps.fix_loss ? 'GPS: NO FIX' : 'GPS: OK');
 
   const chipWind = document.getElementById('chipWind');
-  chipWind.className = sf.wind.fault ? 'health-chip chip-fault' : 'health-chip chip-ok';
-  chipWind.textContent = sf.wind.fault ? 'WIND: FAULT' : 'WIND: OK';
+  chipWind.className = activeTick.sensor_frame.wind.fault ? 'health-chip chip-fault' : 'health-chip chip-ok';
+  chipWind.textContent = activeTick.sensor_frame.wind.fault ? 'WIND: FAULT' : 'WIND: OK';
 
   // 5. Zone 4: SIA Advisory & Reasoning
-  const sia = tick.sia_decision;
+  const sia = activeTick.sia_decision;
   const siaHazardBadge = document.getElementById('siaHazardBadge');
   if (sia.hazard_id === 'HAZ-BROACH-PRECURSOR') {
     siaHazardBadge.className = 'hazard-badge critical';
@@ -975,7 +1048,7 @@ function renderTick(index) {
   // 6. Footer Evaluator Status
   const evalData = AppState.data.evaluation;
   const footerEnvelope = document.getElementById('footerEnvelope');
-  const oracle = tick.oracle;
+  const oracle = activeTick.oracle;
 
   if (oracle.safe_envelope_intact) {
     footerEnvelope.className = 'footer-val val-pass';
@@ -999,9 +1072,17 @@ function renderTick(index) {
 
   // 7. Dynamic Query Loop Display (Standby vs Active Hazard Context Refinement)
   if (window.updateQueryLoopDisplay) {
-    window.updateQueryLoopDisplay(tick);
+    window.updateQueryLoopDisplay(activeTick);
   }
 }
 
+function renderTick(index) {
+  if (!AppState.data || !AppState.data.ticks || !AppState.data.ticks[index]) return;
+  const tick = AppState.data.ticks[index];
+  AppState.currentSimTimeMs = tick.sim_time_ms;
+  renderAtTime(tick.sim_time_ms);
+}
+
 window.AppState = AppState;
+window.renderAtTime = renderAtTime;
 window.renderTick = renderTick;

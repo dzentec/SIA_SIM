@@ -64,7 +64,7 @@ function updateQueryLoopDisplay(tick) {
 }
 
 async function dispatchSkipperAction(sailSet) {
-  const simTimeMs = window.AppState ? window.AppState.currentTick * 10 : 0;
+  const simTimeMs = window.AppState ? (window.AppState.currentSimTimeMs || 0) : 0;
   
   try {
     const res = await fetch('/api/query-action', {
@@ -72,7 +72,7 @@ async function dispatchSkipperAction(sailSet) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sail_set: sailSet,
-        sim_time_ms: simTimeMs,
+        sim_time_ms: Math.round(simTimeMs),
       }),
     });
     const result = await res.json();
@@ -106,8 +106,8 @@ async function dispatchSkipperAction(sailSet) {
       document.getElementById('siaReasoningNote').textContent = result.note;
 
       // Update Query Loop display
-      if (window.AppState && window.AppState.data && window.AppState.data.ticks[window.AppState.currentTick]) {
-        updateQueryLoopDisplay(window.AppState.data.ticks[window.AppState.currentTick]);
+      if (window.renderAtTime && window.AppState) {
+        window.renderAtTime(window.AppState.currentSimTimeMs || 0);
       }
     }
   } catch (err) {
