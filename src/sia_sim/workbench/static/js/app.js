@@ -262,11 +262,8 @@ function bindControls() {
   const btnResetEvents = document.getElementById('btnResetEvents');
   if (btnResetEvents) {
     btnResetEvents.addEventListener('click', () => {
-      if (window.TimelineRenderer) {
-        window.TimelineRenderer.events = [];
-        window.TimelineRenderer.renderTracks();
-      }
-      loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, []);
+      // Restore default scenario/preset events from backend
+      loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, null);
     });
   }
 
