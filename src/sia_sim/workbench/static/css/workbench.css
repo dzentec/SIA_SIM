@@ -489,7 +489,7 @@ body.is-scrubbing .timeline-handle {
 
 .main-core {
   display: grid;
-  grid-template-columns: 320px 1fr 360px;
+  grid-template-columns: 360px 1fr 380px;
   gap: var(--space-md);
   padding: var(--space-md);
   flex: 1;
@@ -499,6 +499,7 @@ body.is-scrubbing .timeline-handle {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  min-width: 0;
 }
 
 .zone-card {
@@ -543,15 +544,16 @@ body.is-scrubbing .timeline-handle {
 .form-row-preset {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
 }
 
 .preset-label {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-muted);
-  width: 56px;
+  color: var(--text-dim);
+  width: auto;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .full-width {
@@ -567,36 +569,51 @@ body.is-scrubbing .timeline-handle {
 .preset-controls-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-xs) var(--space-sm);
+  gap: 8px 12px;
   background: var(--bg-surface-elevated);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: 4px;
+  padding: 10px 12px;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
 }
 
 .control-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 4px;
+  min-width: 0;
 }
 
 .control-sublabel {
   font-size: 10px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .compact-select {
-  padding: 2px 4px;
+  width: 100%;
+  max-width: none;
+  padding: 4px 8px;
   font-size: 11px;
-  max-width: 90px;
+  height: 28px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-bright);
 }
 
 .compact-input {
-  width: 50px;
-  padding: 2px 4px;
+  width: 100%;
+  max-width: none;
+  padding: 4px 8px;
   font-size: 11px;
+  height: 28px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-bright);
 }
 
 .input-with-unit {
