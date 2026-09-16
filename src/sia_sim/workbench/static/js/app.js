@@ -15,6 +15,7 @@ const AppState = {
   currentTick: 0,
   isPlaying: false,
   isLivingSeaRunning: false,
+  speedMultiplier: 2.0,
   playInterval: null,
   mode: 'live', // 'live' | 'debug'
   selectedEvent: null,
@@ -212,6 +213,17 @@ function bindControls() {
         AppState.durationS,
         window.TimelineRenderer ? window.TimelineRenderer.events : null
       );
+    });
+  }
+
+  const speedSelect = document.getElementById('speedSelect');
+  if (speedSelect) {
+    speedSelect.addEventListener('change', (e) => {
+      AppState.speedMultiplier = parseFloat(e.target.value) || 2.0;
+      if (AppState.isPlaying) {
+        pauseSimulation();
+        playSimulation();
+      }
     });
   }
 
@@ -511,15 +523,22 @@ function playSimulation() {
   document.getElementById('btnRun').disabled = true;
   document.getElementById('btnPause').disabled = false;
 
-  // Playback at 2x real-time speed (5ms per 10ms tick) for responsive visualization
+  const totalFrames = AppState.data.ticks.length;
+  const simDurationMs = AppState.data.duration_ms || 20000;
+  const simDtPerFrameMs = simDurationMs / Math.max(1, totalFrames);
+
+  // Smooth 60 FPS playback timer (16ms per frame)
+  const timerIntervalMs = 16;
   AppState.playInterval = setInterval(() => {
-    if (AppState.currentTick < AppState.data.ticks.length - 1) {
-      AppState.currentTick++;
+    if (AppState.currentTick < totalFrames - 1) {
+      const simMsToAdvance = timerIntervalMs * AppState.speedMultiplier;
+      const framesToAdvance = Math.max(1, Math.round(simMsToAdvance / simDtPerFrameMs));
+      AppState.currentTick = Math.min(totalFrames - 1, AppState.currentTick + framesToAdvance);
       renderTick(AppState.currentTick);
     } else {
       pauseSimulation();
     }
-  }, 10);
+  }, timerIntervalMs);
 }
 
 function pauseSimulation() {

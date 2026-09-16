@@ -159,7 +159,48 @@ body {
 
 .playback-controls {
   display: flex;
+  align-items: center;
   gap: var(--space-xs);
+}
+
+.speed-control-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: var(--space-xs);
+  padding: 2px 6px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.speed-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.speed-select {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  outline: none;
+}
+
+.speed-select:focus {
+  outline: none;
+}
+
+.speed-select option {
+  background: var(--bg-surface-elevated);
+  color: var(--text-bright);
 }
 
 .btn {

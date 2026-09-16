@@ -32,6 +32,20 @@
         <button id="btnPause" class="btn btn-secondary" title="Pause Simulation" disabled>⏸ Pause</button>
         <button id="btnStep" class="btn btn-secondary" title="Step forward 10 ms">⏯ Step 10ms</button>
         <button id="btnReset" class="btn btn-ghost" title="Reset to start">↺ Reset</button>
+        <div class="speed-control-group">
+          <label for="speedSelect" class="speed-label">SPEED:</label>
+          <select id="speedSelect" class="select-dropdown speed-select" title="Simulation Playback Speed Multiplier">
+            <option value="0.5">0.5x</option>
+            <option value="1">1x (Real-time)</option>
+            <option value="2" selected>2x</option>
+            <option value="5">5x</option>
+            <option value="10">10x</option>
+            <option value="50">50x</option>
+            <option value="100">100x</option>
+            <option value="500">500x</option>
+            <option value="1000">1000x (Max)</option>
+          </select>
+        </div>
       </div>
     </div>
 
