@@ -205,3 +205,99 @@ def get_preset_by_id(
 
     # Fallback to cruise
     return get_coastal_cruise_preset(seed=seed, duration_ms=duration_ms)
+
+
+# ---------------------------------------------------------------------------
+# Vessel Presets Registry & Sail Plan Configuration
+# ---------------------------------------------------------------------------
+
+SAIL_PLAN_PERCENTAGES: dict[str, float] = {
+    "CODE_ZERO": 130.0,
+    "FULL_MAIN": 100.0,
+    "REEF_1": 75.0,
+    "REEF_2": 50.0,
+    "STORM_JIB": 25.0,
+    "BARE_POLES": 0.0,
+}
+
+VESSEL_PRESETS: dict[str, dict[str, Any]] = {
+    "beneteau_oceanis_45": {
+        "id": "beneteau_oceanis_45",
+        "name": "Beneteau Oceanis 45",
+        "archetype": "modern_cruiser",
+        "description": "Modern 45ft wide-beam cruising yacht with high form stability and twin rudders.",
+        "loa_m": 13.94,
+        "beam_m": 4.50,
+        "displacement_kg": 10550.0,
+        "sail_area_m2": 100.0,
+        "mast_height_m": 19.5,
+        "available_sails": [
+            {"id": "CODE_ZERO", "name": "Code 0 (130%)", "trim_pct": 130.0, "icon": "⛵"},
+            {"id": "FULL_MAIN", "name": "Full Main (100%)", "trim_pct": 100.0, "icon": "⛵"},
+            {"id": "REEF_1", "name": "Reef 1 (75%)", "trim_pct": 75.0, "icon": "📉"},
+            {"id": "REEF_2", "name": "Reef 2 (50%)", "trim_pct": 50.0, "icon": "📉"},
+            {"id": "STORM_JIB", "name": "Storm Jib (25%)", "trim_pct": 25.0, "icon": "⛈"},
+            {"id": "BARE_POLES", "name": "Bare Poles (0%)", "trim_pct": 0.0, "icon": "⚙"},
+        ],
+    },
+    "monohull_ior": {
+        "id": "monohull_ior",
+        "name": "IOR Classic 10.5m",
+        "archetype": "ior_classic_narrow_stern",
+        "description": "Classic 34ft IOR racer/cruiser with narrow stern, single deep rudder, broach-prone.",
+        "loa_m": 10.5,
+        "beam_m": 3.2,
+        "displacement_kg": 4500.0,
+        "sail_area_m2": 45.0,
+        "mast_height_m": 14.0,
+        "available_sails": [
+            {"id": "FULL_MAIN", "name": "Full Main (100%)", "trim_pct": 100.0, "icon": "⛵"},
+            {"id": "REEF_1", "name": "Reef 1 (75%)", "trim_pct": 75.0, "icon": "📉"},
+            {"id": "REEF_2", "name": "Reef 2 (50%)", "trim_pct": 50.0, "icon": "📉"},
+            {"id": "STORM_JIB", "name": "Storm Jib (25%)", "trim_pct": 25.0, "icon": "⛈"},
+            {"id": "BARE_POLES", "name": "Bare Poles (0%)", "trim_pct": 0.0, "icon": "⚙"},
+        ],
+    },
+}
+
+
+def list_vessel_presets() -> list[dict[str, Any]]:
+    """Returns descriptor metadata for all registered vessel presets."""
+    return list(VESSEL_PRESETS.values())
+
+
+def get_vessel_preset_config(
+    vessel_id: str = "beneteau_oceanis_45",
+    sail_plan: str = "FULL_MAIN",
+    initial_heading_deg: float = 65.0,
+    initial_sog_kt: float = 6.0,
+    initial_heel_deg: float = 0.0,
+) -> Any:
+    """Creates a VesselConfig for a given vessel preset ID and sail configuration."""
+    from sia_sim.contracts.scenario import BENETEAU_OCEANIS_45_CONFIG, DEFAULT_VESSEL_CONFIG, VesselConfig
+
+    vid = vessel_id.lower().replace("-", "_")
+    plan_key = sail_plan.upper()
+    trim_pct = SAIL_PLAN_PERCENTAGES.get(plan_key, 100.0)
+
+    if "beneteau" in vid or "oceanis" in vid:
+        return BENETEAU_OCEANIS_45_CONFIG.model_copy(
+            update={
+                "sail_plan": plan_key,
+                "sail_trim_pct": trim_pct,
+                "initial_heading_deg": initial_heading_deg,
+                "initial_sog_kt": initial_sog_kt,
+                "initial_heel_deg": initial_heel_deg,
+            }
+        )
+
+    return DEFAULT_VESSEL_CONFIG.model_copy(
+        update={
+            "sail_plan": plan_key,
+            "sail_trim_pct": trim_pct,
+            "initial_heading_deg": initial_heading_deg,
+            "initial_sog_kt": initial_sog_kt,
+            "initial_heel_deg": initial_heel_deg,
+        }
+    )
+

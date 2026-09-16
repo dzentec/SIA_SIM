@@ -57,6 +57,8 @@ Requirements for MVP Milestone (M0–M6: First Golden Test BROACH PRECURSOR).
 - [ ] **WB-05**: User can configure simulation duration (`DURATION: [ 20 ] s`) with automated re-simulation.
 - [ ] **WB-06**: Marine Console displays dedicated Pitch Inclinometer (килевая качка) and Heave/Vertical Acceleration meter (вертикальная качка).
 - [ ] **WB-07**: Marine Console displays dedicated Slamming/Hull Shock instrument (слеминг) with peak impact force (kN) and shock pulse alert.
+- [ ] **WB-08**: Vessel Preset selector with Beneteau Oceanis 45 (LOA 13.94m, Beam 4.50m, Mass 10,550kg, S 100m²) and baseline IOR Classic 34ft hull models located directly below Ground Truth Physics.
+- [ ] **WB-09**: Interactive Sail Plan Rig selector supporting 6 sail configurations (CODE_ZERO 130%, FULL_MAIN 100%, REEF_1 75%, REEF_2 50%, STORM_JIB 25%, BARE_POLES 0%) driving 4-DOF aerodynamics & heeling dynamics in 100 Hz simulation.
 
 ## v2 Requirements
 

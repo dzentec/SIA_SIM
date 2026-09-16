@@ -1,6 +1,8 @@
 /**
- * Skipper-in-the-Loop Interactive Query Loop (Zone 5)
+ * Skipper-in-the-Loop Interactive Query Loop (Dynamic State Engine)
  */
+
+window.userConfirmedSail = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   initQueryLoop();
@@ -11,6 +13,7 @@ function initQueryLoop() {
   queryChips.forEach((chip) => {
     chip.addEventListener('click', async (e) => {
       const sailSet = e.currentTarget.getAttribute('data-sail');
+      window.userConfirmedSail = sailSet;
       
       // Update UI active state
       queryChips.forEach((c) => c.classList.remove('active'));
@@ -19,6 +22,45 @@ function initQueryLoop() {
       await dispatchSkipperAction(sailSet);
     });
   });
+}
+
+function updateQueryLoopDisplay(tick) {
+  const cardEl = document.getElementById('zoneQueryLoop');
+  const titleEl = cardEl ? cardEl.querySelector('.query-title') : null;
+  const iconEl = cardEl ? cardEl.querySelector('.query-prompt-icon') : null;
+  const promptEl = document.getElementById('queryPromptText');
+  const queryChips = document.querySelectorAll('.btn-query-chip');
+
+  if (!cardEl || !titleEl || !promptEl) return;
+
+  const sf = tick.sensor_frame;
+  const sia = tick.sia_decision;
+  const gt = tick.ground_truth;
+  const roll = Math.abs(sf.imu.roll_deg || 0);
+  const isHazard = sia.risk_score >= 0.35 || sia.hazard_id !== null || roll >= 18.0 || gt.slam_active;
+
+  if (window.userConfirmedSail) {
+    // State 3: User responded and confirmed sail state
+    cardEl.className = 'zone-card zone-query-loop-card confirmed';
+    if (iconEl) iconEl.textContent = '✅';
+    titleEl.textContent = `CONTEXT CONFIRMED: ${window.userConfirmedSail.replace(/_/g, ' ')}`;
+    promptEl.textContent = `SIA Core: "Confirmed sail configuration: [${window.userConfirmedSail.replace(/_/g, ' ')}]. Advisory priorities recalculated."`;
+    queryChips.forEach(c => {
+      c.classList.toggle('active', c.getAttribute('data-sail') === window.userConfirmedSail);
+    });
+  } else if (isHazard) {
+    // State 2: Anomaly / Hazard active -> SIA needs human clarification
+    cardEl.className = 'zone-card zone-query-loop-card active-query';
+    if (iconEl) iconEl.textContent = '💡';
+    titleEl.textContent = '💡 SKIPPER QUERY: CONTEXT REFINEMENT REQUIRED';
+    promptEl.textContent = `SIA Core: "Dynamic heel (${roll.toFixed(1)}°) & hazard detected. Confirm active sail rig to refine counter-action:"`;
+  } else {
+    // State 1: Nominal cruising -> Query Loop is in STANDBY
+    cardEl.className = 'zone-card zone-query-loop-card standby';
+    if (iconEl) iconEl.textContent = '🛡️';
+    titleEl.textContent = 'SKIPPER QUERY LOOP (STANDBY)';
+    promptEl.textContent = 'SIA Core: "Telemetry nominal. Continuous background monitoring active. No context query needed."';
+  }
 }
 
 async function dispatchSkipperAction(sailSet) {
@@ -62,8 +104,15 @@ async function dispatchSkipperAction(sailSet) {
 
       // Update reasoning note
       document.getElementById('siaReasoningNote').textContent = result.note;
+
+      // Update Query Loop display
+      if (window.AppState && window.AppState.data && window.AppState.data.ticks[window.AppState.currentTick]) {
+        updateQueryLoopDisplay(window.AppState.data.ticks[window.AppState.currentTick]);
+      }
     }
   } catch (err) {
     console.error('Failed to dispatch skipper query action:', err);
   }
 }
+
+window.updateQueryLoopDisplay = updateQueryLoopDisplay;

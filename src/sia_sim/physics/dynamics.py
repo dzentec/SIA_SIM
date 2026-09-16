@@ -38,6 +38,10 @@ class VesselDynamics:
         self.mass = config.displacement_kg
         self.loa = config.loa_m
         self.beam = config.beam_m
+        self.sail_area_m2 = config.sail_area_m2
+        self.mast_height_m = config.mast_height_m
+        self.sail_trim_pct = config.sail_trim_pct
+        self.gm_m = 1.35 if self.beam >= 4.0 else 1.10
 
         # Added mass approximations for displacement yacht
         self.m_u = self.mass * 1.08
@@ -69,6 +73,10 @@ class VesselDynamics:
             self.mass = config.displacement_kg
             self.loa = config.loa_m
             self.beam = config.beam_m
+            self.sail_area_m2 = config.sail_area_m2
+            self.mast_height_m = config.mast_height_m
+            self.sail_trim_pct = config.sail_trim_pct
+            self.gm_m = 1.35 if self.beam >= 4.0 else 1.10
 
         init_u = self.config.initial_sog_kt * KNOTS_TO_M_S
         init_psi = math.radians(self.config.initial_heading_deg)
@@ -117,6 +125,9 @@ class VesselDynamics:
                 awa_deg=awa_deg,
                 heel_deg=heel_deg,
                 mainsheet_pct=mainsheet_pct,
+                reef_ratio=max(0.0, self.sail_trim_pct / 100.0),
+                sail_area_m2=self.sail_area_m2,
+                mast_height_m=self.mast_height_m,
             )
 
             # 3. Rudder forces
@@ -140,7 +151,7 @@ class VesselDynamics:
             )
 
             # 5. Righting moment
-            k_righting = righting_moment(heel_deg=heel_deg, mass_kg=self.mass)
+            k_righting = righting_moment(heel_deg=heel_deg, mass_kg=self.mass, gm_m=self.gm_m)
 
             # Total forces and moments (including continuous ambient wave excitation)
             total_x = x_sail + x_drag

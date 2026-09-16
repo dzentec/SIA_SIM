@@ -131,21 +131,54 @@ const TimelineRenderer = {
     };
 
     const findEventAtPos = (clientX, clientY) => {
-      if (!this.data) return null;
+      if (!this.data || !this.canvas) return null;
+      const rect = this.canvas.getBoundingClientRect();
+      const scaleY = this.canvas.height / rect.height;
+      const canvasY = (clientY - rect.top) * scaleY;
+
+      // Event blocks are strictly rendered on Track 1 (Y: 20px to 44px)
+      if (canvasY < 18 || canvasY > 44) {
+        return null;
+      }
+
       const clickTimeMs = getTimeFromClientX(clientX);
 
       for (const evt of this.events) {
         const durMs = evt.parameters.duration_ms || (evt.parameters.duration_s ? evt.parameters.duration_s * 1000 : 2000);
-        if (clickTimeMs >= evt.sim_time_ms - 200 && clickTimeMs <= evt.sim_time_ms + durMs + 200) {
+        if (clickTimeMs >= evt.sim_time_ms && clickTimeMs <= evt.sim_time_ms + durMs) {
           return evt;
         }
       }
       return null;
     };
 
+    // Container Hover feedback
+    this.container.addEventListener('mousemove', (e) => {
+      if (this.isDraggingEvent || this.isDraggingScrub || this.activeTool) return;
+      const isCursor = e.target && (
+        e.target.id === 'timelineHandle' ||
+        e.target.id === 'timelineCursor' ||
+        e.target.closest('#timelineHandle') ||
+        e.target.closest('#timelineCursor')
+      );
+      if (isCursor) {
+        this.container.style.cursor = 'ew-resize';
+      } else {
+        const hitEvent = findEventAtPos(e.clientX, e.clientY);
+        this.container.style.cursor = hitEvent ? 'grab' : 'pointer';
+      }
+    });
+
     this.container.addEventListener('mousedown', (e) => {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      const isCursorClick = e.target && (
+        e.target.id === 'timelineCursor' ||
+        e.target.id === 'timelineHandle' ||
+        e.target.closest('#timelineCursor') ||
+        e.target.closest('#timelineHandle')
+      );
 
       // 1. If active tool selected, place new event
       if (this.activeTool) {
@@ -156,8 +189,8 @@ const TimelineRenderer = {
         return;
       }
 
-      // 2. Check if clicked an existing event marker
-      const hitEvent = findEventAtPos(clientX, clientY);
+      // 2. If NOT clicking the scrubber cursor/handle, check if clicked an event on Track 1
+      const hitEvent = !isCursorClick ? findEventAtPos(clientX, clientY) : null;
       if (hitEvent && (e.shiftKey || e.detail === 2)) {
         if (window.openEventInspector) {
           window.openEventInspector(hitEvent);
@@ -168,10 +201,11 @@ const TimelineRenderer = {
         this.draggedEvent = hitEvent;
         this.dragStartX = clientX;
         this.dragEventOriginalTime = hitEvent.sim_time_ms;
+        this.container.style.cursor = 'grabbing';
         return;
       }
 
-      // 3. Otherwise, scrub playback
+      // 3. Otherwise (clicking handle, ruler, or empty tracks), scrub playback
       this.isDraggingScrub = true;
       document.body.classList.add('is-scrubbing');
       const targetTick = getTickFromClientX(clientX);
@@ -184,18 +218,42 @@ const TimelineRenderer = {
     // Touch support for container / handle
     this.container.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
-      this.isDraggingScrub = true;
-      document.body.classList.add('is-scrubbing');
-      const targetTick = getTickFromClientX(touch.clientX);
-      if (window.AppState) {
-        window.AppState.currentTick = targetTick;
-        if (window.renderTick) window.renderTick(targetTick);
+      const isCursorClick = e.target && (
+        e.target.id === 'timelineCursor' ||
+        e.target.id === 'timelineHandle' ||
+        e.target.closest('#timelineCursor') ||
+        e.target.closest('#timelineHandle')
+      );
+      const hitEvent = !isCursorClick ? findEventAtPos(touch.clientX, touch.clientY) : null;
+      if (hitEvent) {
+        this.isDraggingEvent = true;
+        this.draggedEvent = hitEvent;
+        this.dragStartX = touch.clientX;
+        this.dragEventOriginalTime = hitEvent.sim_time_ms;
+      } else {
+        this.isDraggingScrub = true;
+        document.body.classList.add('is-scrubbing');
+        const targetTick = getTickFromClientX(touch.clientX);
+        if (window.AppState) {
+          window.AppState.currentTick = targetTick;
+          if (window.renderTick) window.renderTick(targetTick);
+        }
       }
     }, { passive: true });
 
     window.addEventListener('touchmove', (e) => {
-      if (this.isDraggingScrub && e.touches.length > 0) {
-        const targetTick = getTickFromClientX(e.touches[0].clientX);
+      if (e.touches.length === 0) return;
+      const touchX = e.touches[0].clientX;
+      if (this.isDraggingEvent && this.draggedEvent && this.data) {
+        const rect = this.canvas.getBoundingClientRect();
+        const dx = touchX - this.dragStartX;
+        const visibleFraction = 1.0 / this.zoomLevel;
+        const dtMs = (dx / rect.width) * visibleFraction * this.data.duration_ms;
+        const newTime = Math.max(0, Math.min(this.data.duration_ms - 500, Math.round((this.dragEventOriginalTime + dtMs) / 100) * 100));
+        this.draggedEvent.sim_time_ms = newTime;
+        this.renderTracks();
+      } else if (this.isDraggingScrub) {
+        const targetTick = getTickFromClientX(touchX);
         if (window.AppState) {
           window.AppState.currentTick = targetTick;
           if (window.renderTick) window.renderTick(targetTick);
@@ -204,6 +262,13 @@ const TimelineRenderer = {
     }, { passive: true });
 
     window.addEventListener('touchend', () => {
+      if (this.isDraggingEvent) {
+        this.isDraggingEvent = false;
+        this.draggedEvent = null;
+        if (this.onEventsChanged) {
+          this.onEventsChanged(this.events);
+        }
+      }
       this.isDraggingScrub = false;
       document.body.classList.remove('is-scrubbing');
     });
@@ -333,8 +398,8 @@ const TimelineRenderer = {
 
     ctx.clearRect(0, 0, w, h);
 
-    // Track Background
-    ctx.fillStyle = '#060a12';
+    // Canvas Background
+    ctx.fillStyle = '#040810';
     ctx.fillRect(0, 0, w, h);
 
     // Visible Window Calculation
@@ -349,7 +414,32 @@ const TimelineRenderer = {
       return screenRatio * w;
     };
 
-    // Time Ruler Grid
+    // =========================================================================
+    // 3 DISTINCT TRACK LANES BACKGROUNDS & SEPARATORS
+    // =========================================================================
+    // Lane 1: SCENARIO EVENTS (Y: 20 to 42, H: 22px)
+    // Lane 2: SIA ADVISORY STREAM (Y: 45 to 65, H: 20px)
+    // Lane 3: VESSEL ROLL & STABILITY (Y: 68 to 118, H: 50px)
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
+    ctx.fillRect(0, 20, w, 23);
+
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.025)';
+    ctx.fillRect(0, 45, w, 21);
+
+    ctx.fillStyle = 'rgba(0, 230, 118, 0.015)';
+    ctx.fillRect(0, 68, w, 52);
+
+    // Horizontal Lane Dividers
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 20); ctx.lineTo(w, 20);
+    ctx.moveTo(0, 44); ctx.lineTo(w, 44);
+    ctx.moveTo(0, 67); ctx.lineTo(w, 67);
+    ctx.stroke();
+
+    // Time Ruler Grid Vertical Lines
     let stepSec = 5;
     if (viewDurationS <= 5) stepSec = 0.5;
     else if (viewDurationS <= 10) stepSec = 1;
@@ -365,7 +455,7 @@ const TimelineRenderer = {
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
-      ctx.strokeStyle = (Math.round(sec) % (stepSec * 2) === 0) ? 'rgba(31, 45, 71, 0.8)' : 'rgba(31, 45, 71, 0.3)';
+      ctx.strokeStyle = (Math.round(sec) % (stepSec * 2) === 0) ? 'rgba(51, 65, 85, 0.55)' : 'rgba(30, 41, 59, 0.35)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -374,10 +464,22 @@ const TimelineRenderer = {
       ctx.textAlign = 'left';
       const m = Math.floor(sec / 60).toString().padStart(2, '0');
       const s = (sec % 60).toFixed(stepSec < 1 ? 1 : 0).padStart(stepSec < 1 ? 4 : 2, '0');
-      ctx.fillText(`${m}:${s}`, x + 4, 12);
+      ctx.fillText(`${m}:${s}`, x + 4, 13);
     }
 
-    // Track 1: Custom Events Placement Blocks (Height 22px)
+    // Lane Badges (Static in view or pinned)
+    ctx.font = 'bold 8px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+    ctx.textAlign = 'right';
+    ctx.fillText('TRACK: EVENTS', w - 8, 33);
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.6)';
+    ctx.fillText('TRACK: SIA DECISIONS', w - 8, 57);
+    ctx.fillStyle = 'rgba(0, 230, 118, 0.6)';
+    ctx.fillText('HEEL & STABILITY', w - 8, 80);
+
+    // =========================================================================
+    // LANE 1: CUSTOM EVENTS PLACEMENT BLOCKS
+    // =========================================================================
     const trackY1 = 22;
     const trackH1 = 20;
 
@@ -386,22 +488,22 @@ const TimelineRenderer = {
       const durMs = evt.parameters.duration_ms || (evt.parameters.duration_s ? evt.parameters.duration_s * 1000 : 2000);
       const x1 = timeToX(startMs);
       const x2 = timeToX(startMs + durMs);
-      const blockW = Math.max(8, x2 - x1);
+      const blockW = Math.max(12, x2 - x1);
 
       if (x2 < 0 || x1 > w) continue;
 
-      let fillCol = 'rgba(255, 179, 0, 0.75)';
+      let fillCol = 'rgba(255, 179, 0, 0.85)';
       let borderCol = '#ffb300';
       let label = `💨 ${evt.event_id}`;
 
-      if (evt.event_type === 'wave_impact') {
-        fillCol = 'rgba(59, 130, 246, 0.75)';
-        borderCol = '#3b82f6';
-        const forceKn = (evt.parameters.impact_force_n ? evt.parameters.impact_force_n / 1000 : 12).toFixed(0);
+      if (evt.event_type === 'wave_impact' || evt.event_type === 'slam') {
+        fillCol = 'rgba(37, 99, 235, 0.85)';
+        borderCol = '#60a5fa';
+        const forceKn = (evt.parameters.impact_force_n ? evt.parameters.impact_force_n / 1000 : 15).toFixed(0);
         label = `🌊 SLAM ${forceKn}kN`;
       } else if (evt.event_type === 'sensor_fault') {
-        fillCol = 'rgba(255, 23, 68, 0.75)';
-        borderCol = '#ff1744';
+        fillCol = 'rgba(239, 68, 68, 0.85)';
+        borderCol = '#f87171';
         label = `⚡ FAULT: ${evt.parameters.sensor || 'IMU'}`;
       }
 
@@ -432,45 +534,126 @@ const TimelineRenderer = {
       ctx.fillText(label, x1 + 6, trackY1 + trackH1 / 2);
     }
 
-    // Track 2: SIA Decisions Stream (Height 16px)
-    const trackY2 = 48;
-    const trackH2 = 16;
+    // =========================================================================
+    // LANE 2: SIA DECISIONS STREAM (CONTINUOUS FORMATTED SPANS)
+    // =========================================================================
+    const trackY2 = 46;
+    const trackH2 = 18;
 
     const startTick = Math.max(0, Math.floor((viewStartMs / this.data.duration_ms) * totalTicks));
     const endTick = Math.min(totalTicks - 1, Math.ceil((viewEndMs / this.data.duration_ms) * totalTicks));
 
+    // Group contiguous or closely spaced decision ticks into solid ribbons
+    const decisionSpans = [];
+    let curSpan = null;
+
     for (let i = startTick; i <= endTick; i++) {
       const tick = this.data.ticks[i];
       if (!tick) continue;
-      const x = timeToX(tick.sim_time_ms);
-      const stepW = Math.max(1, (w / totalTicks) * this.zoomLevel);
+      const dec = tick.sia_decision;
+      const hasAction = dec && dec.selected_response !== null;
 
-      if (tick.sia_decision && tick.sia_decision.selected_response !== null) {
-        ctx.fillStyle = 'rgba(0, 229, 255, 0.75)';
-        ctx.fillRect(x, trackY2, stepW + 1, trackH2);
+      if (hasAction) {
+        if (!curSpan) {
+          curSpan = {
+            startMs: tick.sim_time_ms,
+            endMs: tick.sim_time_ms,
+            action: dec.selected_response,
+            score: dec.risk_score || 0.85,
+          };
+        } else {
+          curSpan.endMs = tick.sim_time_ms;
+        }
+      } else {
+        if (curSpan) {
+          decisionSpans.push(curSpan);
+          curSpan = null;
+        }
       }
     }
+    if (curSpan) decisionSpans.push(curSpan);
 
-    // Track Labels
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '8px "Inter", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('EVENTS TRACK (DRAG / DOUBLE-CLICK TO EDIT)', 6, trackY1 + 14);
-    ctx.fillText('SIA ADVISORY STREAM', 6, trackY2 + 12);
+    for (const span of decisionSpans) {
+      const x1 = timeToX(span.startMs);
+      const x2 = timeToX(span.endMs + 100);
+      const spanW = Math.max(20, x2 - x1);
 
-    // Track 3: True Heel & Safety Envelope Curve (Height 46px, bottom at 116px)
+      if (x2 < 0 || x1 > w) continue;
+
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.25)';
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 1.5;
+
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(x1, trackY2, spanW, trackH2, 4);
+      } else {
+        ctx.rect(x1, trackY2, spanW, trackH2);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#00e5ff';
+      ctx.font = 'bold 9px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const spanLabel = spanW > 60 ? `⚡ SIA: ${span.action}` : '⚡ SIA';
+      ctx.fillText(spanLabel, x1 + 4, trackY2 + trackH2 / 2);
+    }
+
+    // =========================================================================
+    // LANE 3: TRUE HEEL CURVE & KNOCKDOWN THRESHOLD
+    // =========================================================================
+    const curveBottomY = 116;
+    const curveMaxHeight = 44;
+
+    // 1. Shaded area under heel curve
     ctx.beginPath();
-    let started = false;
+    let areaStarted = false;
+    let firstX = 0;
+    let lastX = 0;
+
     for (let i = startTick; i <= endTick; i++) {
       const tick = this.data.ticks[i];
       if (!tick) continue;
       const heel = Math.abs(tick.ground_truth.heel_deg);
       const x = timeToX(tick.sim_time_ms);
-      const y = 116 - Math.min(44, (heel / 35.0) * 44);
+      const y = curveBottomY - Math.min(curveMaxHeight, (heel / 35.0) * curveMaxHeight);
 
-      if (!started) {
+      if (!areaStarted) {
+        ctx.moveTo(x, curveBottomY);
+        ctx.lineTo(x, y);
+        areaStarted = true;
+        firstX = x;
+      } else {
+        ctx.lineTo(x, y);
+      }
+      lastX = x;
+    }
+
+    if (areaStarted) {
+      ctx.lineTo(lastX, curveBottomY);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, curveBottomY - curveMaxHeight, 0, curveBottomY);
+      grad.addColorStop(0, 'rgba(0, 230, 118, 0.25)');
+      grad.addColorStop(1, 'rgba(0, 230, 118, 0.02)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    // 2. Stroke line for heel
+    ctx.beginPath();
+    let lineStarted = false;
+    for (let i = startTick; i <= endTick; i++) {
+      const tick = this.data.ticks[i];
+      if (!tick) continue;
+      const heel = Math.abs(tick.ground_truth.heel_deg);
+      const x = timeToX(tick.sim_time_ms);
+      const y = curveBottomY - Math.min(curveMaxHeight, (heel / 35.0) * curveMaxHeight);
+
+      if (!lineStarted) {
         ctx.moveTo(x, y);
-        started = true;
+        lineStarted = true;
       } else {
         ctx.lineTo(x, y);
       }
@@ -479,16 +662,21 @@ const TimelineRenderer = {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Critical Threshold Line at 25 deg (Knockdown Alert)
-    const critY = 116 - (25.0 / 35.0) * 44;
+    // 3. Critical Knockdown Threshold Line at 25 deg
+    const critY = curveBottomY - (25.0 / 35.0) * curveMaxHeight;
     ctx.beginPath();
     ctx.moveTo(0, critY);
     ctx.lineTo(w, critY);
-    ctx.strokeStyle = 'rgba(255, 23, 68, 0.55)';
+    ctx.strokeStyle = 'rgba(255, 23, 68, 0.6)';
     ctx.setLineDash([4, 4]);
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.setLineDash([]);
+
+    ctx.fillStyle = 'rgba(255, 23, 68, 0.8)';
+    ctx.font = '8px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('25° KNOCKDOWN THRESHOLD', 6, critY - 3);
   },
 };
 

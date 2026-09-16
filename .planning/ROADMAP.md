@@ -171,6 +171,7 @@ Plans:
  - [x] 08-01: Workbench Backend Engine & Telemetry Streamer.
  - [x] 08-02: Workbench UI 5-Zone Shell, Canvas Marine Dials & Lab Terminal.
  - [x] 08-03: Temporal Debugger Scrubber, Interactive Query Loop, 6-Dial Suite & Event Builder.
+ - [x] 08-04: Vessel Presets (Beneteau Oceanis 45 & IOR Classic) & Interactive Sail Rig Plan (Code 0 to Bare Poles) integrated with 4-DOF dynamic aerodynamics.
 
 ## Progress
 
@@ -186,8 +187,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. SIACore Boundary & MockSIA (M4) | 3/3 | Completed | 2026-09-15 |
 | 6. Oracle & Evaluator (M5) | 3/3 | Completed | 2026-09-15 |
 | 7. Complete Pipeline PASS (M6) | 3/3 | Completed | 2026-09-15 |
-| 8. SIA Simulation Workbench UI | 3/3 | Completed | 2026-09-15 |
+| 8. SIA Simulation Workbench UI | 4/4 | Completed | 2026-09-16 |
 
 ---
 *Roadmap defined: 2026-09-10*
-*Last updated: 2026-09-15*
+*Last updated: 2026-09-16*

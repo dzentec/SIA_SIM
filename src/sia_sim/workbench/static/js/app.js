@@ -4,6 +4,8 @@
 
 const AppState = {
   scenarioId: 'cruise',
+  vesselPreset: 'beneteau_oceanis_45',
+  sailPlan: 'FULL_MAIN',
   seed: 42,
   durationS: 20,
   imuRate: 100,
@@ -23,10 +25,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
   bindControls();
+  bindVesselControls();
   bindModalControls();
   bindCustomWorldControls();
   await loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS);
 }
+
+function bindVesselControls() {
+  const vesselSelect = document.getElementById('vesselSelect');
+  const sailChips = document.querySelectorAll('.btn-sail-chip');
+  const vesselPlanTag = document.getElementById('vesselPlanTag');
+  const vspecLoa = document.getElementById('vspecLoa');
+  const vspecBeam = document.getElementById('vspecBeam');
+  const vspecMass = document.getElementById('vspecMass');
+  const vspecArea = document.getElementById('vspecArea');
+
+  const updateVesselSpecsDisplay = (vid) => {
+    if (vid === 'beneteau_oceanis_45') {
+      if (vspecLoa) vspecLoa.textContent = '13.94 m';
+      if (vspecBeam) vspecBeam.textContent = '4.50 m';
+      if (vspecMass) vspecMass.textContent = '10,550 kg';
+      if (vspecArea) vspecArea.textContent = AppState.sailPlan === 'CODE_ZERO' ? '130 m²' : '100 m²';
+    } else {
+      if (vspecLoa) vspecLoa.textContent = '10.50 m';
+      if (vspecBeam) vspecBeam.textContent = '3.20 m';
+      if (vspecMass) vspecMass.textContent = '4,500 kg';
+      if (vspecArea) vspecArea.textContent = '45 m²';
+    }
+  };
+
+  if (vesselSelect) {
+    vesselSelect.addEventListener('change', (e) => {
+      AppState.vesselPreset = e.target.value;
+      updateVesselSpecsDisplay(AppState.vesselPreset);
+      const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
+      loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, existingEvents);
+    });
+  }
+
+  if (sailChips) {
+    sailChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const plan = chip.getAttribute('data-sail');
+        AppState.sailPlan = plan;
+        sailChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+
+        if (vesselPlanTag) {
+          vesselPlanTag.textContent = chip.textContent.trim();
+        }
+        updateVesselSpecsDisplay(AppState.vesselPreset);
+
+        const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
+        loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, existingEvents);
+      });
+    });
+  }
+}
+
 
 function bindControls() {
   const btnRun = document.getElementById('btnRun');
@@ -336,9 +392,12 @@ function setMode(mode) {
 
 async function loadScenario(scenarioId, seed, durationS = 20, customEvents = null) {
   pauseSimulation();
+  window.userConfirmedSail = null;
   try {
     const payload = {
       scenario: scenarioId,
+      vessel_preset: AppState.vesselPreset || 'beneteau_oceanis_45',
+      sail_plan: AppState.sailPlan || 'FULL_MAIN',
       seed: seed,
       duration_ms: durationS * 1000,
       imu_sample_rate_hz: AppState.imuRate,
@@ -663,6 +722,11 @@ function renderTick(index) {
   const footerVerdict = document.getElementById('footerVerdict');
   footerVerdict.className = evalData.verdict === 'PASS' ? 'verdict-badge badge-pass' : 'verdict-badge badge-fail';
   footerVerdict.textContent = `VERDICT: ${evalData.verdict} (M6)`;
+
+  // 7. Dynamic Query Loop Display (Standby vs Active Hazard Context Refinement)
+  if (window.updateQueryLoopDisplay) {
+    window.updateQueryLoopDisplay(tick);
+  }
 }
 
 window.AppState = AppState;

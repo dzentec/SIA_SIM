@@ -118,13 +118,17 @@ uv run pytest -v
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                                 SIA SIMULATION WORKBENCH                               │
 ├───────────────────────┬────────────────────────────────────────┬───────────────────────┤
-│  WORLD PRESET & ENV   │      SKIPPER INTERACTIVE QUERY LOOP    │   SIA CORE ADVISORY   │
-│  [ Harbour | Cruise ] │  [ FULL MAIN ] [ REEF 1 ] [ REEF 2 ]   │   Broach Risk: CRIT   │
-│  [ Fresh   | Gale   ] ├────────────────────────────────────────┤   Action: BEAR AWAY   │
-├───────────────────────┤        6-DIAL MARINE CONSOLE           ├───────────────────────┤
-│  GROUND TRUTH LAB     │  [ AWA / AWS ] [ HEEL ]   [ PITCH ]    │   ORACLE EVALUATION   │
-│  TWS / TWD / Wave     │  [ COMPASS   ] [ HEAVE ]  [ SLAM  ]    │   Status: PASS        │
-│  True Roll / Pitch    │                                        │   Latency: 42 ms      │
+│  WORLD PRESET & ENV   │        6-DIAL MARINE CONSOLE           │   SKIPPER QUERY LOOP  │
+│  [ Harbour | Cruise ] │  [ AWA / AWS ] [ HEEL ]   [ PITCH ]    │   [ FULL MAIN ][REEF1]│
+│  [ Fresh   | Gale   ] │  [ COMPASS   ] [ HEAVE ]  [ SLAM  ]    │   [ REEF 2 ]   [STORM]│
+├───────────────────────┤                                        ├───────────────────────┤
+│  GROUND TRUTH LAB     │  Pitch Rate / Yaw Rate / SOG / HDG     │   SIA CORE ADVISORY   │
+│  TWS / TWD / Wave     │  Actuators & Sensors Integrity State   │   Broach Risk: CRIT   │
+│  True Roll / Pitch    │                                        │   Action: BEAR AWAY   │
+├───────────────────────┤                                        ├───────────────────────┤
+│  VESSEL & SAIL CONFIG │                                        │   ORACLE EVALUATION   │
+│  [ Oceanis 45 | IOR ] │                                        │   Status: PASS        │
+│  [ ⛵ CODE 0 (130%) ]  │                                        │   Latency: 42 ms      │
 ├───────────────────────┴────────────────────────────────────────┴───────────────────────┤
 │                     INTERACTIVE TIMELINE & SCENARIO BUILDER (SCRUBBER)                 │
 │  [▶ Play] [⏸ Pause] [⏱ 00:00 / 00:20] ───●──────────────────────────────────────────── │
@@ -139,21 +143,37 @@ uv run pytest -v
    - Слайдер длительности симуляции (от 5 до 120 секунд) с эргономичным нижним контролом.
    - Настройка PRNG Seed для 100% повторяемости.
 
-2. 🔬 **Ground Truth Physics Lab (Слева внизу)**:
+2. 🔬 **Ground Truth Physics Lab (Слева по центру)**:
    - Прямой мониторинг истинных физических величин: $TWS$, $TWD$, $H_s$, вертикальный Heave, истинный крен (Roll), истинный дифферент (Pitch), курс (Yaw), истинная скорость (SOG), угол руля и процент гидродинамического срыва пера (`RUDDER HYDRO LOSS`).
 
-3. 💡 **Skipper Interactive Query Loop (По центру над приборами)**:
-   - Двусторонний диалог между SIA Core и шкипером.
-   - Запрос подтверждения текущего парусного вооружения (`FULL_MAIN`, `REEF_1`, `REEF_2`, `STORM_JIB`, `ENGINE`).
-   - Оперативный выбор тактических действий (`EASE_SHEET`, `BEAR_AWAY`, `LUFF_UP`, `STANDBY`).
+3. ⛵ **Vessel Preset & Sail Rig Configuration (Слева внизу под Ground Truth)**:
+   - Выбор пресета судна: современный крейсерский круизер **Beneteau Oceanis 45** ($LOA=13.94$ м, $Beam=4.50$ м, $Mass=10550$ кг, $S=100\text{ м}^2$, $H_{\text{mast}}=19.5$ м) или классический монокорпус **IOR Classic 34ft** ($LOA=10.5$ м, $Beam=3.4$ м, $Mass=5200$ кг).
+   - Интерактивный переключатель конфигурации парусов:
+     - ⛵ **`CODE_ZERO` (130%)**: Легкий полноразмерный геннакер/код зеро для максимальной тяги на попутных/полных курсах.
+     - ⛵ **`FULL_MAIN` (100%)**: Полный грот и стаксель для штатного крейсерского хода.
+     - ⛵ **`REEF_1` (75%)**: Первый риф для свежего ветра.
+     - ⛵ **`REEF_2` (50%)**: Второй риф для штормовых условий.
+     - ⛵ **`STORM_JIB` (25%)**: Штормовой стаксель.
+     - ⛵ **`BARE_POLES` (0%)**: Без парусов (дрейф под рангоутом).
+   - Физический расчет 4-DOF динамики судна мгновенно учитывает площадь, плечо кренящего момента и тягу выбранного паруса.
 
-4. 🧭 **6 Analog Marine Canvas Dials (6 аналоговых приборов морской консоли)**:
+4. 🧭 **6 Analog Marine Canvas Dials (Центральная консоль)**:
    - **Wind Gauge (AWA / AWS)**: Индикатор вымпельного ветра с цветовой разметкой левого/правого галса и мертвого угла (Eye of Wind).
    - **Heel Inclinometer**: Инклинометр бортового крена с динамическими зонами безопасного и критического крена (до $\pm 40^\circ$).
    - **Pitch Angle**: Инклинометр килевой качки (дифферента) с отображением волновых колебаний корпуса.
    - **Compass & Nav**: Навигационный репитер с истинным курсом (Heading), путевым углом (COG) и скоростью (SOG).
    - **Heave Displacement**: Графический монитор вертикальной качки на волнении.
    - **Hull Slamming G-Force**: Измеритель силы гидроударов волны (слеминга) и пиковых перегрузок.
+
+5. 💡 **Skipper Interactive Query Loop (Справа над панелью решений СИА)**:
+   - Двусторонний диалог между SIA Core и шкипером.
+   - Запрос подтверждения текущего парусного вооружения (`FULL_MAIN`, `REEF_1`, `REEF_2`, `STORM_JIB`).
+   - Оперативное уточнение контекста для перерасчета приоритетов рекомендаций.
+
+6. 🛡 **SIA Core Advisory & Oracle Evaluation (Справа)**:
+   - Матрица риска брочинга (Nominal / Precursor / Critical).
+   - Рекомендации экипажу в реальном времени (Primary Action + Candidates).
+   - Арбитраж Oracle: независимый вердикт **`PASS / FAIL`** с замером задержки реакции (Response Latency $< 250$ мс).
 
 5. ⏱ **Interactive Timeline & Scenario Builder (Таймлайн)**:
    - Увеличенная на 25% высота для удобного позиционирования событий.

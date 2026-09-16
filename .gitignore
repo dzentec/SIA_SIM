@@ -2,6 +2,7 @@
 .init_docs/
 .agents/
 .codegraph/
+.codebase-memory/
 
 # Python
 __pycache__/

@@ -38,7 +38,7 @@ class VesselConfig(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True)
 
     vessel_type: str
-    """Vessel archetype, e.g. 'monohull_ior', 'catamaran'."""
+    """Vessel archetype, e.g. 'monohull_ior', 'beneteau_oceanis_45', 'modern_cruiser'."""
 
     loa_m: float = Field(gt=0.0)
     """Length overall in meters."""
@@ -48,6 +48,18 @@ class VesselConfig(BaseModel):
 
     displacement_kg: float = Field(gt=0.0)
     """Displacement in kilograms."""
+
+    sail_area_m2: float = Field(default=45.0, gt=0.0)
+    """Base nominal sail area (Main + Jib) in m²."""
+
+    mast_height_m: float = Field(default=14.0, gt=0.0)
+    """Mast height above waterline in meters."""
+
+    sail_plan: str = Field(default="FULL_MAIN")
+    """Configured sail plan (e.g. 'CODE_ZERO', 'FULL_MAIN', 'REEF_1', 'REEF_2', 'STORM_JIB', 'BARE_POLES')."""
+
+    sail_trim_pct: float = Field(default=100.0, ge=0.0, le=150.0)
+    """Effective sail trim / reef percentage (0-150%). 130% for Code Zero, 100% for Full Main."""
 
     initial_heel_deg: float
     """Starting heel angle in degrees (+ starboard)."""
@@ -59,14 +71,33 @@ class VesselConfig(BaseModel):
     """Starting speed over ground in knots."""
 
 
-# Canonical Single Source of Truth for the simulated yacht
+# Canonical Single Source of Truth for IOR Classic 10.5m
 DEFAULT_VESSEL_CONFIG = VesselConfig(
     vessel_type="monohull_ior",
     loa_m=10.5,
     beam_m=3.2,
     displacement_kg=4500.0,
+    sail_area_m2=45.0,
+    mast_height_m=14.0,
+    sail_plan="FULL_MAIN",
+    sail_trim_pct=100.0,
     initial_heading_deg=65.0,
     initial_sog_kt=5.0,
+    initial_heel_deg=0.0,
+)
+
+# Canonical Single Source of Truth for Beneteau Oceanis 45
+BENETEAU_OCEANIS_45_CONFIG = VesselConfig(
+    vessel_type="beneteau_oceanis_45",
+    loa_m=13.94,
+    beam_m=4.50,
+    displacement_kg=10550.0,
+    sail_area_m2=100.0,
+    mast_height_m=19.5,
+    sail_plan="FULL_MAIN",
+    sail_trim_pct=100.0,
+    initial_heading_deg=65.0,
+    initial_sog_kt=6.5,
     initial_heel_deg=0.0,
 )
 
@@ -75,15 +106,22 @@ def create_vessel_config(
     initial_heading_deg: float = 65.0,
     initial_sog_kt: float = 5.0,
     initial_heel_deg: float = 0.0,
+    vessel_type: str = "monohull_ior",
+    sail_plan: str = "FULL_MAIN",
+    sail_trim_pct: float = 100.0,
 ) -> VesselConfig:
-    """Create a VesselConfig by overriding initial dynamic state on the canonical vessel."""
-    return DEFAULT_VESSEL_CONFIG.model_copy(
+    """Create a VesselConfig by overriding initial state or archetype."""
+    base = BENETEAU_OCEANIS_45_CONFIG if "beneteau" in vessel_type.lower() or "oceanis" in vessel_type.lower() else DEFAULT_VESSEL_CONFIG
+    return base.model_copy(
         update={
             "initial_heading_deg": initial_heading_deg,
             "initial_sog_kt": initial_sog_kt,
             "initial_heel_deg": initial_heel_deg,
+            "sail_plan": sail_plan,
+            "sail_trim_pct": sail_trim_pct,
         }
     )
+
 
 
 class Scenario(BaseModel):

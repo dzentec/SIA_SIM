@@ -202,6 +202,8 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/api/scenarios":
             self._handle_get_scenarios()
+        elif self.path == "/api/vessels":
+            self._handle_get_vessels()
         elif self.path == "/api/health":
             self._send_json({"status": "ok", "version": "0.1.0"})
         else:
@@ -225,6 +227,12 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             self._handle_query_action(payload)
         else:
             self.send_error(HTTPStatus.NOT_FOUND, "Endpoint not found")
+
+    def _handle_get_vessels(self) -> None:
+        from sia_sim.scenarios.presets import list_vessel_presets
+
+        vessels = list_vessel_presets()
+        self._send_json({"vessels": vessels})
 
     def _handle_get_scenarios(self) -> None:
         scenarios = [
@@ -281,8 +289,11 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
 
     def _handle_run_simulation(self, payload: dict[str, Any]) -> None:
         from sia_sim.contracts.scenario import ScenarioEvent
+        from sia_sim.scenarios.presets import get_vessel_preset_config
 
         scenario_name = payload.get("scenario", "cruise")
+        vessel_preset = payload.get("vessel_preset")
+        sail_plan = payload.get("sail_plan")
         seed = int(payload.get("seed", 42))
         duration_ms = payload.get("duration_ms")
         custom_events_data = payload.get("events")
@@ -295,6 +306,19 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
 
             if duration_ms is not None:
                 updates["duration_ms"] = int(duration_ms)
+
+            # Apply chosen vessel preset and sail plan if requested
+            if vessel_preset is not None or sail_plan is not None:
+                v_id = vessel_preset or "beneteau_oceanis_45"
+                s_plan = sail_plan or "FULL_MAIN"
+                vessel_cfg = get_vessel_preset_config(
+                    vessel_id=v_id,
+                    sail_plan=s_plan,
+                    initial_heading_deg=scenario.vessel.initial_heading_deg,
+                    initial_sog_kt=scenario.vessel.initial_sog_kt,
+                    initial_heel_deg=scenario.vessel.initial_heel_deg,
+                )
+                updates["vessel"] = vessel_cfg
 
             # Custom world parameters if provided
             if isinstance(custom_world, dict):
@@ -318,7 +342,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     vessel_updates["initial_heel_deg"] = float(custom_world["initial_heel_deg"])
 
                 if vessel_updates:
-                    updates["vessel"] = scenario.vessel.model_copy(update=vessel_updates)
+                    updates["vessel"] = updates["vessel"].model_copy(update=vessel_updates)
 
             if custom_events_data is not None:
                 events_list = []
@@ -339,6 +363,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             self._send_json(response_data)
         except Exception as e:
             self._send_json({"error": str(e)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+
 
     def _handle_query_action(self, payload: dict[str, Any]) -> None:
         sail_set = payload.get("sail_set", "FULL_MAIN")

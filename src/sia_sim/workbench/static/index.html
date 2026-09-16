@@ -210,31 +210,53 @@
           </div>
         </div>
       </section>
-    </div>
 
-    <!-- COLUMN 2: SKIPPER QUERY LOOP & 6-DIAL MARINE CONSOLE -->
-    <div class="core-col core-col-center">
-
-      <!-- BLOCK 3: SKIPPER INTERACTIVE QUERY LOOP (ABOVE INSTRUMENTS, MATCHING WIDTH) -->
-      <section class="zone-card zone-query-loop-card" id="zoneQueryLoop">
-        <div class="query-loop-container">
-          <div class="query-prompt-icon">💡</div>
-          <div class="query-body">
-            <div class="query-title">SKIPPER INTERACTIVE QUERY LOOP</div>
-            <div class="query-prompt-text" id="queryPromptText">
-              SIA Core: "Sensor telemetry detects high heel under wind gusts. Confirm current sail configuration to refine advisory action:"
-            </div>
+      <!-- BLOCK 3: VESSEL ARCHETYPE & SAIL CONFIG (UNDER GROUND TRUTH) -->
+      <section class="zone-card zone-vessel-preset" id="zoneVesselPreset">
+        <div class="card-header">
+          <div class="header-title-group">
+            <span class="zone-badge badge-vessel">● VESSEL & RIG HYDRODYNAMICS</span>
+            <h2 class="card-title">VESSEL PRESET & SAIL CONFIG</h2>
           </div>
-          <div class="query-actions-grid" id="queryActionsGrid">
-            <button class="btn-query-chip" data-sail="FULL_MAIN">[ FULL MAIN ]</button>
-            <button class="btn-query-chip active" data-sail="REEF_1">[ REEF 1 ]</button>
-            <button class="btn-query-chip" data-sail="REEF_2">[ REEF 2 ]</button>
-            <button class="btn-query-chip" data-sail="STORM_JIB">[ STORM JIB ONLY ]</button>
+          <span class="vessel-plan-tag" id="vesselPlanTag">FULL MAIN (100%)</span>
+        </div>
+        <div class="card-content vessel-preset-content">
+          <div class="form-row-preset">
+            <label for="vesselSelect" class="preset-label">YACHT:</label>
+            <select id="vesselSelect" class="select-dropdown full-width">
+              <option value="beneteau_oceanis_45" selected>Beneteau Oceanis 45 (13.9m)</option>
+              <option value="monohull_ior">IOR Classic 10.5m (4.5t)</option>
+            </select>
+          </div>
+
+          <!-- Vessel Spec Quick Chips -->
+          <div class="vessel-specs-strip" id="vesselSpecsStrip">
+            <div class="vspec-item"><span class="vspec-lbl">LOA:</span> <span class="vspec-val" id="vspecLoa">13.94 m</span></div>
+            <div class="vspec-item"><span class="vspec-lbl">BEAM:</span> <span class="vspec-val" id="vspecBeam">4.50 m</span></div>
+            <div class="vspec-item"><span class="vspec-lbl">MASS:</span> <span class="vspec-val" id="vspecMass">10,550 kg</span></div>
+            <div class="vspec-item"><span class="vspec-lbl">SAILS:</span> <span class="vspec-val" id="vspecArea">100 m²</span></div>
+          </div>
+
+          <!-- Sail Plan Selection Chips -->
+          <div class="sail-plan-group">
+            <div class="sail-plan-title">ACTIVE SAIL RIG STATE (AERODYNAMIC DRIVE):</div>
+            <div class="sail-chips-grid" id="sailChipsGrid">
+              <button class="btn-sail-chip highlight-code0" data-sail="CODE_ZERO" title="Code Zero + Full Main (130% Power)">⛵ CODE 0 (130%)</button>
+              <button class="btn-sail-chip active" data-sail="FULL_MAIN" title="Full Main + Genoa (100% Power)">⛵ FULL MAIN (100%)</button>
+              <button class="btn-sail-chip" data-sail="REEF_1" title="Reef 1 Main (75% Power)">📉 REEF 1 (75%)</button>
+              <button class="btn-sail-chip" data-sail="REEF_2" title="Reef 2 Main (50% Power)">📉 REEF 2 (50%)</button>
+              <button class="btn-sail-chip" data-sail="STORM_JIB" title="Storm Jib Only (25% Power)">⛈ STORM JIB (25%)</button>
+              <button class="btn-sail-chip" data-sail="BARE_POLES" title="Bare Poles / Motoring (0% Power)">⚙ BARE POLES (0%)</button>
+            </div>
           </div>
         </div>
       </section>
+    </div>
 
-      <!-- BLOCK 4: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
+    <!-- COLUMN 2: 6-DIAL MARINE CONSOLE -->
+    <div class="core-col core-col-center">
+
+      <!-- BLOCK 3: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
       <section class="zone-card zone-sensor-view" id="zoneSensorView">
         <div class="card-header">
           <div class="header-title-group">
@@ -344,8 +366,29 @@
       </section>
     </div>
 
-    <!-- COLUMN 3: SIA ADVISORY & REASONING -->
+    <!-- COLUMN 3: SKIPPER QUERY LOOP & SIA CORE ADVISORY -->
     <div class="core-col core-col-right">
+
+      <!-- BLOCK 4: SKIPPER INTERACTIVE QUERY LOOP (ABOVE SIA ADVISORY ENGINE) -->
+      <section class="zone-card zone-query-loop-card" id="zoneQueryLoop">
+        <div class="query-loop-container">
+          <div class="query-header-row">
+            <div class="query-prompt-icon">💡</div>
+            <div class="query-title">SKIPPER INTERACTIVE QUERY LOOP</div>
+          </div>
+          <div class="query-prompt-text" id="queryPromptText">
+            SIA Core: "High heel & broach risk detected. Confirm current sail configuration to refine advisory action:"
+          </div>
+          <div class="query-actions-grid" id="queryActionsGrid">
+            <button class="btn-query-chip" data-sail="FULL_MAIN">[ FULL MAIN ]</button>
+            <button class="btn-query-chip active" data-sail="REEF_1">[ REEF 1 ]</button>
+            <button class="btn-query-chip" data-sail="REEF_2">[ REEF 2 ]</button>
+            <button class="btn-query-chip" data-sail="STORM_JIB">[ STORM JIB ]</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOCK 5: SIA CORE ADVISORY ENGINE -->
       <section class="zone-card zone-sia-advisory" id="zoneSiaAdvisory">
       <div class="card-header">
         <div class="header-title-group">
