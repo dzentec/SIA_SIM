@@ -379,8 +379,10 @@ function bindModalControls() {
   if (btnSave) {
     btnSave.addEventListener('click', () => {
       if (!AppState.selectedEvent) return;
-      const timeMs = parseInt(document.getElementById('modalEventTime').value, 10) || 0;
-      const durMs = parseInt(document.getElementById('modalEventDuration').value, 10) || 2000;
+      const timeSec = parseFloat(document.getElementById('modalEventTime').value) || 0.0;
+      const durSec = parseFloat(document.getElementById('modalEventDuration').value) || 2.0;
+      const timeMs = Math.round(timeSec * 1000);
+      const durMs = Math.round(durSec * 1000);
       const type = document.getElementById('modalEventType').value;
       const paramVal = parseFloat(document.getElementById('modalEventParam').value) || 10.0;
 
@@ -391,7 +393,7 @@ function bindModalControls() {
         AppState.selectedEvent.parameters = {
           tws_kt: paramVal,
           duration_ms: durMs,
-          duration_s: durMs / 1000,
+          duration_s: durSec,
           direction_shift_deg: 15.0,
         };
       } else if (type === 'wave_impact') {
@@ -399,11 +401,13 @@ function bindModalControls() {
           impact_force_n: paramVal * 1000.0,
           impact_roll_moment_nm: -paramVal * 2000.0,
           duration_ms: durMs,
+          duration_s: durSec,
         };
       } else {
         AppState.selectedEvent.parameters = {
           sensor: 'imu',
           duration_ms: durMs,
+          duration_s: durSec,
         };
       }
 
@@ -427,10 +431,10 @@ function openEventInspector(evt) {
 
   document.getElementById('modalEventId').value = evt.event_id;
   document.getElementById('modalEventType').value = evt.event_type;
-  document.getElementById('modalEventTime').value = evt.sim_time_ms;
+  document.getElementById('modalEventTime').value = (evt.sim_time_ms / 1000).toFixed(1);
 
   const durMs = evt.parameters.duration_ms || (evt.parameters.duration_s ? evt.parameters.duration_s * 1000 : 2000);
-  document.getElementById('modalEventDuration').value = durMs;
+  document.getElementById('modalEventDuration').value = (durMs / 1000).toFixed(1);
 
   let paramVal = 10;
   if (evt.event_type === 'wind_gust') {
