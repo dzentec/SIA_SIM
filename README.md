@@ -2,7 +2,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Package Manager: uv](https://img.shields.io/badge/uv-fast%20python-purple.svg?logo=astral&logoColor=white)](https://astral.sh/uv)
-[![Tests: 215 passed](https://img.shields.io/badge/tests-215%20passed-brightgreen.svg?logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![Tests: 219 passed](https://img.shields.io/badge/tests-219%20passed-brightgreen.svg?logo=pytest&logoColor=white)](https://docs.pytest.org/)
 [![Architecture: Hard Boundary](https://img.shields.io/badge/boundary-strict%20SensorFrame-orange.svg)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -42,6 +42,7 @@
   │             SIA CORE              │     │         EVALUATOR         │
   │   Real-time Predictive Hazard     │────▶│    Autonomous Pass/Fail   │
   │    & Universal Sail Advisor       │     │     Verification Matrix   │
+  │   (Broach / Collision / Trim)     │     │    (Safety Margin / FN)   │
   └───────────────────────────────────┘     └───────────────────────────┘
 ```
 
@@ -194,7 +195,13 @@ uv run pytest -v
 
 ## 🌊 Физический движок и гидродинамика
 
-* **Численное интегрирование**: Метод Рунге-Кутты 4-го порядка (RK4) с шагом $\Delta t = 0.01$ с.
+* **Численное интегрирование**: Метод Рунге-Кутты 4-го порядка (RK4) с шагом $\Delta t = 0.01$ с (100 Гц).
+* **Живой стохастический ветер (Living Wind)**:
+  - Мульти-гармонический синтезатор естественных флуктуаций скорости ветра ($\pm 8\dots 15\%$) и блуждания направления ($\pm 5^\circ\dots 15^\circ$).
+  - Полная детерминированность от `seed` сценария (каждый сид формирует уникальную, реалистичную и воспроизводимую историю ветра).
+* **Базовый авторулевой (Course-Keeping Autopilot)**:
+  - Пропорционально-дифференциальный (PD) регулятор курса, удерживающий заданный компасный курс судна при штатном ходе и компенсирующий аэродинамический увал/приведение парусов.
+  - Мгновенный приоритетный перехват управления командами SIA Core при возникновении угрозы безопасности.
 * **4-DOF Планарная динамика**: Продольное движение (Surge), поперечный дрейф (Sway), рыскание (Yaw) и бортовая качка (Roll).
 * **Килевая качка (Pitch)**: Аналитический расчет встречи с волновым склоном с учетом волнового числа, частоты встречи ($\omega_e$) и дифферента от слеминга.
 * **Аэродинамика и гидродинамика**:
@@ -244,13 +251,14 @@ src/sia_sim/
 
 ## 🧪 Тестирование и контроль качества
 
-Проект покрыт **215 автоматизированными тестами**:
+Проект покрыт **219 автоматизированными тестами**:
 
 * `test_sail_advisor.py` — Тестирование каталога парусов v1.1, катамаранных оверрайдов, безопасных порывов и фильтрации инвентаря.
 * `test_sia_boundary.py` — AST-инспекция кода для гарантии отсутствия импортов `GroundTruthFrame` в модулях SIA.
+* `test_physics_environment.py` — Тестирование стохастического живого ветра, влияния сидов и детерминированности.
 * `test_physics_determinism.py` — Побитовое совпадение физических траекторий при идентичном сиде.
 * `test_sensor_determinism.py` — Проверка статистических свойств шумов и независимости каналов.
-* `test_simulation_runner.py` — Проверка детерминированного выполнения сценариев SIM-005 и BENIGN.
+* `test_simulation_runner.py` — Проверка детерминированного выполнения сценариев SIM-005, BENIGN и удержания курса авторулевым.
 * `test_world_presets.py` — Тестирование всех 10 пресетов морского мира на стабильность и отсутствие паразитных событий.
 * `test_vessel_presets.py` — Тестирование пресетов яхт и парусных вооружений.
 * `test_workbench_server.py` — Верификация эндпоинтов `/api/scenarios`, `/api/run`, `/api/sails` и `/api/query-action`.
