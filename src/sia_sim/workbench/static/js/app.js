@@ -448,6 +448,14 @@ function setMode(mode) {
 async function loadScenario(scenarioId, seed, durationS = 20, customEvents = null) {
   pauseSimulation();
   window.userConfirmedSail = null;
+
+  const tickLabel = document.getElementById('simTickValue');
+  if (tickLabel) {
+    const totalPhysical = Math.round(durationS * 100);
+    const durStr = durationS >= 3600 ? `${(durationS / 3600).toFixed(0)}h` : `${durationS}s`;
+    tickLabel.textContent = `[Simulating ${durStr} (${totalPhysical.toLocaleString()} ticks)...]`;
+  }
+
   try {
     const payload = {
       scenario: scenarioId,

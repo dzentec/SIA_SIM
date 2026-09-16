@@ -82,17 +82,28 @@ class SimulationRunner:
         self.sia_core.reset()
         recorder = RunRecorder()
 
-        total_ticks = scenario.duration_ms // 10
-        dt_s = 0.01
+        # Adaptive step size: 100 Hz (10ms) for standard runs <= 5 min (300s).
+        # Multi-hour runs adaptively step (10 Hz for 1h, 4 Hz for 4h, 1 Hz for 24h) for sub-second interactive runs.
+        if scenario.duration_ms <= 300_000:
+            dt_ms = 10
+        elif scenario.duration_ms <= 3_600_000:
+            dt_ms = 100
+        elif scenario.duration_ms <= 14_400_000:
+            dt_ms = 250
+        else:
+            dt_ms = 1000
+
+        dt_s = dt_ms / 1000.0
+        total_ticks = max(1, scenario.duration_ms // dt_ms)
 
         active_rudder_cmd = 0.0
         active_sail_cmd = 100.0
 
         start_time = time.perf_counter()
 
-        # 2. Synchronous fixed-step 100 Hz loop
+        # 2. Synchronous fixed-step loop
         for tick in range(total_ticks):
-            t_ms = tick * 10
+            t_ms = tick * dt_ms
 
             # Step 1: Advance environmental ground truth physics
             env = world.step(t_ms)
