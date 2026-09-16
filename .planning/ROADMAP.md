@@ -187,11 +187,11 @@ Plans:
 4. `SafetyChannelStatus` (`WIRED_VERIFIED`, `WIRELESS_ADVISORY`, `MIXED`) is incorporated into `SensorFrame` and sensor pipeline.  
 5. All tests pass with zero regression across the existing test suite.  
 
-**Plans**: 0/3 plans executed  
+**Plans**: 1/3 plans executed  
 
 Plans:
 
-- [ ] 09-01: Modularize Workbench UI into ES modules (`state.js`, `playback.js`, `modals.js`, `app.js`).
+- [x] 09-01: Modularize Workbench UI into ES modules (`state.js`, `playback.js`, `modals.js`, `app.js`).
 - [ ] 09-02: Implement `src/sia_sim/physics/sails/` with standalone `Sail` objects, dynamic boom angle, 3D $CoE$, and moment cross-products.
 - [ ] 09-03: Integrate MDA v2.2 `SafetyChannelStatus`, update data contracts, and verify end-to-end test suite.
 
@@ -210,7 +210,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Oracle & Evaluator (M5) | 3/3 | Completed | 2026-09-15 |
 | 7. Complete Pipeline PASS (M6) | 3/3 | Completed | 2026-09-15 |
 | 8. SIA Simulation Workbench UI | 4/4 | Completed | 2026-09-16 |
-| 9. Architecture Decoupling & 3D Sails | 0/3 | In Progress | - |
+| 9. Architecture Decoupling & 3D Sails | 1/3 | In Progress | - |
 
 ---
 *Roadmap defined: 2026-09-10*
