@@ -101,6 +101,9 @@ function bindLivingSeaToggle() {
 function startLivingSea() {
   AppState.isLivingSeaRunning = true;
   updateLivingSeaButtonState();
+  if (AppState.currentTick === 0) {
+    renderTick(0);
+  }
   playSimulation();
 }
 
@@ -484,7 +487,11 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
       };
     }
 
-    renderTick(0);
+    if (!AppState.isLivingSeaRunning) {
+      renderZeroState();
+    } else {
+      renderTick(AppState.currentTick);
+    }
   } catch (err) {
     console.error('Failed to load scenario:', err);
   }
@@ -575,39 +582,69 @@ function renderZeroState() {
     InstrumentRenderer.drawWindDial(dialWindCanvas, 0.0, 0.0, false);
   }
   if (dialHeelCanvas && window.InstrumentRenderer) {
-    InstrumentRenderer.drawHeelInclinometer(dialHeelCanvas, 0.0, false);
+    InstrumentRenderer.drawHeelDial(dialHeelCanvas, 0.0, false);
   }
   if (dialPitchCanvas && window.InstrumentRenderer) {
-    InstrumentRenderer.drawPitchInclinometer(dialPitchCanvas, 0.0, 0.0, false);
+    InstrumentRenderer.drawPitchDial(dialPitchCanvas, 0.0, 0.0, false);
   }
   if (dialNavCanvas && window.InstrumentRenderer) {
-    InstrumentRenderer.drawNavigationCompass(dialNavCanvas, 0.0, 0.0, false);
+    InstrumentRenderer.drawNavDial(dialNavCanvas, 0.0, 0.0, false);
   }
   if (dialHeaveCanvas && window.InstrumentRenderer) {
-    InstrumentRenderer.drawHeaveIndicator(dialHeaveCanvas, 0.0, 9.80665, false);
+    InstrumentRenderer.drawHeaveGauge(dialHeaveCanvas, 0.0, 9.80665, false);
   }
   if (dialSlamCanvas && window.InstrumentRenderer) {
     InstrumentRenderer.drawSlammingGauge(dialSlamCanvas, 0.0, false, 15.0, false);
   }
 
-  document.getElementById('valAws').innerHTML = `0.0 <span class="unit">kt</span>`;
-  document.getElementById('valHeel').innerHTML = `0.0 <span class="unit">°</span>`;
-  document.getElementById('valPitch').innerHTML = `0.0 <span class="unit">°</span>`;
-  document.getElementById('valSog').innerHTML = `0.0 <span class="unit">kt</span>`;
-  document.getElementById('valHeave').innerHTML = `1.00 <span class="unit">g</span>`;
-  document.getElementById('valSlamForce').innerHTML = `0.0 <span class="unit">kN</span>`;
+  const valAws = document.getElementById('valAws');
+  if (valAws) valAws.innerHTML = `0.0 <span class="unit">kt</span>`;
 
-  document.getElementById('valPitchRate').textContent = '0.0 °/s';
-  document.getElementById('valYawRate').textContent = '0.0 °/s';
-  document.getElementById('valRudderSensor').textContent = '0.0 °';
-  document.getElementById('valSailSensor').textContent = '100 %';
+  const valHeel = document.getElementById('valHeel');
+  if (valHeel) valHeel.innerHTML = `0.0 <span class="unit">°</span>`;
 
-  document.getElementById('chipImu').className = 'health-chip chip-ok';
-  document.getElementById('chipImu').textContent = 'IMU: IDLE';
-  document.getElementById('chipGps').className = 'health-chip chip-ok';
-  document.getElementById('chipGps').textContent = 'GPS: IDLE';
-  document.getElementById('chipWind').className = 'health-chip chip-ok';
-  document.getElementById('chipWind').textContent = 'WIND: IDLE';
+  const valPitch = document.getElementById('valPitch');
+  if (valPitch) valPitch.innerHTML = `0.0 <span class="unit">°</span>`;
+
+  const valSog = document.getElementById('valSog');
+  if (valSog) valSog.innerHTML = `0.0 <span class="unit">kt</span>`;
+
+  const valHeave = document.getElementById('valHeave');
+  if (valHeave) valHeave.innerHTML = `1.00 <span class="unit">g</span>`;
+
+  const valHeaveAccel = document.getElementById('valHeaveAccel');
+  if (valHeaveAccel) valHeaveAccel.innerHTML = `1.00 <span class="unit">g</span>`;
+
+  const valSlamForce = document.getElementById('valSlamForce');
+  if (valSlamForce) valSlamForce.innerHTML = `0.0 <span class="unit">kN</span>`;
+
+  const valPitchRate = document.getElementById('valPitchRate');
+  if (valPitchRate) valPitchRate.textContent = '0.0 °/s';
+
+  const valYawRate = document.getElementById('valYawRate');
+  if (valYawRate) valYawRate.textContent = '0.0 °/s';
+
+  const valRudderSensor = document.getElementById('valRudderSensor');
+  if (valRudderSensor) valRudderSensor.textContent = '0.0 °';
+
+  const valSailSensor = document.getElementById('valSailSensor');
+  if (valSailSensor) valSailSensor.textContent = '100 %';
+
+  const chipImu = document.getElementById('chipImu');
+  if (chipImu) {
+    chipImu.className = 'health-chip chip-ok';
+    chipImu.textContent = 'IMU: IDLE';
+  }
+  const chipGps = document.getElementById('chipGps');
+  if (chipGps) {
+    chipGps.className = 'health-chip chip-ok';
+    chipGps.textContent = 'GPS: IDLE';
+  }
+  const chipWind = document.getElementById('chipWind');
+  if (chipWind) {
+    chipWind.className = 'health-chip chip-ok';
+    chipWind.textContent = 'WIND: IDLE';
+  }
 
   // 4. SIA Advisory Panel at IDLE
   const siaHazardBadge = document.getElementById('siaHazardBadge');
