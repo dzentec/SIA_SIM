@@ -162,8 +162,8 @@ function bindControls() {
     scenarioSelect.addEventListener('change', (e) => {
       AppState.scenarioId = e.target.value;
       AppState.customWorld = null; // reset custom override on preset change
-      AppState.durationS = 20;
-      if (durationSelect) durationSelect.value = 20;
+      const durVal = durationSelect ? (parseInt(durationSelect.value, 10) || 20) : 20;
+      AppState.durationS = durVal;
       // Preserve any events placed by human, or keep timeline clean if empty
       const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : [];
       loadScenario(AppState.scenarioId, AppState.seed, AppState.durationS, existingEvents);
@@ -543,12 +543,19 @@ function renderZeroState() {
   }
 
   // 1. Clock Display at zero
-  document.getElementById('simTimeValue').textContent = '00:00.00';
-  const totalTicks = AppState.data ? AppState.data.total_ticks : 2000;
-  document.getElementById('simTickValue').textContent = `[Tick 0/${totalTicks}]`;
+  const durationMs = AppState.data ? AppState.data.duration_ms : AppState.durationS * 1000;
+  const totalPhysicalTicks = AppState.data ? (AppState.data.total_ticks || Math.round(durationMs / 10)) : Math.round(durationMs / 10);
+  const totalFrames = AppState.data ? AppState.data.ticks.length : 2000;
 
-  if (window.TimelineRenderer) {
-    window.TimelineRenderer.updateCursor(0, totalTicks);
+  let timeStr = '00:00.00';
+  if (durationMs >= 3600000) {
+    timeStr = '00:00:00';
+  }
+  document.getElementById('simTimeValue').textContent = timeStr;
+  document.getElementById('simTickValue').textContent = `[Tick 0 / ${totalPhysicalTicks.toLocaleString()}]`;
+
+  if (window.TimelineRenderer && AppState.data) {
+    window.TimelineRenderer.updateCursor(0, totalFrames);
   }
 
   // 2. Ground truth zeros
@@ -693,7 +700,9 @@ function renderZeroState() {
 function renderTick(index) {
   if (!AppState.data || !AppState.data.ticks[index]) return;
   const tick = AppState.data.ticks[index];
-  const totalTicks = AppState.data.total_ticks;
+  const totalPhysicalTicks = AppState.data.total_ticks || Math.round(AppState.data.duration_ms / 10);
+  const currentPhysicalTick = Math.round(tick.sim_time_ms / 10);
+  const totalFrames = AppState.data.ticks.length;
 
   // 1. Clock Display (Adaptive for seconds, minutes, and hours)
   const totalSeconds = tick.sim_time_ms / 1000;
@@ -701,7 +710,7 @@ function renderTick(index) {
   if (AppState.data && AppState.data.duration_ms >= 3600000) {
     const hh = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
     const mm = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-    const ss = (totalSeconds % 60).toFixed(2).padStart(5, '0');
+    const ss = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
     timeStr = `${hh}:${mm}:${ss}`;
   } else {
     const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -709,11 +718,11 @@ function renderTick(index) {
     timeStr = `${mins}:${secs}`;
   }
   document.getElementById('simTimeValue').textContent = timeStr;
-  document.getElementById('simTickValue').textContent = `[Tick ${index}/${totalTicks}]`;
+  document.getElementById('simTickValue').textContent = `[Tick ${currentPhysicalTick.toLocaleString()} / ${totalPhysicalTicks.toLocaleString()}]`;
 
   // 2. Timeline Cursor
   if (window.TimelineRenderer) {
-    window.TimelineRenderer.updateCursor(index, totalTicks);
+    window.TimelineRenderer.updateCursor(index, totalFrames);
   }
 
   // 3. Zone 2: Ground Truth Lab Terminal
