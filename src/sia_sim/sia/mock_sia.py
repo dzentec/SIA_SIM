@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Sequence
+
 from sia_sim.contracts.data import SensorFrame
 from sia_sim.contracts.evaluation import CandidateResponse, DecisionPayload, RiskAssessment
+from sia_sim.contracts.sails import ALL_SAIL_IDS, SailAdvisoryPayload, SailSuitabilityStatus
+from sia_sim.sails.advisor import generate_sail_advisory
 from sia_sim.sia.protocol import SIACore
 
 
@@ -14,7 +18,8 @@ class MockSIA(SIACore):
     - L0 Sensor Integrity: Monitors sensor faults, null values, and degrades confidence.
     - L2 Hazard Detection: Detects Broach Precursor based on roll, roll rate, and yaw rate.
     - L3 Risk Assessment: Calculates bounded risk score and confidence.
-    - L4 Candidate Responses: Generates up to 3 candidate responses and resolves conflict.
+    - L4 Candidate Responses: Generates up to 3 candidate responses and resolves conflict,
+      strictly adhering to on-board available sails and hull rules v1.1.
     """
 
     def __init__(
@@ -22,15 +27,30 @@ class MockSIA(SIACore):
         heel_warning_deg: float = 20.0,
         heel_critical_deg: float = 28.0,
         yaw_rate_threshold_deg_s: float = 1.5,
+        hull_type: str = "monohull",
+        available_sails: Sequence[str] | None = None,
     ) -> None:
         self.heel_warning_deg = heel_warning_deg
         self.heel_critical_deg = heel_critical_deg
         self.yaw_rate_threshold_deg_s = yaw_rate_threshold_deg_s
+        self.hull_type = hull_type
+        self.available_sails = tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
         self._decision_count = 0
+        self.last_sail_advisory: SailAdvisoryPayload | None = None
+
+    def set_vessel_context(
+        self,
+        hull_type: str = "monohull",
+        available_sails: Sequence[str] | None = None,
+    ) -> None:
+        """Update active hull type and on-board sail inventory for the simulation."""
+        self.hull_type = hull_type
+        self.available_sails = tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
 
     def reset(self) -> None:
         """Reset internal temporal counters and filters."""
         self._decision_count = 0
+        self.last_sail_advisory = None
 
     def process(self, frame: SensorFrame) -> DecisionPayload:
         """Process SensorFrame and produce structured DecisionPayload."""
@@ -64,7 +84,25 @@ class MockSIA(SIACore):
         roll_rate = abs(frame.imu.roll_rate_deg_s) if frame.imu.roll_rate_deg_s is not None else 0.0
         yaw_rate = abs(frame.imu.yaw_rate_deg_s) if frame.imu.yaw_rate_deg_s is not None else 0.0
 
-        # 3. L2 Hazard Detection & L3 Risk Assessment
+        aws = frame.wind.apparent_wind_speed_kt or 10.0
+        awa = frame.wind.apparent_wind_angle_deg or 45.0
+
+        # Estimate TWS / TWA approximation from observable SensorFrame (boundary compliant)
+        sog = frame.gps.sog_kt or 5.0
+        # In beam/broad reach approximation:
+        tws_approx = aws
+        twa_approx = awa
+
+        # 3. Compute Sail Advisory strictly for available on-board inventory
+        sail_advisory = generate_sail_advisory(
+            tws_kt=tws_approx,
+            twa_deg=twa_approx,
+            hull_type=self.hull_type,
+            available_sails=self.available_sails,
+        )
+        self.last_sail_advisory = sail_advisory
+
+        # 4. L2 Hazard Detection & L3 Risk Assessment
         hazard_id: str | None = None
         risk_score = 0.0
         candidates: list[CandidateResponse] = []
@@ -103,7 +141,6 @@ class MockSIA(SIACore):
                 rule_ids=("RULE-BROACH-COURSE-01",),
             )
             candidates = [c1, c2, c3]
-            # Conflict resolution: sail depower is safest primary action during broach
             selected = c1
 
         elif roll >= self.heel_warning_deg or (roll > 18.0 and roll_rate > 5.0):
@@ -112,13 +149,18 @@ class MockSIA(SIACore):
             evidence.append("MODERATE_HEEL")
             note = f"Elevated heel ({roll:.1f} deg), monitoring stability"
 
+            # Suggest reef or sail change based on available sails
+            rule_id = "RULE-HEEL-ADVISORY-01"
+            if sail_advisory.recommended_reef > 0:
+                rule_id = f"RULE-REEF-{sail_advisory.recommended_reef:02d}"
+
             c1 = CandidateResponse(
                 response_id=f"RESP-{frame.sim_time_ms}-01",
                 action_type="REDUCE_SAIL",
                 rudder_command_deg=None,
                 sail_command_pct=70.0,
                 priority_score=0.80,
-                rule_ids=("RULE-HEEL-ADVISORY-01",),
+                rule_ids=(rule_id,),
             )
             candidates = [c1]
             selected = c1

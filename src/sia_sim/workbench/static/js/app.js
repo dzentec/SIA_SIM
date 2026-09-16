@@ -7,10 +7,11 @@ const AppState = {
   vesselPreset: 'beneteau_oceanis_45',
   sailPlan: 'FULL_MAIN',
   seed: 42,
-  durationS: 20,
-  imuRate: 100,
+  durationS: 600,
+  imuRate: 10,
   damping: 'normal',
   customWorld: null,
+  customVessel: null,
   data: null,
   currentSimTimeMs: 0.0,
   isPlaying: false,
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initApp() {
   bindControls();
   bindVesselControls();
+  bindCustomVesselControls();
   bindModalControls();
   bindCustomWorldControls();
   bindLivingSeaToggle();
@@ -344,6 +346,106 @@ function bindCustomWorldControls() {
   }
 }
 
+function bindCustomVesselControls() {
+  const btnCustom = document.getElementById('btnCustomVessel');
+  const backdrop = document.getElementById('customVesselModalBackdrop');
+  const btnClose = document.getElementById('btnCustomVesselClose');
+  const btnCancel = document.getElementById('btnCustomVesselCancel');
+  const btnApply = document.getElementById('btnCustomVesselApply');
+
+  const vspecLoa = document.getElementById('vspecLoa');
+  const vspecBeam = document.getElementById('vspecBeam');
+  const vspecMass = document.getElementById('vspecMass');
+  const vspecArea = document.getElementById('vspecArea');
+
+  const allSailIds = [
+    'mainsail_square_top',
+    'solent_jib',
+    'genoa_furling',
+    'code_zero',
+    'asymmetric_gennaker_a2',
+    'asymmetric_gennaker_a3',
+    'parasailor',
+    'storm_jib'
+  ];
+
+  if (btnCustom && backdrop) {
+    btnCustom.addEventListener('click', () => {
+      if (AppState.customVessel) {
+        const ht = document.getElementById('customHullType');
+        if (ht) ht.value = AppState.customVessel.hull_type || 'monohull';
+        const loa = document.getElementById('customLoa');
+        if (loa) loa.value = AppState.customVessel.loa_m || 13.94;
+        const beam = document.getElementById('customBeam');
+        if (beam) beam.value = AppState.customVessel.beam_m || 4.50;
+        const mass = document.getElementById('customDisplacement');
+        if (mass) mass.value = AppState.customVessel.displacement_kg || 10550;
+        const mast = document.getElementById('customMastHeight');
+        if (mast) mast.value = AppState.customVessel.mast_height_m || 19.5;
+        const area = document.getElementById('customSailArea');
+        if (area) area.value = AppState.customVessel.sail_area_m2 || 100.0;
+        const avail = AppState.customVessel.available_sails || allSailIds;
+        allSailIds.forEach((id) => {
+          const cb = document.getElementById(`inv_${id}`);
+          if (cb) cb.checked = avail.includes(id);
+        });
+      }
+      backdrop.style.display = 'flex';
+    });
+  }
+
+  const closeCustomVesselModal = () => {
+    if (backdrop) backdrop.style.display = 'none';
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closeCustomVesselModal);
+  if (btnCancel) btnCancel.addEventListener('click', closeCustomVesselModal);
+
+  if (btnApply) {
+    btnApply.addEventListener('click', () => {
+      const hullType = document.getElementById('customHullType') ? document.getElementById('customHullType').value : 'monohull';
+      const loa = parseFloat(document.getElementById('customLoa').value) || 13.94;
+      const beam = parseFloat(document.getElementById('customBeam').value) || 4.50;
+      const mass = parseFloat(document.getElementById('customDisplacement').value) || 10550;
+      const mast = parseFloat(document.getElementById('customMastHeight').value) || 19.5;
+      const sailArea = parseFloat(document.getElementById('customSailArea').value) || 100.0;
+
+      const checkedSails = allSailIds.filter((id) => {
+        const el = document.getElementById(`inv_${id}`);
+        return el && el.checked;
+      });
+
+      if (checkedSails.length === 0) {
+        alert('Please select at least one available sail for your inventory.');
+        return;
+      }
+
+      AppState.customVessel = {
+        hull_type: hullType,
+        loa_m: loa,
+        beam_m: beam,
+        displacement_kg: mass,
+        mast_height_m: mast,
+        sail_area_m2: sailArea,
+        available_sails: checkedSails,
+      };
+
+      if (vspecLoa) vspecLoa.textContent = `${loa.toFixed(2)} m`;
+      if (vspecBeam) vspecBeam.textContent = `${beam.toFixed(2)} m`;
+      if (vspecMass) vspecMass.textContent = `${mass.toLocaleString()} kg`;
+      if (vspecArea) vspecArea.textContent = `${sailArea.toFixed(0)} m²`;
+
+      closeCustomVesselModal();
+      loadScenario(
+        AppState.scenarioId,
+        AppState.seed,
+        AppState.durationS,
+        window.TimelineRenderer ? window.TimelineRenderer.events : null
+      );
+    });
+  }
+}
+
 function bindModalControls() {
   const backdrop = document.getElementById('eventModalBackdrop');
   const btnClose = document.getElementById('btnEventModalClose');
@@ -528,6 +630,9 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
     }
     if (AppState.customWorld) {
       payload.custom_world = AppState.customWorld;
+    }
+    if (AppState.customVessel) {
+      payload.custom_vessel = AppState.customVessel;
     }
 
     const res = await fetch('/api/run', {

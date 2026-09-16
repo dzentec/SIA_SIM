@@ -210,6 +210,8 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             self._handle_get_scenarios()
         elif self.path == "/api/vessels":
             self._handle_get_vessels()
+        elif self.path == "/api/sails":
+            self._handle_get_sails()
         elif self.path == "/api/health":
             self._send_json({"status": "ok", "version": "0.1.0"})
         else:
@@ -217,6 +219,11 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             if self.path == "/":
                 self.path = "/index.html"
             super().do_GET()
+
+    def _handle_get_sails(self) -> None:
+        from sia_sim.contracts.sails import SAIL_RULES_CATALOG_V1_1
+
+        self._send_json(SAIL_RULES_CATALOG_V1_1)
 
     def do_POST(self) -> None:
         content_length = int(self.headers.get("Content-Length", 0))
@@ -257,6 +264,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
         duration_ms = payload.get("duration_ms")
         custom_events_data = payload.get("events")
         custom_world = payload.get("custom_world")
+        custom_vessel = payload.get("custom_vessel")
         imu_sample_rate = int(payload.get("imu_sample_rate_hz", 100))
 
         try:
@@ -278,6 +286,28 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     initial_heel_deg=scenario.vessel.initial_heel_deg,
                 )
                 updates["vessel"] = vessel_cfg
+
+            # Custom vessel overrides (physical geometry and available sail inventory)
+            if isinstance(custom_vessel, dict):
+                curr_v = updates.get("vessel", scenario.vessel)
+                v_overrides: dict[str, Any] = {}
+                if "loa_m" in custom_vessel and custom_vessel["loa_m"] is not None:
+                    v_overrides["loa_m"] = float(custom_vessel["loa_m"])
+                if "beam_m" in custom_vessel and custom_vessel["beam_m"] is not None:
+                    v_overrides["beam_m"] = float(custom_vessel["beam_m"])
+                if "displacement_kg" in custom_vessel and custom_vessel["displacement_kg"] is not None:
+                    v_overrides["displacement_kg"] = float(custom_vessel["displacement_kg"])
+                if "mast_height_m" in custom_vessel and custom_vessel["mast_height_m"] is not None:
+                    v_overrides["mast_height_m"] = float(custom_vessel["mast_height_m"])
+                if "sail_area_m2" in custom_vessel and custom_vessel["sail_area_m2"] is not None:
+                    v_overrides["sail_area_m2"] = float(custom_vessel["sail_area_m2"])
+                if "hull_type" in custom_vessel and custom_vessel["hull_type"]:
+                    v_overrides["hull_type"] = str(custom_vessel["hull_type"])
+                if "available_sails" in custom_vessel and custom_vessel["available_sails"] is not None:
+                    v_overrides["available_sails"] = tuple(str(s) for s in custom_vessel["available_sails"])
+
+                if v_overrides:
+                    updates["vessel"] = curr_v.model_copy(update=v_overrides)
 
             # Custom world parameters if provided
             if isinstance(custom_world, dict):
@@ -320,8 +350,13 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             result = runner.run(scenario)
             response_data = format_run_payload(result)
             self._send_json(response_data)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass
         except Exception as e:
-            self._send_json({"error": str(e)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            try:
+                self._send_json({"error": str(e)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+                pass
 
 
     def _handle_query_action(self, payload: dict[str, Any]) -> None:
@@ -395,13 +430,16 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
         )
 
     def _send_json(self, data: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
-        payload = json.dumps(data).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(payload)
+        try:
+            payload = json.dumps(data).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(payload)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass
 
 
 class WorkbenchServer:

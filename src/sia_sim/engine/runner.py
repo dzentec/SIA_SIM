@@ -79,6 +79,11 @@ class SimulationRunner:
             imu_sample_rate_hz=effective_rate,
             imu_lpf_cutoff_hz=effective_lpf,
         )
+        if hasattr(self.sia_core, "set_vessel_context"):
+            self.sia_core.set_vessel_context(
+                hull_type=scenario.vessel.hull_type,
+                available_sails=scenario.vessel.available_sails,
+            )
         self.sia_core.reset()
         recorder = RunRecorder()
 

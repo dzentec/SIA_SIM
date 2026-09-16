@@ -11,7 +11,9 @@ Architectural invariants:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ScenarioEvent(BaseModel):
@@ -40,6 +42,9 @@ class VesselConfig(BaseModel):
     vessel_type: str
     """Vessel archetype, e.g. 'monohull_ior', 'beneteau_oceanis_45', 'modern_cruiser'."""
 
+    hull_type: str = Field(default="monohull")
+    """Hull classification: 'monohull' or 'catamaran'."""
+
     loa_m: float = Field(gt=0.0)
     """Length overall in meters."""
 
@@ -61,6 +66,20 @@ class VesselConfig(BaseModel):
     sail_trim_pct: float = Field(default=100.0, ge=0.0, le=150.0)
     """Effective sail trim / reef percentage (0-150%). 130% for Code Zero, 100% for Full Main."""
 
+    available_sails: tuple[str, ...] = Field(
+        default=(
+            "mainsail_square_top",
+            "solent_jib",
+            "genoa_furling",
+            "code_zero",
+            "asymmetric_gennaker_a2",
+            "asymmetric_gennaker_a3",
+            "parasailor",
+            "storm_jib",
+        )
+    )
+    """On-board sail wardrobe available for use."""
+
     initial_heel_deg: float
     """Starting heel angle in degrees (+ starboard)."""
 
@@ -70,10 +89,18 @@ class VesselConfig(BaseModel):
     initial_sog_kt: float = Field(ge=0.0)
     """Starting speed over ground in knots."""
 
+    @field_validator("available_sails", mode="before")
+    @classmethod
+    def _coerce_available_sails(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            return tuple(v)
+        return v
+
 
 # Canonical Single Source of Truth for IOR Classic 10.5m
 DEFAULT_VESSEL_CONFIG = VesselConfig(
     vessel_type="monohull_ior",
+    hull_type="monohull",
     loa_m=10.5,
     beam_m=3.2,
     displacement_kg=4500.0,
@@ -89,6 +116,7 @@ DEFAULT_VESSEL_CONFIG = VesselConfig(
 # Canonical Single Source of Truth for Beneteau Oceanis 45
 BENETEAU_OCEANIS_45_CONFIG = VesselConfig(
     vessel_type="beneteau_oceanis_45",
+    hull_type="monohull",
     loa_m=13.94,
     beam_m=4.50,
     displacement_kg=10550.0,
@@ -107,20 +135,39 @@ def create_vessel_config(
     initial_sog_kt: float = 5.0,
     initial_heel_deg: float = 0.0,
     vessel_type: str = "monohull_ior",
+    hull_type: str = "monohull",
     sail_plan: str = "FULL_MAIN",
     sail_trim_pct: float = 100.0,
+    available_sails: tuple[str, ...] | None = None,
+    loa_m: float | None = None,
+    beam_m: float | None = None,
+    displacement_kg: float | None = None,
+    sail_area_m2: float | None = None,
+    mast_height_m: float | None = None,
 ) -> VesselConfig:
     """Create a VesselConfig by overriding initial state or archetype."""
     base = BENETEAU_OCEANIS_45_CONFIG if "beneteau" in vessel_type.lower() or "oceanis" in vessel_type.lower() else DEFAULT_VESSEL_CONFIG
-    return base.model_copy(
-        update={
-            "initial_heading_deg": initial_heading_deg,
-            "initial_sog_kt": initial_sog_kt,
-            "initial_heel_deg": initial_heel_deg,
-            "sail_plan": sail_plan,
-            "sail_trim_pct": sail_trim_pct,
-        }
-    )
+    updates: dict[str, Any] = {
+        "initial_heading_deg": initial_heading_deg,
+        "initial_sog_kt": initial_sog_kt,
+        "initial_heel_deg": initial_heel_deg,
+        "hull_type": hull_type,
+        "sail_plan": sail_plan,
+        "sail_trim_pct": sail_trim_pct,
+    }
+    if available_sails is not None:
+        updates["available_sails"] = tuple(available_sails)
+    if loa_m is not None:
+        updates["loa_m"] = loa_m
+    if beam_m is not None:
+        updates["beam_m"] = beam_m
+    if displacement_kg is not None:
+        updates["displacement_kg"] = displacement_kg
+    if sail_area_m2 is not None:
+        updates["sail_area_m2"] = sail_area_m2
+    if mast_height_m is not None:
+        updates["mast_height_m"] = mast_height_m
+    return base.model_copy(update=updates)
 
 
 
