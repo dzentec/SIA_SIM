@@ -461,12 +461,8 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
   pauseSimulation();
   window.userConfirmedSail = null;
 
-  const tickLabel = document.getElementById('simTickValue');
-  if (tickLabel) {
-    const totalPhysical = Math.round(durationS * 100);
-    const durStr = durationS >= 3600 ? `${(durationS / 3600).toFixed(0)}h` : `${durationS}s`;
-    tickLabel.textContent = `[Simulating ${durStr} (${totalPhysical.toLocaleString()} ticks)...]`;
-  }
+  const btnToggle = document.getElementById('btnLivingSeaToggle');
+  const durStr = durationS >= 3600 ? `${(durationS / 3600).toFixed(0)}h` : `${durationS}s`;
 
   try {
     const payload = {
@@ -579,7 +575,6 @@ function renderZeroState() {
     timeStr = '00:00:00';
   }
   document.getElementById('simTimeValue').textContent = timeStr;
-  document.getElementById('simTickValue').textContent = `[Tick 0 / ${totalPhysicalTicks.toLocaleString()}]`;
 
   if (window.TimelineRenderer && AppState.data) {
     window.TimelineRenderer.updateCursor(0, totalFrames);
@@ -745,7 +740,6 @@ function renderTick(index) {
     timeStr = `${mins}:${secs}`;
   }
   document.getElementById('simTimeValue').textContent = timeStr;
-  document.getElementById('simTickValue').textContent = `[Tick ${currentPhysicalTick.toLocaleString()} / ${totalPhysicalTicks.toLocaleString()}]`;
 
   // 2. Timeline Cursor
   if (window.TimelineRenderer) {
