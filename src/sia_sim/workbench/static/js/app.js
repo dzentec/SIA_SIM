@@ -420,7 +420,10 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
       return;
     }
     AppState.data = json;
-    AppState.currentTick = Math.min(AppState.currentTick, AppState.data.ticks.length - 1);
+    AppState.currentTick = 0;
+    if (window.InstrumentRenderer) {
+      window.InstrumentRenderer.reset();
+    }
     
     if (window.TimelineRenderer) {
       window.TimelineRenderer.init(AppState.data, customEvents);
@@ -429,7 +432,7 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
       };
     }
 
-    renderTick(AppState.currentTick);
+    renderTick(0);
   } catch (err) {
     console.error('Failed to load scenario:', err);
   }
@@ -468,6 +471,9 @@ function stepSimulation(stepCount = 1) {
 
 function resetSimulation() {
   pauseSimulation();
+  if (window.InstrumentRenderer) {
+    window.InstrumentRenderer.reset();
+  }
   AppState.currentTick = 0;
   renderTick(0);
 }

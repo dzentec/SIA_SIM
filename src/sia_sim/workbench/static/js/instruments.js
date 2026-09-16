@@ -20,6 +20,19 @@ const InstrumentRenderer = {
     lastTime: performance.now(),
   },
 
+  reset() {
+    this._smoothed.awa = null;
+    this._smoothed.aws = null;
+    this._smoothed.heel = null;
+    this._smoothed.cog = null;
+    this._smoothed.sog = null;
+    this._smoothed.pitch = null;
+    this._smoothed.heave = null;
+    this._smoothed.accelZ = null;
+    this._smoothed.slam = null;
+    this._smoothed.lastTime = performance.now();
+  },
+
   setDampingMode(mode) {
     if (['none', 'normal', 'heavy'].includes(mode)) {
       this.dampingMode = mode;
@@ -41,7 +54,10 @@ const InstrumentRenderer = {
     }
     const tau = this._getTau();
     const alpha = 1.0 - Math.exp(-dtSec / tau);
-    const updated = cur + alpha * (target - cur);
+    let updated = cur + alpha * (target - cur);
+    if (target === 0 && Math.abs(updated) < 0.08) {
+      updated = 0;
+    }
     this._smoothed[key] = updated;
     return updated;
   },
