@@ -186,6 +186,9 @@ function bindCustomVesselControls() {
       if (window.renderActiveSailsDeck) {
         window.renderActiveSailsDeck();
       }
+      if (window.renderQueryActions) {
+        window.renderQueryActions();
+      }
 
       closeCustomVesselModal();
       if (window.loadScenario) {

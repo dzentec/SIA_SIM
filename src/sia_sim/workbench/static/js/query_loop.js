@@ -5,27 +5,75 @@
 window.userConfirmedSail = null;
 window.queryActiveUntilMs = 0;
 window.queryTriggeredAtMs = 0;
-const QUERY_DURATION_MS = 10000; // 10 seconds timeout for skipper response
+const QUERY_DURATION_MS = 20000; // 20 seconds timeout for skipper response
+
+const QUERY_ACTIONS_LIST = [
+  { id: 'FULL_MAIN', label: '⛵ FULL MAIN', reqSails: ['mainsail_square_top', 'mainsail'] },
+  { id: 'CODE_ZERO', label: '⚡ CODE 0', reqSails: ['code_zero'] },
+  { id: 'GENNAKER', label: '🎈 GENNAKER', reqSails: ['asymmetric_gennaker_a2', 'asymmetric_gennaker_a3', 'parasailor', 'gennaker'] },
+  { id: 'REEF_1', label: '📉 REEF 1', reqSails: ['mainsail_square_top', 'mainsail'] },
+  { id: 'REEF_2', label: '📉 REEF 2', reqSails: ['mainsail_square_top', 'mainsail'] },
+  { id: 'REEF_3', label: '📉 REEF 3', reqSails: ['mainsail_square_top', 'mainsail'] },
+  { id: 'STORM_JIB', label: '⛈ STORM JIB', reqSails: ['storm_jib'] },
+  { id: 'BARE_POLES', label: '⚙ BARE POLES', reqSails: [] },
+];
 
 document.addEventListener('DOMContentLoaded', () => {
   initQueryLoop();
 });
 
-function initQueryLoop() {
-  const queryChips = document.querySelectorAll('.btn-query-chip');
-  queryChips.forEach((chip) => {
+function renderQueryActions() {
+  const grid = document.getElementById('queryActionsGrid');
+  if (!grid) return;
+
+  const avail = (window.AppState && window.AppState.customVessel && window.AppState.customVessel.available_sails)
+    || (window.AppState?.vesselPreset === 'monohull_ior'
+      ? ['mainsail_square_top', 'solent_jib', 'genoa_furling', 'storm_jib']
+      : ['mainsail_square_top', 'solent_jib', 'genoa_furling', 'code_zero', 'asymmetric_gennaker_a2', 'storm_jib']);
+
+  const validActions = QUERY_ACTIONS_LIST.filter(item => {
+    if (!item.reqSails || item.reqSails.length === 0) return true;
+    return item.reqSails.some(s => avail.includes(s));
+  });
+
+  grid.innerHTML = validActions.map(act => {
+    const isActive = window.userConfirmedSail === act.id ? ' active' : '';
+    return `<button class="btn-query-chip${isActive}" data-sail="${act.id}">[ ${act.label} ]</button>`;
+  }).join('');
+
+  grid.querySelectorAll('.btn-query-chip').forEach(chip => {
     chip.addEventListener('click', async (e) => {
       const sailSet = e.currentTarget.getAttribute('data-sail');
       window.userConfirmedSail = sailSet;
       window.queryActiveUntilMs = 0;
-      
-      // Update UI active state
-      queryChips.forEach((c) => c.classList.remove('active'));
+
+      grid.querySelectorAll('.btn-query-chip').forEach(c => c.classList.remove('active'));
       e.currentTarget.classList.add('active');
+
+      // Also sync active rig if desirable
+      if (window.AppState) {
+        window.AppState.sailPlan = sailSet;
+        if (sailSet === 'FULL_MAIN') window.AppState.activeSails = { mainsail: 1.0, genoa: 1.0 };
+        else if (sailSet === 'CODE_ZERO') window.AppState.activeSails = { mainsail: 1.0, code_zero: 1.0 };
+        else if (sailSet === 'GENNAKER') window.AppState.activeSails = { mainsail: 1.0, gennaker: 1.0 };
+        else if (sailSet === 'REEF_1') window.AppState.activeSails = { mainsail: 0.75, genoa: 0.85 };
+        else if (sailSet === 'REEF_2') window.AppState.activeSails = { mainsail: 0.55, genoa: 0.65 };
+        else if (sailSet === 'REEF_3') window.AppState.activeSails = { mainsail: 0.35, genoa: 0.40 };
+        else if (sailSet === 'STORM_JIB') window.AppState.activeSails = { storm_jib: 1.0 };
+        else if (sailSet === 'BARE_POLES') window.AppState.activeSails = {};
+
+        if (window.renderActiveSailsDeck) {
+          window.renderActiveSailsDeck();
+        }
+      }
 
       await dispatchSkipperAction(sailSet);
     });
   });
+}
+
+function initQueryLoop() {
+  renderQueryActions();
 }
 
 function updateQueryLoopDisplay(tick) {
@@ -54,7 +102,7 @@ function updateQueryLoopDisplay(tick) {
     window.userConfirmedSail = null;
   }
 
-  // Check if hazard triggers a new 10s query latch
+  // Check if hazard triggers a new 20s query latch
   if (isHazard && !window.userConfirmedSail) {
     if (!window.queryActiveUntilMs || simTimeMs > window.queryActiveUntilMs) {
       window.queryTriggeredAtMs = simTimeMs;
@@ -76,7 +124,7 @@ function updateQueryLoopDisplay(tick) {
       c.classList.toggle('active', c.getAttribute('data-sail') === window.userConfirmedSail);
     });
   } else if (isQueryActive) {
-    // State 2: LATCHED 10-second active query with countdown timer & progress bar
+    // State 2: LATCHED 20-second active query with countdown timer & progress bar
     const remainingMs = Math.max(0, window.queryActiveUntilMs - simTimeMs);
     const remainingSec = (remainingMs / 1000).toFixed(1);
     const progressPct = Math.max(0, Math.min(100, (remainingMs / QUERY_DURATION_MS) * 100));
@@ -120,7 +168,7 @@ function updateQueryLoopDisplay(tick) {
     }
     if (barContainerEl) barContainerEl.style.display = 'none';
     titleEl.textContent = '⏳ SKIPPER QUERY TIMED OUT';
-    promptEl.textContent = 'SIA Core: "No skipper response within 10s window. Defaulted to conservative safety protocol."';
+    promptEl.textContent = 'SIA Core: "No skipper response within 20s window. Defaulted to conservative safety protocol."';
     queryChips.forEach(c => c.classList.remove('active'));
   } else {
     // State 1: Nominal cruising -> Query Loop is in STANDBY
@@ -133,6 +181,8 @@ function updateQueryLoopDisplay(tick) {
     queryChips.forEach(c => c.classList.remove('active'));
   }
 }
+
+window.renderQueryActions = renderQueryActions;
 
 async function dispatchSkipperAction(sailSet) {
   const simTimeMs = window.AppState ? (window.AppState.currentSimTimeMs || 0) : 0;

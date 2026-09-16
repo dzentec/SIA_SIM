@@ -384,10 +384,10 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                 pass
 
     def _handle_query_action(self, payload: dict[str, Any]) -> None:
-        sail_set = payload.get("sail_set", "FULL_MAIN")
+        sail_set = str(payload.get("sail_set", "FULL_MAIN")).upper().replace("-", "_")
         sim_time_ms = int(payload.get("sim_time_ms", 0))
 
-        # Recalculate candidate priorities based on skipper input
+        # Recalculate candidate priorities based on skipper confirmed configuration
         if sail_set in ("REEF_1", "REEF_2"):
             note = f"Skipper confirmed {sail_set} — sail power reduced. Recalculating stability."
             candidates = [
@@ -408,9 +408,53 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     "rule_ids": ["RULE-REEFED-TRAVELLER-01"],
                 },
             ]
-        elif sail_set == "STORM_JIB":
+        elif sail_set == "REEF_3":
+            note = f"Skipper confirmed {sail_set} — deep heavy weather reef. High righting moment reserve."
+            candidates = [
+                {
+                    "response_id": f"RESP-{sim_time_ms}-01-RECALC",
+                    "action_type": "MAINTAIN_COURSE",
+                    "rudder_command_deg": -3.0,
+                    "sail_command_pct": 35.0,
+                    "priority_score": 0.95,
+                    "rule_ids": ["RULE-REEF3-STABILITY-01"],
+                },
+            ]
+        elif sail_set in ("CODE_ZERO", "CODE_0"):
+            note = f"Skipper confirmed {sail_set} (130% power) — severe overpowered risk under sudden gusts."
+            candidates = [
+                {
+                    "response_id": f"RESP-{sim_time_ms}-01-RECALC",
+                    "action_type": "FURL_CODE_ZERO",
+                    "rudder_command_deg": -10.0,
+                    "sail_command_pct": 50.0,
+                    "priority_score": 0.98,
+                    "rule_ids": ["RULE-CODE0-GUST-FURL-01"],
+                },
+                {
+                    "response_id": f"RESP-{sim_time_ms}-02-RECALC",
+                    "action_type": "BEAR_AWAY_SLOW",
+                    "rudder_command_deg": -15.0,
+                    "sail_command_pct": None,
+                    "priority_score": 0.88,
+                    "rule_ids": ["RULE-CODE0-BEARAWAY-01"],
+                },
+            ]
+        elif sail_set in ("GENNAKER", "PARASAILOR", "SPINNAKER"):
+            note = f"Skipper confirmed {sail_set} (140-150% power) — critical broach risk during sudden load shifts."
+            candidates = [
+                {
+                    "response_id": f"RESP-{sim_time_ms}-01-RECALC",
+                    "action_type": "DROP_GENNAKER",
+                    "rudder_command_deg": -12.0,
+                    "sail_command_pct": 30.0,
+                    "priority_score": 0.99,
+                    "rule_ids": ["RULE-GENNAKER-DROP-01"],
+                },
+            ]
+        elif sail_set in ("STORM_JIB", "STORM_JIB_ONLY"):
             note = (
-                f"Skipper confirmed {sail_set} — minimal mainsail drive. Full authority restored."
+                f"Skipper confirmed {sail_set} — minimal sail area. Storm survival tactics engaged."
             )
             candidates = [
                 {
@@ -420,6 +464,18 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     "sail_command_pct": 20.0,
                     "priority_score": 0.96,
                     "rule_ids": ["RULE-STORM-TACTIC-01"],
+                }
+            ]
+        elif sail_set in ("BARE_POLES", "ENGINE_ONLY"):
+            note = f"Skipper confirmed {sail_set} (0% sail area) — zero aerodynamic roll moment. Motoring/drifting."
+            candidates = [
+                {
+                    "response_id": f"RESP-{sim_time_ms}-01-RECALC",
+                    "action_type": "MOTOR_STEER",
+                    "rudder_command_deg": 0.0,
+                    "sail_command_pct": 0.0,
+                    "priority_score": 0.99,
+                    "rule_ids": ["RULE-BARE-POLES-NOMINAL-01"],
                 }
             ]
         else:

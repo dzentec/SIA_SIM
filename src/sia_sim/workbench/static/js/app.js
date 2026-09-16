@@ -315,6 +315,7 @@ function bindVesselControls() {
       window.AppState.customVessel = null; // reset custom override when preset switches
       window.AppState.activeSails = { mainsail: 1.0, genoa: 1.0 };
       renderActiveSailsDeck();
+      if (window.renderQueryActions) window.renderQueryActions();
       const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
       loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
     });
@@ -322,6 +323,7 @@ function bindVesselControls() {
 
   bindSailPresetControls();
   renderActiveSailsDeck();
+  if (window.renderQueryActions) window.renderQueryActions();
 }
 
 function bindLivingSeaToggle() {
