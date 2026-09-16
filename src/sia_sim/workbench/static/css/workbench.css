@@ -369,7 +369,7 @@ body {
 .timeline-canvas-container {
   position: relative;
   width: 100%;
-  height: 120px;
+  height: 68px;
   background: #040810;
   border: 1px solid var(--border-color);
   border-radius: 4px;
