@@ -950,3 +950,6 @@ const InstrumentRenderer = {
     }
   }
 };
+
+window.InstrumentRenderer = InstrumentRenderer;
+
