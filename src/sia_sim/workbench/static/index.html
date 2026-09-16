@@ -119,10 +119,26 @@
           <div class="form-row-preset">
             <label for="scenarioSelect" class="preset-label">PRESET:</label>
             <select id="scenarioSelect" class="select-dropdown full-width">
-              <option value="cruise" selected>2. Coastal Cruise (13kt | 1.0m)</option>
-              <option value="harbour">1. Calm Harbour (4kt | 0.2m)</option>
-              <option value="fresh">3. Fresh Breeze (21kt | 2.1m)</option>
-              <option value="gale">4. Gale / Heavy Sea (28kt | 3.2m)</option>
+              <optgroup label="Fair Weather">
+                <option value="calm_harbour">1. Calm Harbour (Mirror) — 2kt | 0.1m</option>
+                <option value="light_breeze">2. Light Breeze (Smooth) — 8kt | 0.5m</option>
+              </optgroup>
+              <optgroup label="Moderate">
+                <option value="coastal_cruise" selected>3. Coastal Cruise (Moderate) — 13kt | 1.0m</option>
+                <option value="fresh_breeze">4. Fresh Breeze (Whitecaps) — 19kt | 1.8m</option>
+              </optgroup>
+              <optgroup label="Heavy">
+                <option value="strong_wind">5. Strong Wind (Choppy Sea) — 24kt | 2.5m</option>
+                <option value="near_gale">6. Near Gale (Rough) — 30kt | 3.5m</option>
+              </optgroup>
+              <optgroup label="Extreme">
+                <option value="gale_force">7. Gale Force (Heavy Sea) — 38kt | 5.5m</option>
+                <option value="storm_survival">8. Storm / Survival — 48kt | 8.5m</option>
+              </optgroup>
+              <optgroup label="Special / Stress Test">
+                <option value="ocean_swell">9. Ocean Swell (No Wind) — 5kt | 2.5m (13.5s)</option>
+                <option value="hurricane">10. Hurricane / Stress Test — 65kt | 11.0m</option>
+              </optgroup>
             </select>
           </div>
 

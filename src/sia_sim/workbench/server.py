@@ -241,56 +241,9 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
         self._send_json({"vessels": vessels})
 
     def _handle_get_scenarios(self) -> None:
-        scenarios = [
-            {
-                "id": "harbour",
-                "name": "1. Calm Harbour (TWS 4 kt | Wave 0.2m)",
-                "description": "Protected waters, gentle ripple, smooth motoring or light reach.",
-                "duration_ms": 20000,
-                "initial_tws_kt": 4.0,
-                "initial_wave_height_m": 0.2,
-                "initial_wave_period_s": 3.0,
-                "initial_sog_kt": 2.5,
-                "initial_heading_deg": 45.0,
-                "initial_heel_deg": -1.5,
-            },
-            {
-                "id": "cruise",
-                "name": "2. Coastal Cruise (TWS 13 kt | Wave 1.0m)",
-                "description": "Moderate reach in active coastal waters, 12° working heel.",
-                "duration_ms": 20000,
-                "initial_tws_kt": 13.0,
-                "initial_wave_height_m": 1.0,
-                "initial_wave_period_s": 4.5,
-                "initial_sog_kt": 5.8,
-                "initial_heading_deg": 65.0,
-                "initial_heel_deg": -12.0,
-            },
-            {
-                "id": "fresh",
-                "name": "3. Fresh Breeze (TWS 21 kt | Wave 2.1m)",
-                "description": "Fresh breeze with steep chop, dynamic wave roll and pitch.",
-                "duration_ms": 20000,
-                "initial_tws_kt": 21.0,
-                "initial_wave_height_m": 2.1,
-                "initial_wave_period_s": 5.0,
-                "initial_sog_kt": 7.2,
-                "initial_heading_deg": 65.0,
-                "initial_heel_deg": -20.0,
-            },
-            {
-                "id": "gale",
-                "name": "4. Gale / Heavy Sea (28 kt | Wave 3.2m)",
-                "description": "Near-gale conditions, heavy breaking sea, dynamic wave action.",
-                "duration_ms": 20000,
-                "initial_tws_kt": 28.0,
-                "initial_wave_height_m": 3.2,
-                "initial_wave_period_s": 6.5,
-                "initial_sog_kt": 8.5,
-                "initial_heading_deg": 65.0,
-                "initial_heel_deg": -24.0,
-            },
-        ]
+        from sia_sim.scenarios.presets import list_world_presets
+
+        scenarios = list_world_presets()
         self._send_json({"scenarios": scenarios})
 
     def _handle_run_simulation(self, payload: dict[str, Any]) -> None:

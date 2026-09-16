@@ -56,11 +56,13 @@ def test_get_scenarios_endpoint(workbench_server: None) -> None:
     with urlopen(url) as response:
         assert response.status == 200
         data = json.loads(response.read().decode("utf-8"))
-        ids = [s["id"] for s in data["scenarios"]]
-        assert "cruise" in ids
-        assert "harbour" in ids
-        assert "fresh" in ids
-        assert "gale" in ids
+        assert len(data["scenarios"]) == 10
+        slugs = [s["slug"] for s in data["scenarios"]]
+        assert "coastal_cruise" in slugs
+        assert "calm_harbour" in slugs
+        assert "fresh_breeze" in slugs
+        assert "gale_force" in slugs
+        assert "hurricane" in slugs
 
 
 def test_run_simulation_endpoint(workbench_server: None) -> None:

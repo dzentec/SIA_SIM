@@ -3,7 +3,7 @@
  */
 
 const AppState = {
-  scenarioId: 'cruise',
+  scenarioId: 'coastal_cruise',
   vesselPreset: 'beneteau_oceanis_45',
   sailPlan: 'FULL_MAIN',
   seed: 42,

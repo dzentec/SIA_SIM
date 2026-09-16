@@ -77,23 +77,12 @@ def load_scenario(path_or_name: str, seed: int = 42) -> Scenario:
     name_clean = path_or_name.lower().replace("preset-", "").replace("preset_", "")
     if name_clean in ("sim-005", "sim005", "broach"):
         return get_sim005_scenario(seed=seed)
-    if name_clean in ("sim-benign", "benign", "calm", "harbour"):
+    if name_clean in ("sim-benign", "benign"):
         return get_benign_scenario(seed=seed)
 
-    from sia_sim.scenarios.presets import get_preset_by_id
+    from sia_sim.scenarios.presets import WORLD_PRESETS, get_preset_by_id
 
-    valid_preset_keys = {
-        "cruise",
-        "coastal",
-        "coastal_cruise",
-        "reach",
-        "fresh",
-        "fresh_breeze",
-        "chop",
-        "rough",
-        "gale",
-    }
-    if name_clean in valid_preset_keys:
+    if name_clean in WORLD_PRESETS or str(path_or_name).lower() in WORLD_PRESETS:
         return get_preset_by_id(path_or_name, seed=seed)
 
     file_path = Path(path_or_name)
