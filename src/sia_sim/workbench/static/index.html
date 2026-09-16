@@ -176,10 +176,10 @@
       <section class="zone-card zone-ground-truth" id="zoneGroundTruth">
         <div class="card-header">
           <div class="header-title-group">
-            <span class="zone-badge badge-ground-truth">● SIMULATION ONLY — NOT AVAILABLE TO SIA</span>
+            <span class="zone-badge badge-ground-truth">● GROUND TRUTH (HIDDEN FROM SIA)</span>
             <h2 class="card-title">GROUND TRUTH PHYSICS</h2>
           </div>
-          <span class="physics-state-tag" id="gtStateTag">HYDRO: NOMINAL</span>
+          <span class="physics-state-tag" id="gtStateTag">STATUS: DOCKED</span>
         </div>
         <div class="card-content terminal-content">
           <div class="terminal-grid">
@@ -396,19 +396,19 @@
     <!-- COLUMN 3: SKIPPER QUERY LOOP & SIA CORE ADVISORY -->
     <div class="core-col core-col-right">
 
-      <!-- BLOCK 4: SKIPPER INTERACTIVE QUERY LOOP (ABOVE SIA ADVISORY ENGINE) -->
-      <section class="zone-card zone-query-loop-card" id="zoneQueryLoop">
+      <!-- ZONE 5: SKIPPER INTERACTIVE QUERY LOOP (TOP OF RIGHT COLUMN) -->
+      <section class="zone-card zone-query-loop-card standby" id="zoneQueryLoop">
         <div class="query-loop-container">
           <div class="query-header-row">
-            <div class="query-prompt-icon">💡</div>
-            <div class="query-title">SKIPPER INTERACTIVE QUERY LOOP</div>
+            <div class="query-prompt-icon">🛡️</div>
+            <div class="query-title">SKIPPER QUERY LOOP (STANDBY)</div>
           </div>
           <div class="query-prompt-text" id="queryPromptText">
-            SIA Core: "High heel & broach risk detected. Confirm current sail configuration to refine advisory action:"
+            SIA Core: "Living sea standby. Continuous background telemetry monitoring active."
           </div>
           <div class="query-actions-grid" id="queryActionsGrid">
             <button class="btn-query-chip" data-sail="FULL_MAIN">[ FULL MAIN ]</button>
-            <button class="btn-query-chip active" data-sail="REEF_1">[ REEF 1 ]</button>
+            <button class="btn-query-chip" data-sail="REEF_1">[ REEF 1 ]</button>
             <button class="btn-query-chip" data-sail="REEF_2">[ REEF 2 ]</button>
             <button class="btn-query-chip" data-sail="STORM_JIB">[ STORM JIB ]</button>
           </div>

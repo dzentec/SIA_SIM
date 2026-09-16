@@ -650,7 +650,7 @@ function renderZeroState() {
   document.getElementById('gtActiveEvents').textContent = 'NONE';
   const gtStateTag = document.getElementById('gtStateTag');
   if (gtStateTag) {
-    gtStateTag.textContent = 'STATUS: DOCKED / IDLE';
+    gtStateTag.textContent = 'STATUS: DOCKED';
     gtStateTag.style.color = '#94a3b8';
   }
 
@@ -758,11 +758,12 @@ function renderZeroState() {
   const queryCard = document.getElementById('zoneQueryLoop');
   const queryPrompt = document.getElementById('queryPromptText');
   if (queryCard) {
-    queryCard.className = 'zone-card zone-query-loop standby';
+    queryCard.className = 'zone-card zone-query-loop-card standby';
   }
   if (queryPrompt) {
-    queryPrompt.textContent = 'SIA Core: "Living sea standby. Start simulation to monitor dynamics."';
+    queryPrompt.textContent = 'SIA Core: "Living sea standby. Continuous background telemetry monitoring active."';
   }
+  document.querySelectorAll('.btn-query-chip').forEach(c => c.classList.remove('active'));
 
   // 6. Evaluator at Standby
   const footerVerdict = document.getElementById('footerVerdict');
@@ -839,7 +840,7 @@ function renderAtTime(simTimeMs) {
   // Hydro status tag
   const gtStateTag = document.getElementById('gtStateTag');
   if (hydroLoss > 0.4) {
-    gtStateTag.textContent = 'HYDRO: STALL / SEPARATION';
+    gtStateTag.textContent = 'HYDRO: STALL';
     gtStateTag.style.color = '#ff1744';
   } else if (hydroLoss > 0.1) {
     gtStateTag.textContent = 'HYDRO: REDUCED LIFT';

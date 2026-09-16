@@ -54,12 +54,14 @@ function updateQueryLoopDisplay(tick) {
     if (iconEl) iconEl.textContent = '💡';
     titleEl.textContent = '💡 SKIPPER QUERY: CONTEXT REFINEMENT REQUIRED';
     promptEl.textContent = `SIA Core: "Dynamic heel (${roll.toFixed(1)}°) & hazard detected. Confirm active sail rig to refine counter-action:"`;
+    queryChips.forEach(c => c.classList.remove('active'));
   } else {
     // State 1: Nominal cruising -> Query Loop is in STANDBY
     cardEl.className = 'zone-card zone-query-loop-card standby';
     if (iconEl) iconEl.textContent = '🛡️';
     titleEl.textContent = 'SKIPPER QUERY LOOP (STANDBY)';
     promptEl.textContent = 'SIA Core: "Telemetry nominal. Continuous background monitoring active. No context query needed."';
+    queryChips.forEach(c => c.classList.remove('active'));
   }
 }
 
