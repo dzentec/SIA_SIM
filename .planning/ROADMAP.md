@@ -13,7 +13,7 @@ This roadmap delivers the MVP Milestone (M0–M6) for SIA Simulation: an end-to-
 - [x] **Phase 5: SIACore Boundary & Deterministic MockSIA (M4)** - Strict boundary isolation protocol (`SIACore`) and deterministic `MockSIA` with candidate responses and conflict resolution.
 - [x] **Phase 6: Oracle & Evaluator (M5)** - Independent physical safety oracle and objective PASS/FAIL evaluator.
 - [x] **Phase 8: SIA Simulation Workbench UI** - Single-screen night bridge cockpit, 6-dial marine console, 100 Hz lab terminal, and event timeline builder.
-- [ ] **Phase 9: Architecture Decoupling, Modular Frontend & 3D Sail Aerodynamics Engine** - Frontend ES-modularization, physics/sails submodule with individual sails, dynamic 3D CoE & boom kinematics, and MDA v2.2 safety channel status.
+- [x] **Phase 9: Architecture Decoupling, Modular Frontend & 3D Sail Aerodynamics Engine** - Frontend ES-modularization, physics/sails submodule with individual sails, dynamic 3D CoE & boom kinematics, and MDA v2.2 safety channel status.
 
 ## Phase Details
 
@@ -187,13 +187,17 @@ Plans:
 4. `SafetyChannelStatus` (`WIRED_VERIFIED`, `WIRELESS_ADVISORY`, `MIXED`) is incorporated into `SensorFrame` and sensor pipeline.  
 5. All tests pass with zero regression across the existing test suite.  
 
-**Plans**: 2/3 plans executed  
+- [x] **Phase 9: Architecture Decoupling, Modular Frontend & 3D Sail Aerodynamics Engine** - Frontend ES-modularization, physics/sails submodule with individual sails, dynamic 3D CoE & boom kinematics, and MDA v2.2 safety channel status.
+
+## Phase Details
+...
+**Plans**: 3/3 plans executed  
 
 Plans:
 
 - [x] 09-01: Modularize Workbench UI into ES modules (`state.js`, `playback.js`, `modals.js`, `app.js`).
 - [x] 09-02: Implement `src/sia_sim/physics/sails/` with standalone `Sail` objects, dynamic boom angle, 3D $CoE$, and moment cross-products.
-- [ ] 09-03: Integrate MDA v2.2 `SafetyChannelStatus`, update data contracts, and verify end-to-end test suite.
+- [x] 09-03: Integrate MDA v2.2 `SafetyChannelStatus`, update data contracts, and verify end-to-end test suite.
 
 ## Progress
 
@@ -210,7 +214,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Oracle & Evaluator (M5) | 3/3 | Completed | 2026-09-15 |
 | 7. Complete Pipeline PASS (M6) | 3/3 | Completed | 2026-09-15 |
 | 8. SIA Simulation Workbench UI | 4/4 | Completed | 2026-09-16 |
-| 9. Architecture Decoupling & 3D Sails | 2/3 | In Progress | - |
+| 9. Architecture Decoupling & 3D Sails | 3/3 | Completed | 2026-09-17 |
 
 ---
 *Roadmap defined: 2026-09-10*
