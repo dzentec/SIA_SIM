@@ -281,13 +281,30 @@ SAIL_RULES_CATALOG_V1_1: dict[str, Any] = {
     ],
 }
 
-ALL_SAIL_IDS: tuple[str, ...] = (
-    "mainsail_square_top",
-    "solent_jib",
-    "genoa_furling",
-    "code_zero",
-    "asymmetric_gennaker_a2",
-    "asymmetric_gennaker_a3",
-    "parasailor",
-    "storm_jib",
-)
+class CanonicalSailId(StrEnum):
+    """Canonical unique identifiers for all sails across SIA Core, Simulation, and Rig physics."""
+
+    MAINSAIL_SQUARE_TOP = "mainsail_square_top"
+    SOLENT_JIB = "solent_jib"
+    GENOA_FURLING = "genoa_furling"
+    CODE_ZERO = "code_zero"
+    ASYMMETRIC_GENNAKER_A2 = "asymmetric_gennaker_a2"
+    ASYMMETRIC_GENNAKER_A3 = "asymmetric_gennaker_a3"
+    PARASAILOR = "parasailor"
+    STORM_JIB = "storm_jib"
+
+
+ALL_SAIL_IDS: tuple[str, ...] = tuple(s.value for s in CanonicalSailId)
+
+
+CANONICAL_SAIL_NAMES_RU: dict[str, str] = {
+    CanonicalSailId.MAINSAIL_SQUARE_TOP: "Грот (Square-Top Mainsail)",
+    CanonicalSailId.SOLENT_JIB: "Солент / Самоповоротный стаксель (Solent Jib)",
+    CanonicalSailId.GENOA_FURLING: "Генуя на закрутке (Furling Genoa)",
+    CanonicalSailId.CODE_ZERO: "Код 0 (Code 0)",
+    CanonicalSailId.ASYMMETRIC_GENNAKER_A2: "Асимметричный геннакер A2 (Runner)",
+    CanonicalSailId.ASYMMETRIC_GENNAKER_A3: "Асимметричный геннакер A3 (Reacher)",
+    CanonicalSailId.PARASAILOR: "Парасейлор (Parasailor)",
+    CanonicalSailId.STORM_JIB: "Штормовой стаксель (Storm Jib)",
+}
+

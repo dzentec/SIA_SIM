@@ -428,18 +428,44 @@
       <section class="zone-card zone-query-loop-card standby" id="zoneQueryLoop">
         <div class="query-loop-container">
           <div class="query-header-row">
-            <div class="query-prompt-icon">🛡️</div>
-            <div class="query-title">SKIPPER QUERY LOOP (STANDBY)</div>
-            <div class="query-countdown-badge" id="queryCountdownBadge" style="display: none; margin-left: auto; font-size: 11px; font-weight: 700; color: #ffb703; background: rgba(255, 183, 3, 0.15); padding: 2px 8px; border-radius: 10px; border: 1px solid rgba(255, 183, 3, 0.3);">⏱ 20.0s</div>
+            <div class="query-prompt-icon" id="queryPromptIcon">🛡️</div>
+            <div class="query-title-group">
+              <div class="query-title" id="queryTitle">SKIPPER QUERY LOOP (ACTIVE SENSING)</div>
+              <div class="query-subtitle">SIA запрашивает текущую конфигурацию парусов</div>
+            </div>
+            <span class="query-status-pill" id="queryStatusPill">STANDBY</span>
           </div>
-          <div class="query-timer-bar-container" id="queryTimerBarContainer" style="display: none; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; margin: 6px 0 8px 0; overflow: hidden;">
-            <div class="query-timer-bar-fill" id="queryTimerBarFill" style="height: 100%; width: 100%; background: linear-gradient(90deg, #ffb703, #ef4444); transition: width 0.08s linear;"></div>
-          </div>
+
           <div class="query-prompt-text" id="queryPromptText">
-            SIA Core: "Living sea standby. Continuous background telemetry monitoring active."
+            SIA Core: "Living sea standby. Фоновый мониторинг телеметрии активен."
           </div>
-          <div class="query-actions-grid" id="queryActionsGrid">
-            <!-- Dynamically populated by renderQueryActions() -->
+
+          <!-- 2-COLUMN WARDROBE SELECTOR -->
+          <div class="query-wardrobe-container" id="queryWardrobeContainer">
+            <!-- COL 1: SAILS IN WARDROBE -->
+            <div class="query-col query-col-sails">
+              <div class="query-col-header">1. ПАРУС ИЗ ГАРДЕРОБА:</div>
+              <div class="query-sails-list" id="querySailsList">
+                <!-- Dynamically populated from available_sails -->
+              </div>
+            </div>
+
+            <!-- COL 2: SETTINGS / REEFS FOR SELECTED SAIL -->
+            <div class="query-col query-col-settings">
+              <div class="query-col-header" id="querySettingsHeader">2. НАСТРОЙКА / РИФ:</div>
+              <div class="query-settings-list" id="querySettingsList">
+                <!-- Dynamically populated based on selected sail -->
+              </div>
+            </div>
+          </div>
+
+          <!-- SUMMARY & CONFIRM ACTION BAR -->
+          <div class="query-footer-bar" id="queryFooterBar">
+            <div class="query-summary-tag" id="querySummaryTag">
+              <span class="summary-lbl">АКТИВНЫЙ ПЛАН:</span>
+              <span class="summary-val" id="querySummaryVal">Грот (Полный) + Генуя (100%)</span>
+            </div>
+            <button class="btn btn-primary btn-confirm-query" id="btnConfirmQuery">✓ Подтвердить в SIA</button>
           </div>
         </div>
       </section>
@@ -507,6 +533,42 @@
   </div>
 
   </main>
+
+  <!-- BLOCK 6: SERVICE DIAGNOSTICS & SIMULATION LOGS (COLLAPSIBLE BOTTOM DRAWER) -->
+  <section class="zone-service-logs" id="zoneServiceLogs">
+    <div class="service-logs-header">
+      <div class="logs-header-left">
+        <span class="logs-icon">📋</span>
+        <span class="logs-title">SIMULATION & DECISION TRACE LOGS</span>
+        <span class="logs-count-badge" id="serviceLogCount">0 events</span>
+      </div>
+
+      <div class="logs-filter-group">
+        <button class="btn-log-filter active" data-filter="ALL">ALL</button>
+        <button class="btn-log-filter" data-filter="SIA_CORE">SIA CORE</button>
+        <button class="btn-log-filter" data-filter="PHYSICS">PHYSICS</button>
+        <button class="btn-log-filter" data-filter="SKIPPER">SKIPPER</button>
+        <button class="btn-log-filter" data-filter="ORACLE">ORACLE</button>
+        <button class="btn-log-filter" data-filter="SIM_RUNNER">RUNNER</button>
+      </div>
+
+      <div class="logs-header-actions">
+        <input type="text" id="inputLogSearch" class="input-log-search" placeholder="Поиск в логах...">
+        <label class="chk-autoscroll-label">
+          <input type="checkbox" id="chkLogAutoScroll" checked>
+          <span>Auto-scroll</span>
+        </label>
+        <button class="btn-log-tool" id="btnLogClear" title="Clear log trace">Очистить</button>
+        <button class="btn-log-tool" id="btnLogExportJson" title="Export as JSON">JSON</button>
+        <button class="btn-log-tool" id="btnLogExportCsv" title="Export as CSV">CSV</button>
+        <button class="btn-log-drawer-toggle" id="btnLogToggleDrawer">▲ Развернуть логи</button>
+      </div>
+    </div>
+
+    <div class="service-log-feed" id="serviceLogFeed">
+      <!-- Dynamically populated by ServiceLogger -->
+    </div>
+  </section>
 
   <!-- FOOTER: ORACLE & EVALUATOR STATUS -->
   <footer class="footer-bar" id="footerBar">
@@ -749,6 +811,7 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="/js/service_logger.js"></script>
   <script src="/js/instruments.js"></script>
   <script src="/js/timeline.js"></script>
   <script src="/js/query_loop.js"></script>

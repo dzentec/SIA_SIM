@@ -356,7 +356,8 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     vessel_updates["initial_heel_deg"] = float(custom_world["initial_heel_deg"])
 
                 if vessel_updates:
-                    updates["vessel"] = updates["vessel"].model_copy(update=vessel_updates)
+                    curr_v = updates.get("vessel", scenario.vessel)
+                    updates["vessel"] = curr_v.model_copy(update=vessel_updates)
 
             if custom_events_data is not None:
                 events_list = []

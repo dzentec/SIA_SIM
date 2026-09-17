@@ -55,11 +55,17 @@ function playSimulation() {
   const state = window.AppState;
   if (!state.data || state.isPlaying) return;
   state.isPlaying = true;
+  state.isLivingSeaRunning = true;
   const btnRun = document.getElementById('btnRun');
   const btnPause = document.getElementById('btnPause');
   if (btnRun) btnRun.disabled = true;
   if (btnPause) btnPause.disabled = false;
+  updateLivingSeaButtonState();
   state.lastWallTimestamp = performance.now();
+
+  if (window.Logger) {
+    window.Logger.log('SIM_RUNNER', 'INFO', `Воспроизведение запущено с t=${(state.currentSimTimeMs / 1000).toFixed(2)}с (Скорость: ${state.speedMultiplier}x)`, null, state.currentSimTimeMs);
+  }
 
   function loop(now) {
     if (!state.isPlaying) return;
@@ -74,6 +80,9 @@ function playSimulation() {
       state.currentSimTimeMs = totalDurationMs;
       renderAtTime(state.currentSimTimeMs);
       pauseSimulation();
+      if (window.Logger) {
+        window.Logger.log('SIM_RUNNER', 'INFO', 'Достигнут конец симуляции (Complete).', null, totalDurationMs);
+      }
       return;
     }
 
@@ -86,6 +95,9 @@ function playSimulation() {
 
 function pauseSimulation() {
   const state = window.AppState;
+  if (state.isPlaying && window.Logger) {
+    window.Logger.log('SIM_RUNNER', 'INFO', `Симуляция на паузе (t=${(state.currentSimTimeMs / 1000).toFixed(2)}с).`, null, state.currentSimTimeMs);
+  }
   state.isPlaying = false;
   if (state.rafId) {
     cancelAnimationFrame(state.rafId);
@@ -96,6 +108,7 @@ function pauseSimulation() {
   const btnPause = document.getElementById('btnPause');
   if (btnRun) btnRun.disabled = false;
   if (btnPause) btnPause.disabled = true;
+  updateLivingSeaButtonState();
 }
 
 function stepSimulation(stepSeconds = 0.5) {
@@ -113,24 +126,30 @@ function resetSimulation() {
     window.InstrumentRenderer.reset();
   }
   window.AppState.currentSimTimeMs = 0.0;
+  window.AppState.isLivingSeaRunning = false;
   renderZeroState();
+  updateLivingSeaButtonState();
+  if (window.Logger) {
+    window.Logger.log('SIM_RUNNER', 'INFO', 'Сброс приборов и времени симуляции на 0.00с.', null, 0);
+  }
 }
 
 function startLivingSea() {
   window.AppState.isLivingSeaRunning = true;
-  updateLivingSeaButtonState();
   if (window.AppState.currentSimTimeMs === 0) {
     renderAtTime(0);
+  }
+  if (window.Logger) {
+    window.Logger.log('PHYSICS', 'INFO', 'Инициализация гидродинамики судна и генератора волн/ветра.', null, 0);
   }
   playSimulation();
 }
 
 function stopLivingSeaToZero() {
-  window.AppState.isLivingSeaRunning = false;
-  pauseSimulation();
   resetSimulation();
-  renderZeroState();
-  updateLivingSeaButtonState();
+  if (window.Logger) {
+    window.Logger.log('SIM_RUNNER', 'INFO', 'Симуляция остановлена (Стоп к нулю). Судно ошвартовано.', null, 0);
+  }
 }
 
 function updateLivingSeaButtonState() {
@@ -139,10 +158,14 @@ function updateLivingSeaButtonState() {
   const label = document.getElementById('seaToggleLabel');
   if (!btn) return;
 
-  if (window.AppState.isLivingSeaRunning) {
+  if (window.AppState.isPlaying) {
     btn.className = 'btn-living-sea-toggle state-running';
-    if (icon) icon.textContent = '⏹';
-    if (label) label.textContent = 'STOP SIMULATION (RESET TO ZERO)';
+    if (icon) icon.textContent = '⏸';
+    if (label) label.textContent = 'PAUSE SIMULATION';
+  } else if (window.AppState.currentSimTimeMs > 0) {
+    btn.className = 'btn-living-sea-toggle state-paused';
+    if (icon) icon.textContent = '▶';
+    if (label) label.textContent = 'RESUME SIMULATION (PLAY)';
   } else {
     btn.className = 'btn-living-sea-toggle state-stopped';
     if (icon) icon.textContent = '▶';

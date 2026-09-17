@@ -121,24 +121,24 @@ class SailRig:
         for s in self.sails:
             if s.config.sail_id.lower() == target:
                 return s
-        # Aliases fallback
-        if target in ("headsail", "genoa", "jib"):
-            for s in self.sails:
-                if s.config.sail_id.lower() in ("headsail", "genoa", "jib") or s.config.sail_type in (SailType.GENOA, SailType.JIB):
-                    return s
-        if target in ("mainsail", "main"):
+        # Aliases fallback for wardrobe identifiers
+        if "main" in target:
             for s in self.sails:
                 if s.config.sail_id.lower() in ("mainsail", "main") or s.config.sail_type == SailType.MAINSAIL:
                     return s
-        if target in ("code_zero", "code0", "code_0"):
+        if any(w in target for w in ("headsail", "genoa", "jib", "solent")):
+            for s in self.sails:
+                if s.config.sail_id.lower() in ("headsail", "genoa", "jib") or s.config.sail_type in (SailType.GENOA, SailType.JIB):
+                    return s
+        if "code" in target:
             for s in self.sails:
                 if s.config.sail_id.lower() in ("code_zero", "code0", "code_0") or s.config.sail_type == SailType.CODE_ZERO:
                     return s
-        if target in ("gennaker", "spinnaker", "a2"):
+        if any(w in target for w in ("gennaker", "spinnaker", "para", "a2", "a3")):
             for s in self.sails:
                 if s.config.sail_id.lower() in ("gennaker", "spinnaker", "a2") or s.config.sail_type in (SailType.GENNAKER, SailType.SPINNAKER):
                     return s
-        if target in ("storm_jib", "stormjib", "storm"):
+        if "storm" in target:
             for s in self.sails:
                 if s.config.sail_id.lower() in ("storm_jib", "stormjib", "storm") or s.config.sail_type == SailType.STORM_JIB:
                     return s

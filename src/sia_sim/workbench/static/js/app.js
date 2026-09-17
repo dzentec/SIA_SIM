@@ -206,7 +206,7 @@ function renderActiveSailsDeck() {
 
       renderActiveSailsDeck();
       const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
-      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
+    loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents, true);
     });
   });
 
@@ -263,7 +263,7 @@ function bindSailPresetControls() {
         highlightPresetButton(preset);
         renderActiveSailsDeck();
         const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
-        loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
+        loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents, true);
       });
     });
   }
@@ -296,7 +296,7 @@ function bindSailPresetControls() {
           window.AppState.activeSails[candidates[idx].id] = 1.0;
           renderActiveSailsDeck();
           const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
-          loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
+          loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents, true);
         }
       }
     });
@@ -317,7 +317,7 @@ function bindVesselControls() {
       renderActiveSailsDeck();
       if (window.renderQueryActions) window.renderQueryActions();
       const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : null;
-      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
+      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents, false);
     });
   }
 
@@ -330,10 +330,10 @@ function bindLivingSeaToggle() {
   const btn = document.getElementById('btnLivingSeaToggle');
   if (!btn) return;
   btn.addEventListener('click', () => {
-    if (!window.AppState.isLivingSeaRunning) {
-      if (window.startLivingSea) window.startLivingSea();
+    if (window.AppState.isPlaying) {
+      if (window.pauseSimulation) window.pauseSimulation();
     } else {
-      if (window.stopLivingSeaToZero) window.stopLivingSeaToZero();
+      if (window.playSimulation) window.playSimulation();
     }
   });
 }
@@ -351,19 +351,11 @@ function bindControls() {
   const btnModeLive = document.getElementById('btnModeLive');
   const btnModeDebug = document.getElementById('btnModeDebug');
 
-  if (btnRun) btnRun.addEventListener('click', () => window.startLivingSea && window.startLivingSea());
-  if (btnPause) {
-    btnPause.addEventListener('click', () => {
-      if (window.pauseSimulation) window.pauseSimulation();
-      window.AppState.isLivingSeaRunning = false;
-      if (window.PlaybackController) window.PlaybackController.updateLivingSeaButtonState();
-    });
-  }
+  if (btnRun) btnRun.addEventListener('click', () => window.playSimulation && window.playSimulation());
+  if (btnPause) btnPause.addEventListener('click', () => window.pauseSimulation && window.pauseSimulation());
   if (btnStep) {
     btnStep.addEventListener('click', () => {
       if (window.stepSimulation) window.stepSimulation(1);
-      window.AppState.isLivingSeaRunning = true;
-      if (window.PlaybackController) window.PlaybackController.updateLivingSeaButtonState();
     });
   }
   if (btnReset) {
@@ -378,7 +370,7 @@ function bindControls() {
       window.AppState.durationS = durVal;
       // Preserve any events placed by human, or keep timeline clean if empty
       const existingEvents = window.TimelineRenderer ? window.TimelineRenderer.events : [];
-      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents);
+      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, existingEvents, false);
     });
   }
 
@@ -389,7 +381,8 @@ function bindControls() {
         window.AppState.scenarioId,
         window.AppState.seed,
         window.AppState.durationS,
-        window.TimelineRenderer ? window.TimelineRenderer.events : null
+        window.TimelineRenderer ? window.TimelineRenderer.events : null,
+        true
       );
     });
   }
@@ -410,7 +403,8 @@ function bindControls() {
         window.AppState.scenarioId,
         window.AppState.seed,
         window.AppState.durationS,
-        window.TimelineRenderer ? window.TimelineRenderer.events : null
+        window.TimelineRenderer ? window.TimelineRenderer.events : null,
+        true
       );
     });
   }
@@ -422,7 +416,8 @@ function bindControls() {
         window.AppState.scenarioId,
         window.AppState.seed,
         window.AppState.durationS,
-        window.TimelineRenderer ? window.TimelineRenderer.events : null
+        window.TimelineRenderer ? window.TimelineRenderer.events : null,
+        false
       );
     });
   }
@@ -471,7 +466,7 @@ function bindControls() {
   if (btnResetEvents) {
     btnResetEvents.addEventListener('click', () => {
       // Restore default scenario/preset events from backend
-      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, null);
+      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, null, true);
     });
   }
 
@@ -483,7 +478,7 @@ function bindControls() {
         window.TimelineRenderer.renderTracks();
       }
       // Send explicit empty list of events so ship sails in pure living background
-      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, []);
+      loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, [], true);
     });
   }
 
@@ -509,7 +504,12 @@ function setMode(mode) {
   if (btnDebug) btnDebug.classList.toggle('active', mode === 'debug');
 }
 
-async function loadScenario(scenarioId, seed, durationS = 20, customEvents = null) {
+async function loadScenario(scenarioId, seed, durationS = 20, customEvents = null, preserveTime = true) {
+  const wasPlaying = window.AppState ? window.AppState.isPlaying : false;
+  const savedSimTimeMs = (preserveTime && window.AppState && window.AppState.currentSimTimeMs > 0)
+    ? window.AppState.currentSimTimeMs
+    : 0.0;
+
   if (window.pauseSimulation) window.pauseSimulation();
   window.userConfirmedSail = null;
 
@@ -544,25 +544,36 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
       return;
     }
     window.AppState.data = json;
-    window.AppState.currentSimTimeMs = 0.0;
+    window.AppState.currentSimTimeMs = savedSimTimeMs;
     window.userConfirmedSail = null;
     window.queryActiveUntilMs = 0;
     window.queryTriggeredAtMs = 0;
-    if (window.InstrumentRenderer) {
-      window.InstrumentRenderer.reset();
-    }
     
     if (window.TimelineRenderer) {
       window.TimelineRenderer.init(window.AppState.data, customEvents);
       window.TimelineRenderer.onEventsChanged = (updatedEvents) => {
-        loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, updatedEvents);
+        loadScenario(window.AppState.scenarioId, window.AppState.seed, window.AppState.durationS, updatedEvents, true);
       };
     }
 
-    if (!window.AppState.isLivingSeaRunning) {
+    if (savedSimTimeMs === 0 && !window.AppState.isLivingSeaRunning) {
       if (window.renderZeroState) window.renderZeroState();
     } else {
-      if (window.renderAtTime) window.renderAtTime(window.AppState.currentSimTimeMs);
+      if (window.renderAtTime) window.renderAtTime(savedSimTimeMs);
+    }
+
+    if (window.Logger) {
+      window.Logger.log(
+        'PHYSICS',
+        'INFO',
+        `Сценарий пересчитан с новыми параметрами парусов (t=${(savedSimTimeMs / 1000).toFixed(2)}с)`,
+        { sails: window.AppState.activeSails },
+        savedSimTimeMs
+      );
+    }
+
+    if (wasPlaying && window.playSimulation) {
+      window.playSimulation();
     }
   } catch (err) {
     console.error('Failed to load scenario:', err);
@@ -570,3 +581,4 @@ async function loadScenario(scenarioId, seed, durationS = 20, customEvents = nul
 }
 
 window.loadScenario = loadScenario;
+

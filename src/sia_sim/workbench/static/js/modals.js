@@ -60,7 +60,8 @@ function bindCustomWorldControls() {
           window.AppState.scenarioId,
           window.AppState.seed,
           window.AppState.durationS,
-          window.TimelineRenderer ? window.TimelineRenderer.events : null
+          window.TimelineRenderer ? window.TimelineRenderer.events : null,
+          true
         );
       }
     });
@@ -196,7 +197,8 @@ function bindCustomVesselControls() {
           window.AppState.scenarioId,
           window.AppState.seed,
           window.AppState.durationS,
-          window.TimelineRenderer ? window.TimelineRenderer.events : null
+          window.TimelineRenderer ? window.TimelineRenderer.events : null,
+          true
         );
       }
     });

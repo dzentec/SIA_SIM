@@ -2,7 +2,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Package Manager: uv](https://img.shields.io/badge/uv-fast%20python-purple.svg?logo=astral&logoColor=white)](https://astral.sh/uv)
-[![Tests: 235 passed](https://img.shields.io/badge/tests-235%20passed-brightgreen.svg?logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![Tests: 238 passed](https://img.shields.io/badge/tests-238%20passed-brightgreen.svg?logo=pytest&logoColor=white)](https://docs.pytest.org/)
 [![Architecture: Hard Boundary](https://img.shields.io/badge/boundary-strict%20SensorFrame-orange.svg)]()
 [![MDA Version: 2.2.0](https://img.shields.io/badge/MDA-v2.2.0%20Frozen%20Baseline-blue.svg)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -206,9 +206,13 @@ uv run pytest -v
 
 ### Модульная структура фронтенда (`src/sia_sim/workbench/static/js/`):
 - `state.js` — Реактивное хранилище состояния симуляции, пресетов и настроек.
-- `playback.js` — Движок таймлайна, интерполяция кадров, управление скоростью и воспроизведением.
-- `modals.js` — Модальные панели настройки морской среды (`Custom Sea`) и инвентаря парусов (`Custom Sails`).
-- `app.js` — Точка входа, инициализация приборов Canvas 2D, сетевой обмен с `/api/run` и обработчики событий.
+- `playback.js` — 60 FPS движок плеера, интерполяция кадров, управление скоростью и непрерывное воспроизведение.
+- `instruments.js` — Высокопроизводительный рендеринг 6 морских приборов на Canvas 2D (AWA/AWS, Heel, Pitch, Nav, Heave, Slam).
+- `timeline.js` — Интерактивный таймлайн-скраббер и визуальный конструктор событий (порывы, волны, отказы датчиков).
+- `query_loop.js` — Интерактивный диалог опроса шкипера (Active Sensing) с 2-колоночным селектором гардероба яхты и пересчетом рекомендаций СИА.
+- `service_logger.js` — Служебный диагностический терминал логов (`SIA CORE`, `PHYSICS`, `SKIPPER`, `ORACLE`, `SIM_RUNNER`) с фильтрами, шторкой и экспортом JSON/CSV.
+- `modals.js` — Модальные панели настройки параметров океана (`Custom Sea`) и параметров яхты (`Custom Vessel`).
+- `app.js` — Точка входа, оркестрация компонентов верстака и сетевой обмен с `/api/run`.
 
 ---
 
@@ -219,7 +223,7 @@ src/sia_sim/
 ├── contracts/          # Строгие Pydantic v2 контракты данных
 │   ├── data.py         # SensorFrame, GroundTruthFrame, IMU, GPS, SafetyChannelStatus
 │   ├── evaluation.py   # Схемы для OracleResult, RiskAssessment, DecisionPayload
-│   ├── sails.py        # Универсальный каталог парусов v1.1 и схемы пригодности
+│   ├── sails.py        # Единый реестр парусов (CanonicalSailId) и каталог v1.1
 │   └── scenario.py     # Scenario, ScenarioEvent, VesselConfig (с гардеробом)
 ├── core/               # Ядро симулятора
 │   ├── clock.py        # Детерминированные 100 Гц часы (SimulationClock)
@@ -247,17 +251,17 @@ src/sia_sim/
 │   ├── oracle.py       # Расчет истинного риска по Ground Truth
 │   └── evaluator.py    # Оценка соответствия решений SIA критериям безопасности
 └── workbench/          # Веб-верстак и визуальный кокпит
-    ├── server.py       # HTTP API бэкенд + /api/run, /api/scenarios, /api/sails
+    ├── server.py       # HTTP API бэкенд + /api/run, /api/scenarios, /api/sails, /api/query-action
     └── static/         # HTML5, Canvas 2D приборы, Zero-Build ES модули
         ├── css/        # Стили Glassmorphism Dark Theme
-        └── js/         # app.js, state.js, playback.js, modals.js
+        └── js/         # app.js, state.js, playback.js, instruments.js, timeline.js, query_loop.js, service_logger.js, modals.js
 ```
 
 ---
 
 ## 🧪 Тестирование и контроль качества
 
-Проект покрыт **235 автоматизированными тестами**:
+Проект покрыт **238 автоматизированными тестами**:
 
 * `test_sail_aerodynamics.py` — Тестирование 3D поляр, кинематики гика, смещения CoE, затенения, щелевого эффекта и протоколов расширения.
 * `test_sail_advisor.py` — Тестирование каталога парусов v1.1, катамаранных оверрайдов, безопасных порывов и фильтрации инвентаря.
@@ -277,7 +281,7 @@ uv run mypy src tests
 # Проверка качества кода (Ruff)
 uv run ruff check
 
-# Запуск тестов (235 passed)
+# Запуск тестов (238 passed)
 uv run pytest
 ```
 
