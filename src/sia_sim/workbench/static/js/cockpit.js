@@ -66,20 +66,35 @@ export class CockpitController {
       this.syncChannel = new BroadcastChannel('sia_workbench_sync');
       this.syncChannel.onmessage = (event) => {
         if (!event.data) return;
-        if (event.data.type === 'ROPE_CONTROL' && event.data.ropeId) {
-          const { ropeId, targetTrim, clamped } = event.data;
-          if (this.ropeStates[ropeId]) {
-            this.ropeStates[ropeId].actual_trim = targetTrim;
-            this.ropeStates[ropeId].target_trim = targetTrim;
-            this.ropeStates[ropeId].clamped = clamped;
-            this.computeRopeTension(ropeId);
+
+        // 1. Steering Wheel & Rudder Mirror Sync
+        if (event.data.type === 'HELM_SYNC') {
+          this.wheel_angle_deg = event.data.wheel_angle_deg;
+          this.rudder_actual_deg = event.data.rudder_actual_deg;
+          if (event.data.rudder_cmd_deg !== undefined) this.rudder_cmd_deg = event.data.rudder_cmd_deg;
+          if (event.data.hydro_loss !== undefined) this.hydro_loss = event.data.hydro_loss;
+          this.updateHelmVisuals(false); // Don't re-broadcast
+        }
+        // 2. Individual Rope State Mirror Sync (Trim, Tension, Stopper)
+        else if (event.data.type === 'ROPE_SYNC' && event.data.ropeId) {
+          const { ropeId, actual_trim, target_trim, length_m, tension_n, clamped, status } = event.data;
+          const r = this.ropeStates[ropeId];
+          if (r) {
+            r.actual_trim = actual_trim;
+            r.target_trim = target_trim;
+            if (length_m !== undefined) r.length_m = length_m;
+            if (tension_n !== undefined) r.tension_n = tension_n;
+            r.clamped = clamped;
+            if (status) r.status = status;
             this.updateSingleRopeVisual(ropeId);
           }
-        } else if (event.data.type === 'TRAVELER_CONTROL') {
+        }
+        // 3. Traveler Slider & Brake Mirror Sync
+        else if (event.data.type === 'TRAVELER_SYNC') {
           this.travelerClamped = Boolean(event.data.clamped);
           const slider = document.getElementById('traveler-slider');
           if (slider) {
-            slider.value = Math.round(event.data.targetPos * 100);
+            slider.value = Math.round(event.data.pos * 100);
             slider.disabled = this.travelerClamped;
             slider.classList.toggle('locked', this.travelerClamped);
           }
@@ -89,6 +104,29 @@ export class CockpitController {
             btn.classList.toggle('unlocked', !this.travelerClamped);
             btn.textContent = this.travelerClamped ? '🔒 BRAKE' : '🔓 FREE';
           }
+          const readout = document.getElementById('traveler-val-readout');
+          if (readout) {
+            const p = Math.round(event.data.pos * 100);
+            const signStr = p < 0 ? `PORT (${p}%)` : (p > 0 ? `STBD (+${p}%)` : `0% (CENTER)`);
+            readout.innerHTML = `<b>${signStr}</b>`;
+          }
+        }
+        // 4. Reefing Preset Mirror Sync
+        else if (event.data.type === 'PRESET_SYNC') {
+          this.activePreset = event.data.preset;
+          this.container.querySelectorAll('.preset-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.preset === event.data.preset);
+          });
+          const reefText = document.getElementById('reef-status-text');
+          if (reefText) {
+            reefText.textContent = `${event.data.preset.replace('_', ' ')}`;
+          }
+          this.computeAllRopeTensions();
+          this.updateAllRopesVisuals();
+        }
+        // 5. Control Mode Mirror Sync (Autopilot <-> Skipper)
+        else if (event.data.type === 'MODE_SYNC') {
+          this.setControlMode(event.data.mode, '', false);
         }
       };
     } catch (_) {}
@@ -370,12 +408,18 @@ export class CockpitController {
     `;
   }
 
-  setControlMode(mode, triggerSource = '') {
+  setControlMode(mode, triggerSource = '', broadcast = true) {
     if (this.controlMode === mode) return;
     this.controlMode = mode;
     const btn = document.getElementById('btn-cockpit-mode-toggle');
     const icon = document.getElementById('cockpit-mode-icon');
     const text = document.getElementById('cockpit-mode-text');
+
+    if (broadcast && this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({ type: 'MODE_SYNC', mode });
+      } catch (_) {}
+    }
 
     if (mode === 'skipper') {
       if (btn) {
@@ -398,6 +442,35 @@ export class CockpitController {
         window.Logger.log('COCKPIT', 'INFO', 'Управление передано автопилоту сценария • AUTOPILOT MODE.');
       }
     }
+  }
+
+  broadcastRopeSync(ropeId) {
+    if (!this.syncChannel) return;
+    const r = this.ropeStates[ropeId];
+    if (!r) return;
+    try {
+      this.syncChannel.postMessage({
+        type: 'ROPE_SYNC',
+        ropeId,
+        actual_trim: r.actual_trim,
+        target_trim: r.target_trim,
+        length_m: r.length_m,
+        tension_n: r.tension_n,
+        clamped: r.clamped,
+        status: r.status,
+      });
+    } catch (_) {}
+  }
+
+  broadcastTravelerSync(pos, clamped) {
+    if (!this.syncChannel) return;
+    try {
+      this.syncChannel.postMessage({
+        type: 'TRAVELER_SYNC',
+        pos,
+        clamped,
+      });
+    } catch (_) {}
   }
 
   bindEvents() {
@@ -468,6 +541,7 @@ export class CockpitController {
           this.ropeStates[ropeId].clamped = newClamped;
           this.computeRopeTension(ropeId);
           this.updateSingleRopeVisual(ropeId);
+          this.broadcastRopeSync(ropeId);
           this.sendRopeControl(ropeId, this.ropeStates[ropeId].actual_trim, newClamped);
         } else if (btn.id === 'traveler-clutch-btn') {
           this.travelerClamped = !this.travelerClamped;
@@ -486,6 +560,7 @@ export class CockpitController {
             tWidget.classList.toggle('clamped', this.travelerClamped);
             tWidget.classList.toggle('unlocked', !this.travelerClamped);
           }
+          this.broadcastTravelerSync(pos, this.travelerClamped);
           this.sendTravelerControl(pos, this.travelerClamped);
         }
       });
@@ -516,6 +591,7 @@ export class CockpitController {
 
         this.computeRopeTension(ropeId);
         this.updateSingleRopeVisual(ropeId);
+        this.broadcastRopeSync(ropeId);
         this.sendRopeControl(ropeId, newTrim, false);
       });
     });
@@ -560,6 +636,7 @@ export class CockpitController {
 
           this.computeRopeTension(ropeId);
           this.updateSingleRopeVisual(ropeId);
+          this.broadcastRopeSync(ropeId);
           this.sendRopeControl(ropeId, newTrim, false);
         }, { passive: false });
       }
@@ -581,6 +658,7 @@ export class CockpitController {
           r.length_m = cleanTrim * r.max_length_m;
           this.computeRopeTension(ropeId);
           this.updateSingleRopeVisual(ropeId);
+          this.broadcastRopeSync(ropeId);
 
           const now = performance.now();
           if (forceSend || now - lastSendTime > 50) {
@@ -664,6 +742,7 @@ export class CockpitController {
           const signStr = newVal < 0 ? `PORT (${newVal}%)` : (newVal > 0 ? `STBD (+${newVal}%)` : `0% (CENTER)`);
           readout.innerHTML = `<b>${signStr}</b>`;
         }
+        this.broadcastTravelerSync(newVal / 100.0, this.travelerClamped);
         this.sendTravelerControl(newVal / 100.0, false);
       }, { passive: false });
     }
@@ -682,6 +761,7 @@ export class CockpitController {
           const signStr = val < 0 ? `PORT (${val}%)` : (val > 0 ? `STBD (+${val}%)` : `0% (CENTER)`);
           readout.innerHTML = `<b>${signStr}</b>`;
         }
+        this.broadcastTravelerSync(val / 100.0, this.travelerClamped);
       });
 
       travelerSlider.addEventListener('change', (e) => {
@@ -691,6 +771,7 @@ export class CockpitController {
         }
         this.setControlMode('skipper', 'Погон гика (Traveler)');
         const val = parseFloat(e.target.value) / 100.0;
+        this.broadcastTravelerSync(val, this.travelerClamped);
         this.sendTravelerControl(val, false);
       });
     }
@@ -841,7 +922,19 @@ export class CockpitController {
     this.smoothAnimateWheelTo(targetWheel);
   }
 
-  updateHelmVisuals() {
+  updateHelmVisuals(broadcast = true) {
+    if (broadcast && this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({
+          type: 'HELM_SYNC',
+          wheel_angle_deg: this.wheel_angle_deg,
+          rudder_actual_deg: this.rudder_actual_deg,
+          rudder_cmd_deg: this.rudder_cmd_deg,
+          hydro_loss: this.hydro_loss,
+        });
+      } catch (_) {}
+    }
+
     const wheelSvg = document.getElementById('helmWheelSvg');
     const helmAngleDisplay = document.getElementById('helm-angle-display');
     const helmTurnsDisplay = document.getElementById('helm-turns-display');
@@ -1152,6 +1245,12 @@ export class CockpitController {
 
       this.computeAllRopeTensions();
       this.updateAllRopesVisuals();
+
+      if (this.syncChannel) {
+        try {
+          this.syncChannel.postMessage({ type: 'PRESET_SYNC', preset: presetName });
+        } catch (_) {}
+      }
 
       const payload = { timestamp_ms: Date.now(), preset: presetName };
       const res = await fetch(`${this.apiBaseUrl}/api/v1/controls/preset`, {
