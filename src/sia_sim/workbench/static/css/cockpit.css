@@ -161,7 +161,29 @@
   gap: 6px;
   position: relative;
   overflow: hidden;
-  transition: opacity 0.2s ease, border-color 0.2s ease;
+  transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.rope-widget.clamped {
+  border-color: rgba(88, 166, 255, 0.25);
+  background: #12161f;
+}
+
+.rope-widget.unlocked {
+  border-color: rgba(52, 199, 89, 0.5);
+  box-shadow: 0 0 10px rgba(52, 199, 89, 0.18);
+  background: #161d26;
+}
+
+.rope-widget.clamped .trim-track {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.rope-widget.clamped .step-btn {
+  cursor: not-allowed;
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .rope-widget.dimmed {
@@ -370,6 +392,15 @@
 @keyframes clutch-pulse {
   0%, 100% { transform: scale(1); }
   35% { transform: scale(1.18); box-shadow: 0 0 14px #ff3b30; border-color: #ff3b30; background: rgba(255, 59, 48, 0.4); color: #fff; }
+}
+
+.trim-track.flash-track-alert {
+  animation: track-alert 0.45s ease-in-out;
+}
+
+@keyframes track-alert {
+  0%, 100% { border-color: rgba(255, 59, 48, 0.5); box-shadow: none; }
+  35% { border-color: #ff3b30; box-shadow: 0 0 12px rgba(255, 59, 48, 0.8); }
 }
 
 .clutch-btn:hover {
@@ -625,6 +656,18 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.traveler-widget-full.clamped {
+  border-color: rgba(88, 166, 255, 0.25);
+  background: #12161f;
+}
+
+.traveler-widget-full.unlocked {
+  border-color: rgba(52, 199, 89, 0.5);
+  box-shadow: 0 0 10px rgba(52, 199, 89, 0.18);
+  background: #161d26;
 }
 
 .traveler-track-container {
@@ -637,6 +680,12 @@
   width: 100%;
   accent-color: #58a6ff;
   cursor: pointer;
+}
+
+.traveler-slider-input:disabled,
+.traveler-slider-input.locked {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .traveler-scale {

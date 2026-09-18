@@ -56,9 +56,10 @@ export class CockpitController {
     this.hydro_loss = 0.0;
     this.isDraggingWheel = false;
     this.draggingRopeId = null;
-        this.controlMode = 'autopilot'; // 'autopilot' | 'skipper'
+    this.controlMode = 'autopilot'; // 'autopilot' | 'skipper'
     this.heel_deg = 0.0;
     this.activePreset = 'FULL_MAIN';
+    this.travelerClamped = true;
 
     // Initialize individual rope states
     this.ropeStates = {};
@@ -374,9 +375,41 @@ export class CockpitController {
       });
     }
 
-    // Clutch Toggle Buttons
+    // Helper methods for visual stopper alert
+    this.flashClutchAlert = (ropeId) => {
+      const clutchBtn = document.getElementById(`${ropeId}-clutch-btn`);
+      if (clutchBtn) {
+        clutchBtn.classList.remove('flash-alert');
+        void clutchBtn.offsetWidth; // trigger reflow for animation restart
+        clutchBtn.classList.add('flash-alert');
+      }
+      const trimTrack = document.getElementById(`${ropeId}-trim-track`);
+      if (trimTrack) {
+        trimTrack.classList.remove('flash-track-alert');
+        void trimTrack.offsetWidth;
+        trimTrack.classList.add('flash-track-alert');
+      }
+      if (window.Logger) {
+        window.Logger.log('COCKPIT', 'WARN', `Канат ${ropeId} заблокирован стопором (🔒 CLAMPED). Нажмите на кнопку стопора, чтобы открыть.`);
+      }
+    };
+
+    this.flashTravelerBrakeAlert = () => {
+      const clutchBtn = document.getElementById('traveler-clutch-btn');
+      if (clutchBtn) {
+        clutchBtn.classList.remove('flash-alert');
+        void clutchBtn.offsetWidth;
+        clutchBtn.classList.add('flash-alert');
+      }
+      if (window.Logger) {
+        window.Logger.log('COCKPIT', 'WARN', `Погон гика зажат тормозом (🔒 BRAKE). Нажмите на кнопку тормоза, чтобы разблокировать.`);
+      }
+    };
+
+    // Clutch Toggle Buttons (The ONLY active control on clamped items)
     this.container.querySelectorAll('.clutch-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         this.setControlMode('skipper', 'Стопор каната');
         const ropeId = btn.dataset.rope;
         if (ropeId && this.ropeStates[ropeId]) {
@@ -386,32 +419,48 @@ export class CockpitController {
           this.updateSingleRopeVisual(ropeId);
           this.sendRopeControl(ropeId, this.ropeStates[ropeId].actual_trim, newClamped);
         } else if (btn.id === 'traveler-clutch-btn') {
-          const isClamped = btn.classList.contains('clamped');
-          const newClamped = !isClamped;
+          this.travelerClamped = !this.travelerClamped;
           const slider = document.getElementById('traveler-slider');
+          const tWidget = document.querySelector('.traveler-widget-full');
           const pos = slider ? parseFloat(slider.value) / 100.0 : 0.0;
-          btn.classList.toggle('clamped', newClamped);
-          btn.textContent = newClamped ? '🔒 BRAKE' : '🔓 FREE';
-          this.sendTravelerControl(pos, newClamped);
+          btn.classList.toggle('clamped', this.travelerClamped);
+          btn.classList.toggle('unlocked', !this.travelerClamped);
+          btn.textContent = this.travelerClamped ? '🔒 BRAKE' : '🔓 FREE';
+          btn.title = this.travelerClamped ? 'Тормоз погона включен (🔒 BRAKE). Нажмите для снятия с тормоза' : 'Погон свободен (🔓 FREE). Нажмите для постановки на тормоз';
+          if (slider) {
+            slider.disabled = this.travelerClamped;
+            slider.classList.toggle('locked', this.travelerClamped);
+          }
+          if (tWidget) {
+            tWidget.classList.toggle('clamped', this.travelerClamped);
+            tWidget.classList.toggle('unlocked', !this.travelerClamped);
+          }
+          this.sendTravelerControl(pos, this.travelerClamped);
         }
       });
     });
 
-    // Step +/- buttons (Isolated to this single rope)
+    // Step +/- buttons (Strictly blocked while clamped)
     this.container.querySelectorAll('.step-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
         const ropeId = btn.dataset.rope;
         if (!ropeId || !this.ropeStates[ropeId]) return;
 
+        const rope = this.ropeStates[ropeId];
+        if (rope.clamped) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.flashClutchAlert(ropeId);
+          return;
+        }
+
         this.setControlMode('skipper', `Шаг натяжки ${ropeId}`);
         const action = btn.dataset.action;
-        const rope = this.ropeStates[ropeId];
         const step = action === 'trim' ? 0.05 : -0.05;
         const newTrim = Math.max(0.0, Math.min(1.0, Math.round((rope.actual_trim + step) * 100) / 100));
 
         rope.actual_trim = newTrim;
         rope.target_trim = newTrim;
-        rope.clamped = false;
         rope.length_m = newTrim * rope.max_length_m;
 
         this.computeRopeTension(ropeId);
@@ -420,73 +469,36 @@ export class CockpitController {
       });
     });
 
-    // Interactive Mouse/Pointer Dragging & Wheel on All Rope Tracks (ISOLATED)
+    // Interactive Mouse/Pointer Dragging & Wheel on All Rope Tracks (STRICTLY BLOCKED WHILE CLAMPED)
     Object.keys(ROPE_METADATA).forEach(ropeId => {
       const trimTrack = document.getElementById(`${ropeId}-trim-track`);
       const widget = document.getElementById(`widget-${ropeId}`);
 
-      if (trimTrack) {
-        let isDraggingTrack = false;
-        let lastSendTime = 0;
-
-        const updateTrimFromPointer = (clientX, forceSend = false) => {
-          const rect = trimTrack.getBoundingClientRect();
-          const ratio = Math.max(0.0, Math.min(1.0, (clientX - rect.left) / rect.width));
-          const cleanTrim = Math.round(ratio * 100) / 100;
-
-          const r = this.ropeStates[ropeId];
-          if (r) {
-            r.actual_trim = cleanTrim;
-            r.target_trim = cleanTrim;
-            r.length_m = cleanTrim * r.max_length_m;
-            this.computeRopeTension(ropeId);
-            this.updateSingleRopeVisual(ropeId);
-          }
-
-          const now = performance.now();
-          if (forceSend || now - lastSendTime > 50) {
-            lastSendTime = now;
-            this.sendRopeControl(ropeId, cleanTrim, false);
-          }
-        };
-
-        trimTrack.addEventListener('pointerdown', (e) => {
-          this.setControlMode('skipper', `Канат ${ropeId}`);
-          isDraggingTrack = true;
-          this.draggingRopeId = ropeId;
-          trimTrack.classList.add('dragging');
-          trimTrack.setPointerCapture(e.pointerId);
-          updateTrimFromPointer(e.clientX, true);
-        });
-
-        trimTrack.addEventListener('pointermove', (e) => {
-          if (!isDraggingTrack) return;
-          updateTrimFromPointer(e.clientX, false);
-        });
-
-        const stopTrackDrag = (e) => {
-          if (isDraggingTrack) {
-            isDraggingTrack = false;
-            this.draggingRopeId = null;
-            trimTrack.classList.remove('dragging');
-            try {
-              trimTrack.releasePointerCapture(e.pointerId);
-            } catch (_) {}
-            updateTrimFromPointer(e.clientX, true);
-          }
-        };
-
-        trimTrack.addEventListener('pointerup', stopTrackDrag);
-        trimTrack.addEventListener('pointercancel', stopTrackDrag);
-      }
-
-      // Mouse Wheel Support on Rope Widget (ISOLATED to this ropeId)
+      // Entire widget click/pointer interceptor when clamped (except clutch button)
       if (widget) {
-        widget.addEventListener('wheel', (e) => {
-          e.preventDefault();
-          this.setControlMode('skipper', `Колесо мыши ${ropeId}`);
+        widget.addEventListener('pointerdown', (e) => {
           const r = this.ropeStates[ropeId];
           if (!r) return;
+          if (e.target.closest('.clutch-btn')) return; // Allow clutch button to work
+          if (r.clamped) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.flashClutchAlert(ropeId);
+          }
+        });
+
+        // Mouse Wheel on Rope Widget: strictly blocked when clamped
+        widget.addEventListener('wheel', (e) => {
+          const r = this.ropeStates[ropeId];
+          if (!r) return;
+          if (r.clamped) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.flashClutchAlert(ropeId);
+            return;
+          }
+          e.preventDefault();
+          this.setControlMode('skipper', `Колесо мыши ${ropeId}`);
 
           const step = e.deltaY < 0 ? 0.05 : -0.05;
           const newTrim = Math.max(0.0, Math.min(1.0, Math.round((r.actual_trim + step) * 100) / 100));
@@ -500,31 +512,95 @@ export class CockpitController {
           this.sendRopeControl(ropeId, newTrim, false);
         }, { passive: false });
       }
+
+      if (trimTrack) {
+        let isDraggingTrack = false;
+        let lastSendTime = 0;
+
+        const updateTrimFromPointer = (clientX, forceSend = false) => {
+          const r = this.ropeStates[ropeId];
+          if (!r || r.clamped) return;
+
+          const rect = trimTrack.getBoundingClientRect();
+          const ratio = Math.max(0.0, Math.min(1.0, (clientX - rect.left) / rect.width));
+          const cleanTrim = Math.round(ratio * 100) / 100;
+
+          r.actual_trim = cleanTrim;
+          r.target_trim = cleanTrim;
+          r.length_m = cleanTrim * r.max_length_m;
+          this.computeRopeTension(ropeId);
+          this.updateSingleRopeVisual(ropeId);
+
+          const now = performance.now();
+          if (forceSend || now - lastSendTime > 50) {
+            lastSendTime = now;
+            this.sendRopeControl(ropeId, cleanTrim, false);
+          }
+        };
+
+        trimTrack.addEventListener('pointerdown', (e) => {
+          const r = this.ropeStates[ropeId];
+          if (r && r.clamped) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.flashClutchAlert(ropeId);
+            return;
+          }
+          this.setControlMode('skipper', `Канат ${ropeId}`);
+          isDraggingTrack = true;
+          this.draggingRopeId = ropeId;
+          trimTrack.classList.add('dragging');
+          trimTrack.setPointerCapture(e.pointerId);
+          updateTrimFromPointer(e.clientX, true);
+        });
+
+        trimTrack.addEventListener('pointermove', (e) => {
+          if (!isDraggingTrack) return;
+          const r = this.ropeStates[ropeId];
+          if (r && r.clamped) return;
+          updateTrimFromPointer(e.clientX, false);
+        });
+
+        const stopTrackDrag = (e) => {
+          if (isDraggingTrack) {
+            isDraggingTrack = false;
+            this.draggingRopeId = null;
+            trimTrack.classList.remove('dragging');
+            try {
+              trimTrack.releasePointerCapture(e.pointerId);
+            } catch (_) {}
+            const r = this.ropeStates[ropeId];
+            if (r && !r.clamped) {
+              updateTrimFromPointer(e.clientX, true);
+            }
+          }
+        };
+
+        trimTrack.addEventListener('pointerup', stopTrackDrag);
+        trimTrack.addEventListener('pointercancel', stopTrackDrag);
+      }
     });
 
-    // Traveler Slider & Wheel
+    // Traveler Slider & Wheel (STRICTLY BLOCKED WHILE BRAKED)
     const travelerSlider = document.getElementById('traveler-slider');
     const travelerWidget = document.querySelector('.traveler-widget-full');
-    if (travelerSlider) {
-      travelerSlider.addEventListener('input', (e) => {
-        this.setControlMode('skipper', 'Погон гика (Traveler)');
-        const val = parseFloat(e.target.value);
-        const readout = document.getElementById('traveler-val-readout');
-        if (readout) {
-          const signStr = val < 0 ? `PORT (${val}%)` : (val > 0 ? `STBD (+${val}%)` : `0% (CENTER)`);
-          readout.innerHTML = `<b>${signStr}</b>`;
+    if (travelerWidget) {
+      travelerWidget.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('#traveler-clutch-btn')) return;
+        if (this.travelerClamped) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.flashTravelerBrakeAlert();
         }
       });
 
-      travelerSlider.addEventListener('change', (e) => {
-        this.setControlMode('skipper', 'Погон гика (Traveler)');
-        const val = parseFloat(e.target.value) / 100.0;
-        this.sendTravelerControl(val, false);
-      });
-    }
-
-    if (travelerWidget) {
       travelerWidget.addEventListener('wheel', (e) => {
+        if (this.travelerClamped) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.flashTravelerBrakeAlert();
+          return;
+        }
         e.preventDefault();
         this.setControlMode('skipper', 'Погон гика (Колесо мыши)');
         if (!travelerSlider) return;
@@ -539,6 +615,33 @@ export class CockpitController {
         }
         this.sendTravelerControl(newVal / 100.0, false);
       }, { passive: false });
+    }
+
+    if (travelerSlider) {
+      travelerSlider.addEventListener('input', (e) => {
+        if (this.travelerClamped) {
+          e.preventDefault();
+          this.flashTravelerBrakeAlert();
+          return;
+        }
+        this.setControlMode('skipper', 'Погон гика (Traveler)');
+        const val = parseFloat(e.target.value);
+        const readout = document.getElementById('traveler-val-readout');
+        if (readout) {
+          const signStr = val < 0 ? `PORT (${val}%)` : (val > 0 ? `STBD (+${val}%)` : `0% (CENTER)`);
+          readout.innerHTML = `<b>${signStr}</b>`;
+        }
+      });
+
+      travelerSlider.addEventListener('change', (e) => {
+        if (this.travelerClamped) {
+          this.flashTravelerBrakeAlert();
+          return;
+        }
+        this.setControlMode('skipper', 'Погон гика (Traveler)');
+        const val = parseFloat(e.target.value) / 100.0;
+        this.sendTravelerControl(val, false);
+      });
     }
 
     // Steering Wheel Rotary Mouse Drag Interaction
@@ -892,10 +995,13 @@ export class CockpitController {
       }
     }
 
-    // Step buttons state
+    // Widget card and Step buttons state
     if (widget) {
+      widget.classList.toggle('clamped', Boolean(rState.clamped));
+      widget.classList.toggle('unlocked', !rState.clamped);
       widget.querySelectorAll('.step-btn').forEach(b => {
         b.classList.toggle('disabled', Boolean(rState.clamped));
+        b.disabled = Boolean(rState.clamped);
         b.title = rState.clamped ? 'Канат зажат в стопоре (🔒 CLAMPED)' : 'Изменить набивку на 5%';
       });
     }
