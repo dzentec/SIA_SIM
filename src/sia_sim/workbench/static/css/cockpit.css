@@ -127,9 +127,28 @@
   align-items: center;
 }
 
-.col-port { border-left: 3px solid #007aff; }
-.col-center { border-left: 3px solid #636366; }
-.col-starboard { border-left: 3px solid #34c759; }
+.col-port .col-header {
+  background: #007aff;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 122, 255, 0.35);
+}
+
+.col-starboard .col-header {
+  background: #34c759;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 4px rgba(52, 199, 89, 0.35);
+}
+
+.col-port .col-header .rope-status-badge,
+.col-starboard .col-header .rope-status-badge {
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
 
 /* Dual-Bar Rope Widget Card */
 .rope-widget {
