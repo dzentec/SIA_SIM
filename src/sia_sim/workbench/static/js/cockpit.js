@@ -42,6 +42,7 @@ export class CockpitController {
     this.rudder_cmd_deg = 0.0; // Rudder commanded angle
     this.hydro_loss = 0.0;
     this.isDraggingWheel = false;
+    this.draggingRopeId = null;
 
     if (this.container) {
       this.render();
@@ -256,13 +257,13 @@ export class CockpitController {
         </div>
 
         <div class="bars-container">
-          <!-- Trim Bar -->
+          <!-- Trim Bar (Interactive Drag & Wheel) -->
           <div class="bar-row">
             <div class="bar-label-row">
               <span>TRIM</span>
               <span id="${ropeId}-trim-val">50% (5.0m)</span>
             </div>
-            <div class="bar-track" id="${ropeId}-trim-track">
+            <div class="bar-track trim-track" id="${ropeId}-trim-track" title="Тяните мышкой или крутите колесо мыши для натяжения">
               <div class="bar-fill-trim" id="${ropeId}-trim-fill" style="width: 50%;"></div>
               <div class="target-marker" id="${ropeId}-target-marker" style="left: 50%;"></div>
             </div>
@@ -327,8 +328,96 @@ export class CockpitController {
       });
     });
 
-    // Traveler Slider
+    // Interactive Mouse/Pointer Dragging & Wheel on All Rope Tracks
+    Object.keys(ROPE_METADATA).forEach(ropeId => {
+      const trimTrack = document.getElementById(`${ropeId}-trim-track`);
+      const widget = document.getElementById(`widget-${ropeId}`);
+
+      if (trimTrack) {
+        let isDraggingTrack = false;
+        let lastSendTime = 0;
+
+        const updateTrimFromPointer = (clientX, forceSend = false) => {
+          const rect = trimTrack.getBoundingClientRect();
+          const ratio = Math.max(0.0, Math.min(1.0, (clientX - rect.left) / rect.width));
+          const pct = ratio * 100;
+
+          // Optimistic UI updates
+          const targetMarker = document.getElementById(`${ropeId}-target-marker`);
+          const trimFill = document.getElementById(`${ropeId}-trim-fill`);
+          const trimVal = document.getElementById(`${ropeId}-trim-val`);
+          if (targetMarker) targetMarker.style.left = `${pct.toFixed(1)}%`;
+          if (trimFill) trimFill.style.width = `${pct.toFixed(1)}%`;
+          if (trimVal) trimVal.textContent = `${pct.toFixed(0)}% (CMD)`;
+
+          if (this.state && this.state.ropes && this.state.ropes[ropeId]) {
+            this.state.ropes[ropeId].target_trim = ratio;
+          }
+
+          const now = performance.now();
+          if (forceSend || now - lastSendTime > 40) {
+            lastSendTime = now;
+            this.sendRopeControl(ropeId, ratio, false);
+          }
+        };
+
+        trimTrack.addEventListener('pointerdown', (e) => {
+          isDraggingTrack = true;
+          this.draggingRopeId = ropeId;
+          trimTrack.classList.add('dragging');
+          trimTrack.setPointerCapture(e.pointerId);
+          updateTrimFromPointer(e.clientX, true);
+        });
+
+        trimTrack.addEventListener('pointermove', (e) => {
+          if (!isDraggingTrack) return;
+          updateTrimFromPointer(e.clientX, false);
+        });
+
+        const stopTrackDrag = (e) => {
+          if (isDraggingTrack) {
+            isDraggingTrack = false;
+            this.draggingRopeId = null;
+            trimTrack.classList.remove('dragging');
+            try {
+              trimTrack.releasePointerCapture(e.pointerId);
+            } catch (_) {}
+            updateTrimFromPointer(e.clientX, true);
+          }
+        };
+
+        trimTrack.addEventListener('pointerup', stopTrackDrag);
+        trimTrack.addEventListener('pointercancel', stopTrackDrag);
+      }
+
+      // Mouse Wheel Support on Rope Widget (Scroll to Trim / Ease)
+      if (widget) {
+        widget.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const currTrim = this.state?.ropes?.[ropeId]?.target_trim ?? this.state?.ropes?.[ropeId]?.actual_trim ?? 0.5;
+          const step = e.deltaY < 0 ? 0.05 : -0.05;
+          const newTrim = Math.max(0.0, Math.min(1.0, Math.round((currTrim + step) * 100) / 100));
+
+          // Optimistic UI updates
+          const targetMarker = document.getElementById(`${ropeId}-target-marker`);
+          const trimFill = document.getElementById(`${ropeId}-trim-fill`);
+          const trimVal = document.getElementById(`${ropeId}-trim-val`);
+          if (targetMarker) targetMarker.style.left = `${(newTrim * 100).toFixed(1)}%`;
+          if (trimFill) trimFill.style.width = `${(newTrim * 100).toFixed(1)}%`;
+          if (trimVal) trimVal.textContent = `${(newTrim * 100).toFixed(0)}% (CMD)`;
+
+          if (this.state && this.state.ropes && this.state.ropes[ropeId]) {
+            this.state.ropes[ropeId].target_trim = newTrim;
+          }
+
+          this.sendRopeControl(ropeId, newTrim, false);
+        }, { passive: false });
+      }
+    });
+
+    // Traveler Slider & Wheel
     const travelerSlider = document.getElementById('traveler-slider');
+    const travelerWidget = document.querySelector('.traveler-widget-full');
     if (travelerSlider) {
       travelerSlider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
@@ -343,6 +432,23 @@ export class CockpitController {
         const val = parseFloat(e.target.value) / 100.0;
         this.sendTravelerControl(val, false);
       });
+    }
+
+    if (travelerWidget) {
+      travelerWidget.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (!travelerSlider) return;
+        const currVal = parseFloat(travelerSlider.value);
+        const step = e.deltaY < 0 ? 5 : -5;
+        const newVal = Math.max(-100, Math.min(100, currVal + step));
+        travelerSlider.value = newVal;
+        const readout = document.getElementById('traveler-val-readout');
+        if (readout) {
+          const signStr = newVal < 0 ? `PORT (${newVal}%)` : (newVal > 0 ? `STBD (+${newVal}%)` : `0% (CENTER)`);
+          readout.innerHTML = `<b>${signStr}</b>`;
+        }
+        this.sendTravelerControl(newVal / 100.0, false);
+      }, { passive: false });
     }
 
     // Steering Wheel Rotary Mouse Drag Interaction
@@ -687,9 +793,11 @@ export class CockpitController {
         const statusBadge = document.getElementById(`${ropeId}-status-badge`);
         const clutchBtn = document.getElementById(`${ropeId}-clutch-btn`);
 
-        if (trimFill) trimFill.style.width = `${Math.round(rState.actual_trim * 100)}%`;
-        if (targetMarker) targetMarker.style.left = `${Math.round(rState.target_trim * 100)}%`;
-        if (trimVal) trimVal.textContent = `${Math.round(rState.actual_trim * 100)}% (${(rState.length_m || 0).toFixed(1)}m)`;
+        if (this.draggingRopeId !== ropeId) {
+          if (trimFill) trimFill.style.width = `${Math.round(rState.actual_trim * 100)}%`;
+          if (targetMarker) targetMarker.style.left = `${Math.round(rState.target_trim * 100)}%`;
+          if (trimVal) trimVal.textContent = `${Math.round(rState.actual_trim * 100)}% (${(rState.length_m || 0).toFixed(1)}m)`;
+        }
 
         // Load calculation & color
         const loadPct = rState.max_working_load_n > 0 ? (rState.tension_n / rState.max_working_load_n) * 100 : 0;

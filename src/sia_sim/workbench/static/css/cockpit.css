@@ -187,22 +187,48 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.trim-track {
+  height: 11px;
+  cursor: ew-resize;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  touch-action: none;
+}
+
+.trim-track:hover {
+  border-color: rgba(88, 166, 255, 0.7);
+  box-shadow: 0 0 8px rgba(88, 166, 255, 0.35);
+}
+
+.trim-track.dragging {
+  border-color: #58a6ff;
+  box-shadow: 0 0 10px rgba(88, 166, 255, 0.6);
+}
+
 .bar-fill-trim {
   height: 100%;
   background: #238636;
   border-radius: 3px;
-  transition: width 0.1s linear;
+  transition: width 0.08s linear;
 }
 
 .target-marker {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: 3px;
   background: #ffffff;
-  box-shadow: 0 0 4px #ffffff;
+  border-radius: 1.5px;
+  box-shadow: 0 0 4px #ffffff, 0 0 8px rgba(88, 166, 255, 0.9);
   transform: translateX(-50%);
   z-index: 2;
+  transition: left 0.08s ease;
+}
+
+.trim-track.dragging .target-marker,
+.trim-track.dragging .bar-fill-trim {
+  transition: none;
 }
 
 .bar-fill-load {
