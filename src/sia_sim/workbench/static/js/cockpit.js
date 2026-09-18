@@ -1,27 +1,32 @@
 /**
- * Cockpit & Rig Control System - SIA Simulation Workbench (v2.1 [CORRECT] Best Practices)
+ * Cockpit & Rig Control System - SIA Simulation Workbench (v2.0 [CORRECT])
  * 
- * Architecture & Design:
- * - Decoupled single-rope physics evaluation without cross-rope interference
- * - Targeted single-element DOM updates (O(1) updates on drag/wheel)
- * - Independent Skipper Mode Source of Truth (no server-telemetry overwrite race conditions)
- * - Strict adherence to physical marine aerodynamics and Safe Working Loads (SWL)
+ * Provides interactive 3-column cockpit controls:
+ * - Port column (Jib Sheet Port, Jib Furler, Cunningham)
+ * - Center column (Helm, Bipolar Traveler Slider [-100%..0..+100%])
+ * - Starboard column (Main Sheet, Boom Vang, Jib Sheet Starboard)
+ * - Reefing Dock (Halyard, Reef 1/2, Outhaul, Presets)
+ * - Dual-bar rope widgets (Trim + Load gradient)
+ * - Dual color channels (ID stripe vs Load status)
+ * - Tack-aware active/idle jib sheet dimming
+ * - Safety interlock feedback
  */
 
-export const ROPE_METADATA = {
-  jib_sheet_port: { name: 'Jib Sheet Port', side: 'port', badge: 'PORT', color: '#007AFF', group: 'jib' },
+const ROPE_METADATA = {
+  mainsheet: { name: 'Main Sheet', side: 'starboard', badge: 'MAIN', color: '#FF9500', group: 'main' },
+  jib_sheet_port: { name: 'Jib Sheet Port', side: 'port', badge: 'P', color: '#007AFF', group: 'jib' },
+  jib_sheet_starboard: { name: 'Jib Sheet Stbd', side: 'starboard', badge: 'S', color: '#34C759', group: 'jib' },
+  jib_halyard: { name: 'Jib Halyard', side: 'port', badge: 'P', color: '#5AC8FA', group: 'jib' },
   furling_line: { name: 'Furling Line', side: 'port', badge: 'FURL', color: '#8E8E93', group: 'jib' },
-  cunningham: { name: 'Cunningham', side: 'port', badge: 'CUNN', color: '#AEAEB2', group: 'main' },
-  mainsheet: { name: 'Main Sheet', side: 'starboard', badge: 'SHEET', color: '#FF9500', group: 'main' },
+  cunningham: { name: 'Cunningham', side: 'port', badge: 'MAIN', color: '#AEAEB2', group: 'main' },
+  outhaul: { name: 'Outhaul', side: 'port', badge: 'MAIN', color: '#D1A76E', group: 'main' },
+  reef_line_1: { name: 'Reef Line 1', side: 'port', badge: 'R1', color: '#FFCC00', group: 'reef' },
+  reef_line_2: { name: 'Reef Line 2', side: 'port', badge: 'R2', color: '#E08600', group: 'reef' },
+  main_halyard: { name: 'Main Halyard', side: 'starboard', badge: 'MAIN', color: '#FF2D55', group: 'main' },
   boom_vang: { name: 'Boom Vang', side: 'starboard', badge: 'VANG', color: '#FFD60A', group: 'main' },
-  jib_sheet_starboard: { name: 'Jib Sheet Stbd', side: 'starboard', badge: 'STBD', color: '#34C759', group: 'jib' },
-  main_halyard: { name: 'Main Halyard', side: 'deck', badge: 'HALY', color: '#FF2D55', group: 'main' },
-  reef_line_1: { name: 'Reef Line 1', side: 'deck', badge: 'REEF1', color: '#FFCC00', group: 'reef' },
-  reef_line_2: { name: 'Reef Line 2', side: 'deck', badge: 'REEF2', color: '#E08600', group: 'reef' },
-  outhaul: { name: 'Outhaul', side: 'deck', badge: 'OUTH', color: '#D1A76E', group: 'main' },
 };
 
-export const DEFAULT_ROPE_CONFIG = {
+const DEFAULT_ROPE_CONFIG = {
   mainsheet: { max_working_load_n: 2500, default_trim: 0.65, max_length_m: 14.0 },
   boom_vang: { max_working_load_n: 2200, default_trim: 0.40, max_length_m: 6.0 },
   main_halyard: { max_working_load_n: 3500, default_trim: 0.95, max_length_m: 22.0 },
@@ -41,22 +46,21 @@ export class CockpitController {
     this.state = null;
     this.awa_deg = 40.0;
     this.aws_kt = 15.0;
-    this.heel_deg = 0.0;
-    this.activePreset = 'FULL_SAIL';
 
-    // Steering wheel & Rudder dynamics
-    this.turns_to_max_rudder = 1.0;
+    // Steering wheel & Rudder dynamics configuration
+    this.turns_to_max_rudder = 1.0; // 1.0 turn (360°) from center to 35° max rudder (configurable by vessel type)
     this.max_rudder_deg = 35.0;
-    this.wheel_angle_deg = 0.0;
-    this.rudder_actual_deg = 0.0;
-    this.rudder_cmd_deg = 0.0;
+    this.wheel_angle_deg = 0.0; // Cumulative wheel rotation in degrees (-360° to +360°)
+    this.rudder_actual_deg = 0.0; // Rudder blade physical angle (-35° to +35°)
+    this.rudder_cmd_deg = 0.0; // Rudder commanded angle
     this.hydro_loss = 0.0;
     this.isDraggingWheel = false;
-    this.wheelAnimFrame = null;
     this.draggingRopeId = null;
-    this.controlMode = 'autopilot'; // 'autopilot' | 'skipper'
+        this.controlMode = 'autopilot'; // 'autopilot' | 'skipper'
+    this.heel_deg = 0.0;
+    this.activePreset = 'FULL_MAIN';
 
-    // Initialize decoupled rope states
+    // Initialize individual rope states
     this.ropeStates = {};
     Object.entries(DEFAULT_ROPE_CONFIG).forEach(([ropeId, cfg]) => {
       this.ropeStates[ropeId] = {
@@ -101,9 +105,8 @@ export class CockpitController {
           </div>
         </div>
 
-        <!-- 3-Column Cockpit Grid (Port 25% | Center 50% | Starboard 25%) -->
         <div class="cockpit-grid">
-          <!-- Port Column (25%) -->
+          <!-- Port Column -->
           <div class="cockpit-col col-port">
             <div class="col-header">
               <span>PORTSIDE/LEFT</span>
@@ -114,24 +117,24 @@ export class CockpitController {
             <div id="rope-cunningham"></div>
           </div>
 
-          <!-- Center Column (50%) -->
+          <!-- Center Column -->
           <div class="cockpit-col col-center">
             <div class="col-header">
               <span>CENTER (ДП / ШТУРВАЛ)</span>
               <span id="cockpit-helm-header-val" style="font-size:9px; color:#8b949e">HELM: 0.0° (0.00 об)</span>
             </div>
             
-            <!-- HELM & RUDDER CONSOLE -->
+            <!-- HELM & RUDDER CONSOLE (LARGE CENTERED ROTARY WHEEL) -->
             <div class="helm-rudder-widget">
               <div class="helm-title-row">
                 <div class="rope-title-row">
-                  <span class="rope-badge" style="background:#58a6ff; color:#fff">HELM</span>
-                  <span style="font-size:11px; font-weight:700">Штурвал и Аксиометр</span>
+                  <span class="rope-badge" style="background:#007aff">HELM</span>
+                  <span style="font-size:11px; font-weight:700;">ШТУРВАЛ И ПЕРО РУЛЯ</span>
                 </div>
                 <span id="rudder-hydro-badge" class="rope-status-badge status-ok">HYDRO: 100%</span>
               </div>
 
-              <!-- Big Rotary Steering Wheel (186px SVG) -->
+              <!-- Big Rotary Steering Wheel -->
               <div class="helm-large-wheel-container">
                 <div class="wheel-svg-wrapper-large" id="helm-wheel-svg-wrapper" title="Крутите штурвал мышкой (Drag / Scroll) • 2x клик = ДП">
                   <svg class="helm-wheel-svg-large" id="helmWheelSvg" viewBox="0 0 200 200" width="186" height="186">
@@ -155,7 +158,7 @@ export class CockpitController {
                     <!-- King Spoke Marker (Top Center Ribbon at 0°) -->
                     <rect x="96" y="4" width="8" height="18" rx="2.5" fill="#ff3b30" stroke="#b91c1c" stroke-width="1" />
 
-                    <!-- 6 Marine Spokes -->
+                    <!-- 6 Heavy Marine Spokes -->
                     <line x1="100" y1="100" x2="100" y2="14" stroke="#8b949e" stroke-width="4.5" stroke-linecap="round" />
                     <line x1="100" y1="100" x2="100" y2="186" stroke="#8b949e" stroke-width="4.5" stroke-linecap="round" />
                     <line x1="100" y1="100" x2="26" y2="57" stroke="#8b949e" stroke-width="4.5" stroke-linecap="round" />
@@ -186,40 +189,42 @@ export class CockpitController {
                 </div>
               </div>
 
-              <!-- Rudder Axiometer -->
+              <!-- Rudder Axiometer (Индикатор пера руля под штурвалом) -->
               <div class="rudder-axiometer-card">
                 <div class="axiometer-header">
-                  <span>ИНДИКАТОР ПЕРА РУЛЯ (AXIOMETER)</span>
-                  <div class="axiometer-readouts">
-                    <span class="readout-actual">ACT: <b id="rudder-actual-val">0.0° CTR</b></span>
-                    <span class="readout-cmd">CMD: <b id="rudder-cmd-val">0.0°</b></span>
+                  <span class="axiometer-actual-readout">ПЕРО: <b id="rudder-actual-val" style="color:#f0f6fc;">0.0° CTR</b></span>
+                  <span class="axiometer-cmd-readout" style="opacity:0.65;">CMD: <b id="rudder-cmd-val" style="color:#79c0ff;">0.0°</b></span>
+                </div>
+                <div class="axiometer-track-wrap">
+                  <div class="axiometer-scale">
+                    <span style="color:#ff7b72">PORT 35° (1 об)</span>
+                    <span style="color:#8b949e">20°</span>
+                    <span style="color:#58a6ff; font-weight:700;">0° ДП</span>
+                    <span style="color:#8b949e">20°</span>
+                    <span style="color:#56d364">35° STBD (1 об)</span>
                   </div>
-                </div>
-                
-                <div class="axiometer-scale-track">
-                  <div class="axiometer-center-mark"></div>
-                  <div class="axiometer-pointer pointer-actual" id="axiometer-actual-pointer" style="left: 50%;"></div>
-                  <div class="axiometer-pointer pointer-cmd" id="axiometer-cmd-pointer" style="left: 50%;"></div>
-                </div>
-                
-                <div class="axiometer-ticks">
-                  <span>PORT 35°</span>
-                  <span>20°</span>
-                  <span class="tick-center">0° ДП</span>
-                  <span>20°</span>
-                  <span>STBD 35°</span>
+                  <div class="axiometer-bar-track">
+                    <div class="axiometer-mid-line"></div>
+                    <div class="axiometer-zone-port-danger"></div>
+                    <div class="axiometer-zone-port-warn"></div>
+                    <div class="axiometer-zone-center-ok"></div>
+                    <div class="axiometer-zone-stbd-warn"></div>
+                    <div class="axiometer-zone-stbd-danger"></div>
+                    <div class="axiometer-cmd-pointer" id="axiometer-cmd-pointer" style="left: 50%;"></div>
+                    <div class="axiometer-actual-pointer" id="axiometer-actual-pointer" style="left: 50%;"></div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Reefing Scenarios Widget -->
-            <div class="reefing-scenario-widget">
-              <div class="preset-header">
-                <span>⚡ РИФЛЕНИЕ И ПАРУСНЫЕ ПРЕСЕТЫ</span>
-                <span id="reef-status-text" class="preset-status-text">FULL SAIL (100%)</span>
+            <!-- Reefing Scenarios (Center Column 40% under Axiometer) -->
+            <div class="reefing-dock">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:10px; font-weight:700; color:#c9d1d9;">REEFING SCENARIOS</span>
+                <span id="reef-status-text" style="font-size:9px; color:#58a6ff;">FULL MAIN (100%)</span>
               </div>
-              <div class="preset-buttons-grid">
-                <button class="preset-btn active" data-preset="FULL_SAIL">FULL (100%)</button>
+              <div class="reefing-presets-row">
+                <button class="preset-btn active" data-preset="FULL_MAIN">FULL MAIN</button>
                 <button class="preset-btn" data-preset="REEF_1">REEF 1 (75%)</button>
                 <button class="preset-btn" data-preset="REEF_2">REEF 2 (50%)</button>
               </div>
@@ -243,29 +248,24 @@ export class CockpitController {
         <div class="traveler-widget-full">
           <div class="rope-widget-top">
             <div class="rope-title-row">
-              <span class="rope-badge" style="background:#58a6ff; color:#fff">TRAV</span>
-              <span style="font-weight:700">Погон гика (Mainsheet Traveler)</span>
+              <span class="rope-badge" style="background:#636366">CTR</span>
+              <span>TRAVELER (Погон гика)</span>
             </div>
-            <span id="traveler-val-readout" class="traveler-pos-text"><b>0% (CENTER)</b></span>
-          </div>
-          <div class="traveler-track-container">
-            <input type="range" id="traveler-slider" class="traveler-range-slider" min="-100" max="100" value="0" step="1" title="Погон гика: влево (Port) / вправо (Starboard)">
-            <div class="traveler-ticks">
-              <span>PORT -100%</span>
-              <span class="tick-center">0% (ДП)</span>
-              <span>STBD +100%</span>
-            </div>
-          </div>
-          <div class="rope-controls-row">
             <button class="clutch-btn clamped" id="traveler-clutch-btn">🔒 BRAKE</button>
-            <div class="step-btns">
-              <button class="step-btn" id="traveler-btn-center">CTR 0%</button>
+          </div>
+
+          <div class="traveler-track-container">
+            <input type="range" class="traveler-slider-input" id="traveler-slider" min="-100" max="100" value="0" step="5" />
+            <div class="traveler-scale">
+              <span>◀ PORT (-100%)</span>
+              <span id="traveler-val-readout"><b>0% (CENTER)</b></span>
+              <span>STBD (+100%) ▶</span>
             </div>
           </div>
         </div>
 
-        <!-- Tier 3: Lower Rig Deck (4 x 25% Grid) -->
-        <div class="cockpit-deck-grid">
+        <!-- Tier 3: Lower Rig Dock (4 cards x 25% each: Main Halyard, Reef Line 1, Reef Line 2, Outhaul) -->
+        <div class="cockpit-reef-deck-grid">
           <div id="rope-main_halyard"></div>
           <div id="rope-reef_line_1"></div>
           <div id="rope-reef_line_2"></div>
@@ -274,7 +274,7 @@ export class CockpitController {
       </div>
     `;
 
-    // Render individual rope widget cards
+    // Render individual rope cards
     Object.keys(ROPE_METADATA).forEach(ropeId => {
       const el = document.getElementById(`rope-${ropeId}`);
       if (el) {
@@ -313,7 +313,7 @@ export class CockpitController {
           <div class="bar-row">
             <div class="bar-label-row">
               <span>LOAD</span>
-              <span id="${ropeId}-load-val">200 N / SWL 2500 N</span>
+              <span id="${ropeId}-load-val">250 N / SWL 2500 N</span>
             </div>
             <div class="bar-track">
               <div class="bar-fill-load" id="${ropeId}-load-fill" style="width: 10%; background: var(--load-green);"></div>
@@ -337,7 +337,6 @@ export class CockpitController {
   setControlMode(mode, triggerSource = '') {
     if (this.controlMode === mode) return;
     this.controlMode = mode;
-
     const btn = document.getElementById('btn-cockpit-mode-toggle');
     const icon = document.getElementById('cockpit-mode-icon');
     const text = document.getElementById('cockpit-mode-text');
@@ -345,12 +344,12 @@ export class CockpitController {
     if (mode === 'skipper') {
       if (btn) {
         btn.className = 'cockpit-mode-btn mode-skipper';
-        btn.title = 'Режим: ШКИПЕР (Ручное управление). Кликните для возврата на автопилот сценария';
+        btn.title = 'Режим: ШКИПЕР (Ручное управление). Нажмите для возврата на АВТОПИЛОТ';
       }
       if (icon) icon.textContent = '🕹';
-      if (text) text.textContent = 'ШКИПЕР (РУЧНОЕ) • НАЖМИТЕ ДЛЯ СБРОСА';
+      if (text) text.textContent = 'ШКИПЕР (РУЧНОЕ) • ↩ АВТОПИЛОТ';
       if (window.Logger && triggerSource) {
-        window.Logger.log('COCKPIT', 'WARN', `Шкипер взял управление в свои руки (${triggerSource}) -> SKIPPER MODE.`);
+        window.Logger.log('COCKPIT', 'WARN', `Шкипер взял управление в свои руки (${triggerSource}) • SKIPPER MODE.`);
       }
     } else {
       if (btn) {
@@ -360,32 +359,20 @@ export class CockpitController {
       if (icon) icon.textContent = '🤖';
       if (text) text.textContent = 'АВТОПИЛОТ (СЦЕНАРИЙ)';
       if (window.Logger) {
-        window.Logger.log('COCKPIT', 'INFO', 'Возврат на автопилот симуляции (AUTOPILOT MODE).');
+        window.Logger.log('COCKPIT', 'INFO', 'Управление передано автопилоту сценария • AUTOPILOT MODE.');
       }
     }
   }
 
   bindEvents() {
-    // Mode Switcher Button
+    // Mode Toggle Button (Autopilot <-> Skipper)
     const modeBtn = document.getElementById('btn-cockpit-mode-toggle');
     if (modeBtn) {
       modeBtn.addEventListener('click', () => {
-        if (this.controlMode === 'skipper') {
-          this.setControlMode('autopilot', 'Кнопка переключателя');
-        } else {
-          this.setControlMode('skipper', 'Кнопка переключателя');
-        }
+        const nextMode = this.controlMode === 'autopilot' ? 'skipper' : 'autopilot';
+        this.setControlMode(nextMode, 'Кнопка переключения');
       });
     }
-
-    // Preset Buttons
-    this.container.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.setControlMode('skipper', `Пресет ${btn.dataset.preset}`);
-        const preset = btn.dataset.preset;
-        if (preset) this.sendPreset(preset);
-      });
-    });
 
     // Clutch Toggle Buttons
     this.container.querySelectorAll('.clutch-btn').forEach(btn => {
@@ -410,7 +397,7 @@ export class CockpitController {
       });
     });
 
-    // Step +/- buttons (Isolated to target rope)
+    // Step +/- buttons (Isolated to this single rope)
     this.container.querySelectorAll('.step-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const ropeId = btn.dataset.rope;
@@ -424,7 +411,7 @@ export class CockpitController {
 
         rope.actual_trim = newTrim;
         rope.target_trim = newTrim;
-        rope.clamped = false; // Auto unclamp when stepping
+        rope.clamped = false;
         rope.length_m = newTrim * rope.max_length_m;
 
         this.computeRopeTension(ropeId);
@@ -515,9 +502,9 @@ export class CockpitController {
       }
     });
 
-    // Traveler Slider & Center Button
+    // Traveler Slider & Wheel
     const travelerSlider = document.getElementById('traveler-slider');
-    const travelerBtnCenter = document.getElementById('traveler-btn-center');
+    const travelerWidget = document.querySelector('.traveler-widget-full');
     if (travelerSlider) {
       travelerSlider.addEventListener('input', (e) => {
         this.setControlMode('skipper', 'Погон гика (Traveler)');
@@ -536,56 +523,62 @@ export class CockpitController {
       });
     }
 
-    if (travelerBtnCenter) {
-      travelerBtnCenter.addEventListener('click', () => {
-        this.setControlMode('skipper', 'Погон гика в 0%');
-        if (travelerSlider) travelerSlider.value = '0';
+    if (travelerWidget) {
+      travelerWidget.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        this.setControlMode('skipper', 'Погон гика (Колесо мыши)');
+        if (!travelerSlider) return;
+        const currVal = parseFloat(travelerSlider.value);
+        const step = e.deltaY < 0 ? 5 : -5;
+        const newVal = Math.max(-100, Math.min(100, currVal + step));
+        travelerSlider.value = newVal;
         const readout = document.getElementById('traveler-val-readout');
-        if (readout) readout.innerHTML = '<b>0% (CENTER)</b>';
-        this.sendTravelerControl(0.0, false);
-      });
+        if (readout) {
+          const signStr = newVal < 0 ? `PORT (${newVal}%)` : (newVal > 0 ? `STBD (+${newVal}%)` : `0% (CENTER)`);
+          readout.innerHTML = `<b>${signStr}</b>`;
+        }
+        this.sendTravelerControl(newVal / 100.0, false);
+      }, { passive: false });
     }
 
-    // Steering Wheel Rotary Mouse Drag & Center HUD Interactions
+    // Steering Wheel Rotary Mouse Drag Interaction
     const wheelWrap = document.getElementById('helm-wheel-svg-wrapper');
-    const centerResetBtn = document.getElementById('helm-center-reset-btn');
-
     if (wheelWrap) {
-      let startPointerAngle = 0;
-      let startWheelAngle = 0;
+      let prevPointerAngle = 0;
 
-      const getAngleFromCenter = (clientX, clientY) => {
+      const getPointerAngleDeg = (clientX, clientY) => {
         const rect = wheelWrap.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
       };
 
       wheelWrap.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('#helm-center-reset-btn')) return;
-        if (this.wheelAnimFrame) cancelAnimationFrame(this.wheelAnimFrame);
-
         this.setControlMode('skipper', 'Штурвал');
+        if (this.centeringAnimFrame) {
+          cancelAnimationFrame(this.centeringAnimFrame);
+          this.centeringAnimFrame = null;
+        }
         this.isDraggingWheel = true;
         wheelWrap.classList.add('dragging');
         wheelWrap.setPointerCapture(e.pointerId);
-
-        startPointerAngle = getAngleFromCenter(e.clientX, e.clientY);
-        startWheelAngle = this.wheel_angle_deg;
+        prevPointerAngle = getPointerAngleDeg(e.clientX, e.clientY);
       });
 
       wheelWrap.addEventListener('pointermove', (e) => {
         if (!this.isDraggingWheel) return;
-        const currentAngle = getAngleFromCenter(e.clientX, e.clientY);
-        let delta = currentAngle - startPointerAngle;
+        const currentAngle = getPointerAngleDeg(e.clientX, e.clientY);
+        let delta = currentAngle - prevPointerAngle;
 
-        while (delta > 180) delta -= 360;
-        while (delta < -180) delta += 360;
+        // Handle circular wrap-around (-180° / +180°)
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+
+        prevPointerAngle = currentAngle;
 
         const maxWheelDeg = this.turns_to_max_rudder * 360.0;
-        this.wheel_angle_deg = Math.max(-maxWheelDeg, Math.min(maxWheelDeg, startWheelAngle + delta));
+        this.wheel_angle_deg = Math.max(-maxWheelDeg, Math.min(maxWheelDeg, this.wheel_angle_deg + delta));
         this.rudder_actual_deg = (this.wheel_angle_deg / maxWheelDeg) * this.max_rudder_deg;
-
         this.updateHelmVisuals();
       });
 
@@ -602,67 +595,96 @@ export class CockpitController {
       wheelWrap.addEventListener('pointerup', stopWheelDrag);
       wheelWrap.addEventListener('pointercancel', stopWheelDrag);
 
+      // Mouse scroll support for incremental micro-steering
       wheelWrap.addEventListener('wheel', (e) => {
         e.preventDefault();
-        if (this.wheelAnimFrame) cancelAnimationFrame(this.wheelAnimFrame);
-        this.setControlMode('skipper', 'Колесо мыши на штурвале');
-
-        const step = e.deltaY < 0 ? 12.0 : -12.0;
+        this.setControlMode('skipper', 'Штурвал (Колесо мыши)');
+        if (this.centeringAnimFrame) {
+          cancelAnimationFrame(this.centeringAnimFrame);
+          this.centeringAnimFrame = null;
+        }
+        const delta = Math.sign(e.deltaY) * 10.0;
         const maxWheelDeg = this.turns_to_max_rudder * 360.0;
-        this.wheel_angle_deg = Math.max(-maxWheelDeg, Math.min(maxWheelDeg, this.wheel_angle_deg + step));
+        this.wheel_angle_deg = Math.max(-maxWheelDeg, Math.min(maxWheelDeg, this.wheel_angle_deg + delta));
         this.rudder_actual_deg = (this.wheel_angle_deg / maxWheelDeg) * this.max_rudder_deg;
-
         this.updateHelmVisuals();
       }, { passive: false });
 
-      wheelWrap.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        this.setControlMode('skipper', '2x клик штурвала в 0°');
+      // Double click anywhere on wheel initiates smooth rate-limited return to 0° CTR
+      wheelWrap.addEventListener('dblclick', () => {
+        this.setControlMode('skipper', 'Штурвал (2x клик)');
         this.smoothAnimateWheelTo(0.0);
       });
+
+      // Single click directly on center hub button initiates smooth rate-limited return to 0° CTR
+      const centerHubBtn = document.getElementById('helm-center-reset-btn');
+      if (centerHubBtn) {
+        centerHubBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          this.setControlMode('skipper', 'Штурвал (Центровка 0°)');
+          this.smoothAnimateWheelTo(0.0);
+        });
+        centerHubBtn.addEventListener('pointerdown', (e) => {
+          e.stopPropagation(); // prevent drag initiation when clicking center button
+        });
+      }
     }
 
-    if (centerResetBtn) {
-      centerResetBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.setControlMode('skipper', 'Клик центра штурвала в 0°');
-        this.smoothAnimateWheelTo(0.0);
+    // Preset Buttons
+    this.container.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.dataset.preset;
+        if (preset) {
+          this.setControlMode('skipper', `Пресет ${preset}`);
+          this.sendPreset(preset);
+        }
       });
-    }
+    });
   }
 
-  smoothAnimateWheelTo(targetAngleDeg, durationMs = 350) {
-    if (this.wheelAnimFrame) cancelAnimationFrame(this.wheelAnimFrame);
-
-    const startAngle = this.wheel_angle_deg;
-    const diff = targetAngleDeg - startAngle;
-    if (Math.abs(diff) < 0.1) {
-      this.wheel_angle_deg = targetAngleDeg;
-      this.rudder_actual_deg = (targetAngleDeg / (this.turns_to_max_rudder * 360.0)) * this.max_rudder_deg;
-      this.updateHelmVisuals();
-      return;
+  smoothAnimateWheelTo(targetWheelDeg, speedDegPerSec = 450.0) {
+    if (this.centeringAnimFrame) {
+      cancelAnimationFrame(this.centeringAnimFrame);
+      this.centeringAnimFrame = null;
     }
 
-    const startTime = performance.now();
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(1.0, elapsed / durationMs);
-      const ease = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    let lastTime = performance.now();
+    const maxWheelDeg = this.turns_to_max_rudder * 360.0;
+    const clampedTarget = Math.max(-maxWheelDeg, Math.min(maxWheelDeg, targetWheelDeg));
 
-      this.wheel_angle_deg = startAngle + diff * ease;
-      this.rudder_actual_deg = (this.wheel_angle_deg / (this.turns_to_max_rudder * 360.0)) * this.max_rudder_deg;
-      this.updateHelmVisuals();
+    const stepAnim = (currentTime) => {
+      if (this.isDraggingWheel) {
+        this.centeringAnimFrame = null;
+        return;
+      }
 
-      if (progress < 1.0) {
-        this.wheelAnimFrame = requestAnimationFrame(animate);
-      } else {
-        this.wheel_angle_deg = targetAngleDeg;
-        this.rudder_actual_deg = (targetAngleDeg / (this.turns_to_max_rudder * 360.0)) * this.max_rudder_deg;
+      const dt = Math.min(0.05, (currentTime - lastTime) / 1000.0);
+      lastTime = currentTime;
+
+      const diff = clampedTarget - this.wheel_angle_deg;
+      const maxStep = speedDegPerSec * dt;
+
+      if (Math.abs(diff) <= maxStep) {
+        this.wheel_angle_deg = clampedTarget;
+        this.rudder_actual_deg = (this.wheel_angle_deg / maxWheelDeg) * this.max_rudder_deg;
         this.updateHelmVisuals();
-        this.wheelAnimFrame = null;
+        this.centeringAnimFrame = null;
+      } else {
+        this.wheel_angle_deg += Math.sign(diff) * maxStep;
+        this.rudder_actual_deg = (this.wheel_angle_deg / maxWheelDeg) * this.max_rudder_deg;
+        this.updateHelmVisuals();
+        this.centeringAnimFrame = requestAnimationFrame(stepAnim);
       }
     };
-    this.wheelAnimFrame = requestAnimationFrame(animate);
+
+    this.centeringAnimFrame = requestAnimationFrame(stepAnim);
+  }
+
+  setHelmAngle(angleDeg) {
+    const maxWheelDeg = this.turns_to_max_rudder * 360.0;
+    const targetWheel = (Math.max(-this.max_rudder_deg, Math.min(this.max_rudder_deg, angleDeg)) / this.max_rudder_deg) * maxWheelDeg;
+    this.smoothAnimateWheelTo(targetWheel);
   }
 
   updateHelmVisuals() {
@@ -676,6 +698,7 @@ export class CockpitController {
     const cmdPointer = document.getElementById('axiometer-cmd-pointer');
     const hydroBadge = document.getElementById('rudder-hydro-badge');
 
+    // Rotate SVG wheel smoothly by cumulative wheel angle
     if (wheelSvg) {
       wheelSvg.style.transform = `rotate(${this.wheel_angle_deg.toFixed(1)}deg)`;
     }
@@ -700,6 +723,7 @@ export class CockpitController {
       rudderCmdVal.textContent = `${(this.rudder_cmd_deg >= 0 ? '+' : '')}${this.rudder_cmd_deg.toFixed(1)}°`;
     }
 
+    // Map -35°..+35° to 0%..100%
     if (actualPointer) {
       const pct = Math.max(0, Math.min(100, ((this.rudder_actual_deg + this.max_rudder_deg) / (2 * this.max_rudder_deg)) * 100));
       actualPointer.style.left = `${pct}%`;
@@ -724,7 +748,7 @@ export class CockpitController {
   }
 
   /**
-   * Evaluates aerodynamic tension (in Newtons) for a single specific rope in isolation.
+   * Calculates dynamic aerodynamic load in Newtons for a single rope in isolation.
    */
   computeRopeTension(ropeId) {
     const r = this.ropeStates[ropeId];
@@ -834,7 +858,7 @@ export class CockpitController {
   }
 
   /**
-   * Updates exactly ONE rope's visual DOM elements in O(1) time.
+   * Updates ONLY the DOM nodes for a single rope (isolated O(1) performance).
    */
   updateSingleRopeVisual(ropeId) {
     const rState = this.ropeStates[ropeId];
@@ -932,7 +956,7 @@ export class CockpitController {
         if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.85;
         if (this.ropeStates.reef_line_2) this.ropeStates.reef_line_2.actual_trim = 0.90;
         if (this.ropeStates.mainsheet) this.ropeStates.mainsheet.actual_trim = Math.max(0.3, this.ropeStates.mainsheet.actual_trim * 0.70);
-      } else if (presetName === 'FULL_SAIL') {
+      } else if (presetName === 'FULL_MAIN') {
         if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.05;
         if (this.ropeStates.reef_line_2) this.ropeStates.reef_line_2.actual_trim = 0.05;
       }
@@ -992,7 +1016,7 @@ export class CockpitController {
         this.hydro_loss = telemetry.helm.hydro_loss;
       }
 
-      // ONLY overwrite rudder and wheel angle from scenario telemetry if in AUTOPILOT mode
+      // ONLY overwrite rudder and wheel angle from scenario telemetry if in AUTOPILOT mode!
       if (this.controlMode === 'autopilot') {
         if (telemetry.helm.rudder_deg !== undefined && telemetry.helm.rudder_deg !== null) {
           this.rudder_actual_deg = telemetry.helm.rudder_deg;
@@ -1003,10 +1027,6 @@ export class CockpitController {
         }
       }
       this.updateHelmVisuals();
-    }
-
-    if (telemetry.vessel) {
-      this.heel_deg = telemetry.vessel.heel_deg ?? this.heel_deg;
     }
 
     if (telemetry.wind) {
@@ -1034,12 +1054,16 @@ export class CockpitController {
       }
     }
 
+    if (telemetry.vessel) {
+      this.heel_deg = telemetry.vessel.heel_deg ?? this.heel_deg;
+    }
+
     // Dynamic rope physics update on wind/heel changes
     this.computeAllRopeTensions();
     this.updateAllRopesVisuals();
 
-    // Update Traveler if received from telemetry in autopilot mode
-    if (telemetry.traveler && this.controlMode === 'autopilot') {
+    // Update Traveler
+    if (telemetry.traveler) {
       const tSlider = document.getElementById('traveler-slider');
       const tClutch = document.getElementById('traveler-clutch-btn');
       const tVal = document.getElementById('traveler-val-readout');
