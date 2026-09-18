@@ -264,6 +264,27 @@
   touch-action: none;
 }
 
+.trim-track.locked {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.trim-track.locked:hover {
+  border-color: rgba(255, 59, 48, 0.5);
+  box-shadow: 0 0 6px rgba(255, 59, 48, 0.3);
+}
+
+.trim-track.unlocked {
+  cursor: grab;
+  border-color: rgba(52, 199, 89, 0.5);
+}
+
+.trim-track.unlocked.dragging {
+  cursor: grabbing;
+  border-color: #34c759;
+  box-shadow: 0 0 10px rgba(52, 199, 89, 0.6);
+}
+
 .trim-track:hover {
   border-color: rgba(88, 166, 255, 0.7);
   box-shadow: 0 0 8px rgba(88, 166, 255, 0.35);
@@ -335,8 +356,31 @@
   color: #79c0ff;
 }
 
+.clutch-btn.unclamped {
+  background: rgba(52, 199, 89, 0.2);
+  border-color: #34c759;
+  color: #34c759;
+  font-weight: 700;
+}
+
+.clutch-btn.flash-alert {
+  animation: clutch-pulse 0.45s ease-in-out;
+}
+
+@keyframes clutch-pulse {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.18); box-shadow: 0 0 14px #ff3b30; border-color: #ff3b30; background: rgba(255, 59, 48, 0.4); color: #fff; }
+}
+
 .clutch-btn:hover {
   filter: brightness(1.2);
+}
+
+.step-btn:disabled,
+.step-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .step-btns {

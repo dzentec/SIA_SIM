@@ -864,6 +864,7 @@ export class CockpitController {
     const rState = this.ropeStates[ropeId];
     if (!rState) return;
 
+    const trimTrack = document.getElementById(`${ropeId}-trim-track`);
     const trimFill = document.getElementById(`${ropeId}-trim-fill`);
     const targetMarker = document.getElementById(`${ropeId}-target-marker`);
     const trimVal = document.getElementById(`${ropeId}-trim-val`);
@@ -871,12 +872,32 @@ export class CockpitController {
     const loadVal = document.getElementById(`${ropeId}-load-val`);
     const statusBadge = document.getElementById(`${ropeId}-status-badge`);
     const clutchBtn = document.getElementById(`${ropeId}-clutch-btn`);
+    const widget = document.getElementById(`widget-${ropeId}`);
 
     if (this.draggingRopeId !== ropeId) {
       if (trimFill) trimFill.style.width = `${Math.round(rState.actual_trim * 100)}%`;
       if (targetMarker) targetMarker.style.left = `${Math.round(rState.target_trim * 100)}%`;
       const lenM = rState.length_m || (rState.actual_trim * (DEFAULT_ROPE_CONFIG[ropeId]?.max_length_m || 10.0));
       if (trimVal) trimVal.textContent = `${Math.round(rState.actual_trim * 100)}% (${lenM.toFixed(1)}m)`;
+    }
+
+    // Track lock state
+    if (trimTrack) {
+      if (rState.clamped) {
+        trimTrack.className = 'bar-track trim-track locked';
+        trimTrack.title = 'Канат зажат в стопоре (🔒 CLAMPED). Кликните по кнопке стопора, чтобы открыть и регулировать.';
+      } else {
+        trimTrack.className = 'bar-track trim-track unlocked' + (this.draggingRopeId === ropeId ? ' dragging' : '');
+        trimTrack.title = 'Канат разблокирован (🔓 EASED). Тяните мышкой или крутите колесо мыши для натяжения.';
+      }
+    }
+
+    // Step buttons state
+    if (widget) {
+      widget.querySelectorAll('.step-btn').forEach(b => {
+        b.classList.toggle('disabled', Boolean(rState.clamped));
+        b.title = rState.clamped ? 'Канат зажат в стопоре (🔒 CLAMPED)' : 'Изменить набивку на 5%';
+      });
     }
 
     const loadPct = rState.max_working_load_n > 0 ? (rState.tension_n / rState.max_working_load_n) * 100 : 0;
@@ -902,8 +923,9 @@ export class CockpitController {
     }
 
     if (clutchBtn) {
-      clutchBtn.classList.toggle('clamped', Boolean(rState.clamped));
+      clutchBtn.className = `clutch-btn ${rState.clamped ? 'clamped' : 'unclamped'}`;
       clutchBtn.textContent = rState.clamped ? '🔒 CLAMPED' : '🔓 EASED';
+      clutchBtn.title = rState.clamped ? 'Стопор закрыт (канат заблокирован). Нажмите, чтобы открыть (🔓 EASED)' : 'Стопор открыт (свободный ход). Нажмите, чтобы зажать (🔒 CLAMPED)';
     }
   }
 
