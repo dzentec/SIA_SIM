@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SIA Cockpit | Standalone Skipper Bridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/workbench.css?v=1214">
+  <link rel="stylesheet" href="/css/cockpit.css?v=1214">
+  <style>
+    body.standalone-cockpit-body {
+      background: #090c10;
+      color: #e6edf3;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .standalone-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      background: #0d1117;
+      border-bottom: 1px solid #30363d;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .standalone-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: #58a6ff;
+    }
+
+    .standalone-right-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-pill {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(52, 199, 89, 0.15);
+      border: 1px solid #34c759;
+      color: #34c759;
+      font-weight: 700;
+    }
+
+    .btn-fullscreen {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-fullscreen:hover {
+      background: #30363d;
+      color: #ffffff;
+      border-color: #58a6ff;
+    }
+
+    .standalone-cockpit-content {
+      flex: 1;
+      padding: 12px 16px 20px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body class="standalone-cockpit-body">
+  <header class="standalone-header-bar">
+    <div class="standalone-logo-group">
+      <span>⚓</span>
+      <span>SIA SKIPPER BRIDGE • STANDALONE CONSOLE</span>
+    </div>
+    <div class="standalone-right-group">
+      <span class="status-pill" id="connStatus">● LIVE SYNC</span>
+      <button class="btn-fullscreen" id="btnToggleFullscreen" title="Полноэкранный режим">⛶ Fullscreen</button>
+    </div>
+  </header>
+
+  <main class="standalone-cockpit-content">
+    <div id="cockpitRoot"></div>
+  </main>
+
+  <!-- SCRIPTS -->
+  <script src="/js/service_logger.js?v=1214"></script>
+  <script type="module">
+    import { CockpitController } from '/js/cockpit.js?v=1214';
+
+    // BroadcastChannel for instant cross-tab / cross-window sync
+    const syncChannel = new BroadcastChannel('sia_workbench_sync');
+
+    window.CockpitController = new CockpitController('cockpitRoot');
+
+    // Initial telemetry fetch
+    window.CockpitController.fetchTelemetry();
+
+    // High frequency telemetry polling loop (100ms / 10 Hz)
+    setInterval(async () => {
+      try {
+        const res = await fetch('/api/v1/telemetry/rig');
+        if (res.ok) {
+          const telemetry = await res.json();
+          window.CockpitController.update(telemetry);
+          const connEl = document.getElementById('connStatus');
+          if (connEl) {
+            connEl.textContent = '● LIVE SYNC';
+            connEl.style.borderColor = '#34c759';
+            connEl.style.color = '#34c759';
+          }
+        }
+      } catch (err) {
+        const connEl = document.getElementById('connStatus');
+        if (connEl) {
+          connEl.textContent = '○ OFFLINE';
+          connEl.style.borderColor = '#ff3b30';
+          connEl.style.color = '#ff3b30';
+        }
+      }
+    }, 100);
+
+    // Listen for broadcasted simulation steps / resets from main window
+    syncChannel.onmessage = (event) => {
+      if (event.data && event.data.type === 'RIG_UPDATE' && event.data.telemetry) {
+        window.CockpitController.update(event.data.telemetry);
+      }
+    };
+
+    // Fullscreen toggle handler
+    const btnFullscreen = document.getElementById('btnToggleFullscreen');
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          btnFullscreen.textContent = '✕ Exit Fullscreen';
+        } else {
+          document.exitFullscreen().catch(() => {});
+          btnFullscreen.textContent = '⛶ Fullscreen';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

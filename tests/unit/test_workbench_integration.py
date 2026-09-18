@@ -38,6 +38,9 @@ def test_static_assets_exist() -> None:
     cockpit_css = STATIC_DIR / "css" / "cockpit.css"
     assert cockpit_css.exists() and cockpit_css.stat().st_size > 200
 
+    cockpit_html = STATIC_DIR / "cockpit.html"
+    assert cockpit_html.exists() and cockpit_html.stat().st_size > 500
+
 
 @pytest.fixture(scope="module")
 def running_workbench() -> Iterator[str]:
@@ -64,6 +67,16 @@ def test_serve_static_index(running_workbench: str) -> None:
         assert 'id="zoneSiaAdvisory"' in content
         assert 'id="zoneTimeline"' in content
         assert 'id="zoneQueryLoop"' in content
+
+
+def test_serve_standalone_cockpit(running_workbench: str) -> None:
+    """Verifies that GET /cockpit and GET /cockpit.html serve the standalone skipper bridge."""
+    for path in ["/cockpit", "/cockpit.html"]:
+        with urlopen(f"{running_workbench}{path}") as response:
+            assert response.status == 200
+            content = response.read().decode("utf-8")
+            assert "<title>SIA Cockpit | Standalone Skipper Bridge</title>" in content
+            assert 'id="cockpitRoot"' in content
 
 
 def test_serve_static_js_and_css(running_workbench: str) -> None:

@@ -61,6 +61,38 @@ export class CockpitController {
     this.activePreset = 'FULL_MAIN';
     this.travelerClamped = true;
 
+    // Cross-tab / cross-window synchronization via BroadcastChannel
+    try {
+      this.syncChannel = new BroadcastChannel('sia_workbench_sync');
+      this.syncChannel.onmessage = (event) => {
+        if (!event.data) return;
+        if (event.data.type === 'ROPE_CONTROL' && event.data.ropeId) {
+          const { ropeId, targetTrim, clamped } = event.data;
+          if (this.ropeStates[ropeId]) {
+            this.ropeStates[ropeId].actual_trim = targetTrim;
+            this.ropeStates[ropeId].target_trim = targetTrim;
+            this.ropeStates[ropeId].clamped = clamped;
+            this.computeRopeTension(ropeId);
+            this.updateSingleRopeVisual(ropeId);
+          }
+        } else if (event.data.type === 'TRAVELER_CONTROL') {
+          this.travelerClamped = Boolean(event.data.clamped);
+          const slider = document.getElementById('traveler-slider');
+          if (slider) {
+            slider.value = Math.round(event.data.targetPos * 100);
+            slider.disabled = this.travelerClamped;
+            slider.classList.toggle('locked', this.travelerClamped);
+          }
+          const btn = document.getElementById('traveler-clutch-btn');
+          if (btn) {
+            btn.classList.toggle('clamped', this.travelerClamped);
+            btn.classList.toggle('unlocked', !this.travelerClamped);
+            btn.textContent = this.travelerClamped ? '🔒 BRAKE' : '🔓 FREE';
+          }
+        }
+      };
+    } catch (_) {}
+
     // Initialize individual rope states
     this.ropeStates = {};
     Object.entries(DEFAULT_ROPE_CONFIG).forEach(([ropeId, cfg]) => {
@@ -98,6 +130,9 @@ export class CockpitController {
                 <span id="cockpit-mode-text">АВТОПИЛОТ (СЦЕНАРИЙ)</span>
               </button>
             </div>
+            <button id="btn-cockpit-popout" class="cockpit-popout-btn" title="Открыть кокпит в отдельном окне / на 2-м мониторе (🗗 Pop-out)">
+              <span>🗗 В отдельном окне</span>
+            </button>
           </div>
           <div class="cockpit-wind-summary" id="cockpit-wind-summary">
             <span>AWA: <b id="cockpit-awa">040°</b></span>
@@ -372,6 +407,22 @@ export class CockpitController {
       modeBtn.addEventListener('click', () => {
         const nextMode = this.controlMode === 'autopilot' ? 'skipper' : 'autopilot';
         this.setControlMode(nextMode, 'Кнопка переключения');
+      });
+    }
+
+    // Pop-out Standalone Window Button (Second screen / separate browser window)
+    const popoutBtn = document.getElementById('btn-cockpit-popout');
+    if (popoutBtn) {
+      popoutBtn.addEventListener('click', () => {
+        const w = 1240;
+        const h = 860;
+        const left = Math.round((window.screen.width - w) / 2);
+        const top = Math.round((window.screen.height - h) / 2);
+        window.open(
+          '/cockpit.html',
+          'SIACockpitStandaloneWindow',
+          `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes,status=no`
+        );
       });
     }
 
@@ -1040,6 +1091,11 @@ export class CockpitController {
   }
 
   async sendRopeControl(ropeId, targetTrim, clamped) {
+    if (this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({ type: 'ROPE_CONTROL', ropeId, targetTrim, clamped });
+      } catch (_) {}
+    }
     try {
       const payload = {
         timestamp_ms: Date.now(),
@@ -1056,6 +1112,11 @@ export class CockpitController {
   }
 
   async sendTravelerControl(targetPos, clamped) {
+    if (this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({ type: 'TRAVELER_CONTROL', targetPos, clamped });
+      } catch (_) {}
+    }
     try {
       const payload = {
         timestamp_ms: Date.now(),

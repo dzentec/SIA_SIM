@@ -202,8 +202,10 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             self._send_json({"status": "ok", "version": "0.1.0"})
         else:
             # Fallback to static file serving
-            if self.path == "/":
+            if self.path == "/" or self.path == "":
                 self.path = "/index.html"
+            elif self.path == "/cockpit":
+                self.path = "/cockpit.html"
             super().do_GET()
 
     def _handle_get_sails(self) -> None:
