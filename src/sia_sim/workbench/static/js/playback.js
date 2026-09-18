@@ -361,6 +361,8 @@ function renderAtTime(simTimeMs) {
   const tB = interpState.nextTick;
   const alpha = interpState.alpha;
   const activeTick = alpha < 0.5 ? tA : tB;
+  const sia = activeTick.sia_decision || {};
+  const sel = sia.selected_response || null;
 
   // 1. Clock Display (Continuous 60 FPS update)
   const totalSeconds = Math.max(0, simTimeMs / 1000);
@@ -587,6 +589,12 @@ function renderAtTime(simTimeMs) {
   }
 
   // Phase 12 Cockpit & Rig Control Live Wind & Helm Update
+  const currentSia = activeTick.sia_decision;
+  const currentSel = currentSia ? currentSia.selected_response : null;
+  const cmdRudderDeg = (currentSel && currentSel.rudder_command_deg !== null && currentSel.rudder_command_deg !== undefined)
+    ? currentSel.rudder_command_deg
+    : (actRudder !== null ? actRudder : 0.0);
+
   if (window.CockpitController && typeof window.CockpitController.update === 'function') {
     window.CockpitController.update({
       wind: {
@@ -595,7 +603,7 @@ function renderAtTime(simTimeMs) {
       },
       helm: {
         rudder_deg: rudder !== null ? rudder : (actRudder !== null ? actRudder : 0.0),
-        command_deg: sel.rudder_command_deg !== null ? sel.rudder_command_deg : (actRudder !== null ? actRudder : 0.0),
+        command_deg: cmdRudderDeg,
         hydro_loss: hydroLoss !== null ? hydroLoss : 0.0,
       }
     });
@@ -654,7 +662,6 @@ function renderAtTime(simTimeMs) {
   }
 
   // 5. Zone 4: SIA Advisory & Reasoning
-  const sia = activeTick.sia_decision;
   const siaHazardBadge = document.getElementById('siaHazardBadge');
   if (siaHazardBadge) {
     if (sia.hazard_id === 'HAZ-BROACH-PRECURSOR') {
@@ -674,15 +681,14 @@ function renderAtTime(simTimeMs) {
   }
 
   const siaRiskVal = document.getElementById('siaRiskVal');
-  if (siaRiskVal) siaRiskVal.textContent = sia.risk_score.toFixed(2);
+  if (siaRiskVal) siaRiskVal.textContent = (sia.risk_score || 0).toFixed(2);
   const siaRiskBar = document.getElementById('siaRiskBar');
-  if (siaRiskBar) siaRiskBar.style.width = `${Math.min(100, sia.risk_score * 100)}%`;
+  if (siaRiskBar) siaRiskBar.style.width = `${Math.min(100, (sia.risk_score || 0) * 100)}%`;
   const siaConfVal = document.getElementById('siaConfVal');
-  if (siaConfVal) siaConfVal.textContent = sia.confidence.toFixed(2);
+  if (siaConfVal) siaConfVal.textContent = (sia.confidence || 0).toFixed(2);
   const siaConfBar = document.getElementById('siaConfBar');
-  if (siaConfBar) siaConfBar.style.width = `${Math.min(100, sia.confidence * 100)}%`;
+  if (siaConfBar) siaConfBar.style.width = `${Math.min(100, (sia.confidence || 0) * 100)}%`;
 
-  const sel = sia.selected_response;
   const primaryCardTag = document.getElementById('primaryCardTag');
 
   if (sel) {

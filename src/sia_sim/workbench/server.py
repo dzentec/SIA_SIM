@@ -176,6 +176,12 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.OK)
         self.send_header("Access-Control-Allow-Origin", "*")
