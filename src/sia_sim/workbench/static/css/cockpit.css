@@ -388,8 +388,8 @@
 
 .wheel-svg-wrapper-large {
   position: relative;
-  width: 160px;
-  height: 160px;
+  width: 186px;
+  height: 186px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -419,8 +419,8 @@
   background: rgba(13, 17, 23, 0.85);
   border: 1.5px solid rgba(88, 166, 255, 0.4);
   border-radius: 50%;
-  width: 54px;
-  height: 54px;
+  width: 58px;
+  height: 58px;
   backdrop-filter: blur(4px);
   transition: all 0.15s ease;
   z-index: 10;

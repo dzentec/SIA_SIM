@@ -103,7 +103,7 @@ export class CockpitController {
               <!-- Big Rotary Steering Wheel -->
               <div class="helm-large-wheel-container">
                 <div class="wheel-svg-wrapper-large" id="helm-wheel-svg-wrapper" title="Крутите штурвал мышкой (Drag / Scroll) • 2x клик = ДП">
-                  <svg class="helm-wheel-svg-large" id="helmWheelSvg" viewBox="0 0 200 200" width="160" height="160">
+                  <svg class="helm-wheel-svg-large" id="helmWheelSvg" viewBox="0 0 200 200" width="186" height="186">
                     <defs>
                       <filter id="wheel-shadow" x="-20%" y="-20%" width="140%" height="140%">
                         <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity="0.6"/>
