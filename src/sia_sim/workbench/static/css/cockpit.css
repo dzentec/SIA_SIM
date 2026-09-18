@@ -210,25 +210,40 @@
 }
 
 .rope-widget.clamped {
-  border-color: rgba(88, 166, 255, 0.25);
-  background: #12161f;
+  border-color: rgba(56, 139, 253, 0.35);
+  background: #0d121a;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .rope-widget.unlocked {
-  border-color: rgba(52, 199, 89, 0.5);
-  box-shadow: 0 0 10px rgba(52, 199, 89, 0.18);
-  background: #161d26;
+  border-color: rgba(52, 199, 89, 0.6);
+  box-shadow: 0 0 14px rgba(52, 199, 89, 0.22), inset 0 0 8px rgba(52, 199, 89, 0.08);
+  background: #0f1b15;
 }
 
 .rope-widget.clamped .trim-track {
   cursor: not-allowed;
-  opacity: 0.8;
+  opacity: 0.85;
+  background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6) 6px, rgba(88, 166, 255, 0.07) 6px, rgba(88, 166, 255, 0.07) 12px);
+  border: 1px dashed rgba(88, 166, 255, 0.35);
+}
+
+.rope-widget.unlocked .trim-track {
+  cursor: grab;
+  border-color: rgba(52, 199, 89, 0.6);
+  box-shadow: 0 0 6px rgba(52, 199, 89, 0.3);
 }
 
 .rope-widget.clamped .step-btn {
   cursor: not-allowed;
-  opacity: 0.35;
+  opacity: 0.3;
   pointer-events: none;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.rope-widget.unlocked .step-btn {
+  border-color: rgba(52, 199, 89, 0.35);
+  color: #c9d1d9;
 }
 
 .rope-widget.dimmed {
@@ -418,16 +433,39 @@
 }
 
 .clutch-btn.clamped {
-  background: rgba(88, 166, 255, 0.15);
-  border-color: #58a6ff;
+  background: #091b2e;
+  border: 1px solid #388bfd;
   color: #79c0ff;
+  font-weight: 700;
+  box-shadow: 0 0 6px rgba(56, 139, 253, 0.25);
+}
+
+.clutch-btn.clamped:hover {
+  background: #0d2847;
+  border-color: #58a6ff;
+  box-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
+  color: #ffffff;
 }
 
 .clutch-btn.unclamped {
-  background: rgba(52, 199, 89, 0.2);
-  border-color: #34c759;
+  background: #0d381e;
+  border: 1px solid #34c759;
   color: #34c759;
-  font-weight: 700;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(52, 199, 89, 0.35);
+  animation: unclamped-glow 2s infinite alternate;
+}
+
+.clutch-btn.unclamped:hover {
+  background: #14532d;
+  border-color: #4ade80;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(74, 222, 128, 0.6);
+}
+
+@keyframes unclamped-glow {
+  0% { box-shadow: 0 0 6px rgba(52, 199, 89, 0.25); }
+  100% { box-shadow: 0 0 12px rgba(52, 199, 89, 0.55); }
 }
 
 .clutch-btn.flash-alert {
@@ -705,14 +743,15 @@
 }
 
 .traveler-widget-full.clamped {
-  border-color: rgba(88, 166, 255, 0.25);
-  background: #12161f;
+  border-color: rgba(56, 139, 253, 0.35);
+  background: #0d121a;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .traveler-widget-full.unlocked {
-  border-color: rgba(52, 199, 89, 0.5);
-  box-shadow: 0 0 10px rgba(52, 199, 89, 0.18);
-  background: #161d26;
+  border-color: rgba(52, 199, 89, 0.6);
+  box-shadow: 0 0 14px rgba(52, 199, 89, 0.22), inset 0 0 8px rgba(52, 199, 89, 0.08);
+  background: #0f1b15;
 }
 
 .traveler-track-container {
