@@ -75,7 +75,7 @@ export class CockpitController {
           <!-- Port Column -->
           <div class="cockpit-col col-port">
             <div class="col-header">
-              <span>PORT (Левый борт)</span>
+              <span>Portside/Left</span>
               <span id="jib-status-badge" class="rope-status-badge status-ok">JIB: OK</span>
             </div>
             <div id="rope-jib_sheet_port"></div>
@@ -201,7 +201,7 @@ export class CockpitController {
           <!-- Starboard Column (30%) -->
           <div class="cockpit-col col-starboard">
             <div class="col-header">
-              <span>STARBOARD (Правый борт)</span>
+              <span>Starboard/Right</span>
               <span id="main-status-badge" class="rope-status-badge status-ok">MAIN: OK</span>
             </div>
             <div id="rope-mainsheet"></div>
