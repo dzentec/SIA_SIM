@@ -153,9 +153,7 @@ class TestSensorPipelineIntegration:
         assert sf_wired.safety_channel_status == SafetyChannelStatus.WIRED_VERIFIED
 
         # Custom wireless advisory pipeline
-        pipeline_wireless = SensorPipeline(
-            master_seed=42, safety_channel_status=SafetyChannelStatus.WIRELESS_ADVISORY
-        )
+        pipeline_wireless = SensorPipeline(master_seed=42, safety_channel_status=SafetyChannelStatus.WIRELESS_ADVISORY)
         sf_wireless = pipeline_wireless.process(gt)
         assert sf_wireless.safety_channel_status == SafetyChannelStatus.WIRELESS_ADVISORY
 
@@ -186,4 +184,3 @@ class TestSensorPipelineIntegration:
         )
         sf = pipeline.process(gt, active_events=(override_event,))
         assert sf.safety_channel_status == SafetyChannelStatus.WIRELESS_ADVISORY
-

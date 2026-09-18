@@ -192,9 +192,7 @@ def hydrodynamic_damping(
     k_roll_damping = -mass_kg * 1.8 * p_rad_s - 1500.0 * p_rad_s * abs(p_rad_s)
 
     # Yaw damping
-    n_yaw_damping = (
-        -0.5 * RHO_WATER * (loa_m**3) * 0.8 * r_rad_s * abs(r_rad_s) - mass_kg * 4.0 * r_rad_s
-    )
+    n_yaw_damping = -0.5 * RHO_WATER * (loa_m**3) * 0.8 * r_rad_s * abs(r_rad_s) - mass_kg * 4.0 * r_rad_s
 
     return x_drag, y_damping, k_roll_damping, n_yaw_damping
 

@@ -82,9 +82,7 @@ class TestSensorDeterminism:
     def test_gaussian_noise_statistical_distribution(self) -> None:
         """Sample 5000 noise values and verify sample mean ~ 0 and sample std ~ config."""
         target_std = 0.5
-        degrader = ChannelDegrader(
-            DegradationConfig(noise_std=target_std), rng=np.random.default_rng(999)
-        )
+        degrader = ChannelDegrader(DegradationConfig(noise_std=target_std), rng=np.random.default_rng(999))
 
         samples: list[float] = []
         for i in range(5000):

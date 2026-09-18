@@ -1,0 +1,563 @@
+/* Cockpit & Rig Control System Styles - SIA Workbench v2.0 */
+
+:root {
+  --cockpit-bg: #0d1117;
+  --cockpit-card-bg: #161b22;
+  --cockpit-border: #30363d;
+  --cockpit-text-primary: #f0f6fc;
+  --cockpit-text-muted: #8b949e;
+  --cockpit-accent: #58a6ff;
+  --load-green: #34c759;
+  --load-yellow: #ffcc00;
+  --load-red: #ff3b30;
+  --load-overload: #ff0033;
+}
+
+.cockpit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--cockpit-bg);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 8px;
+  padding: 14px;
+  color: var(--cockpit-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+}
+
+.cockpit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--cockpit-border);
+  padding-bottom: 8px;
+}
+
+.cockpit-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #79c0ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cockpit-wind-summary {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--cockpit-text-muted);
+  display: flex;
+  gap: 12px;
+}
+
+/* 3-Column Grid Layout */
+.cockpit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+.cockpit-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.col-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.col-port { border-left: 3px solid #007aff; }
+.col-center { border-left: 3px solid #636366; }
+.col-starboard { border-left: 3px solid #34c759; }
+
+/* Dual-Bar Rope Widget Card */
+.rope-widget {
+  background: var(--cockpit-card-bg);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.rope-widget.dimmed {
+  opacity: 0.45;
+  filter: grayscale(40%);
+}
+
+.rope-widget.dimmed:hover {
+  opacity: 0.85;
+  filter: none;
+}
+
+/* Identification Left Stripe */
+.rope-stripe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.rope-widget-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.rope-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.rope-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rope-status-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.status-ok { background: rgba(52, 199, 89, 0.2); color: #34c759; border: 1px solid #34c759; }
+.status-slack { background: rgba(142, 142, 147, 0.2); color: #8e8e93; border: 1px solid #8e8e93; }
+.status-taut { background: rgba(255, 204, 0, 0.2); color: #ffcc00; border: 1px solid #ffcc00; }
+.status-overload { background: rgba(255, 59, 48, 0.3); color: #ff3b30; border: 1px solid #ff3b30; animation: pulse-alert 0.8s infinite alternate; }
+.status-broken { background: rgba(255, 0, 51, 0.4); color: #ff0033; border: 1px dashed #ff0033; text-decoration: line-through; }
+.status-clamped { background: rgba(88, 166, 255, 0.2); color: #58a6ff; border: 1px solid #58a6ff; }
+
+@keyframes pulse-alert {
+  0% { box-shadow: 0 0 4px rgba(255, 59, 48, 0.4); }
+  100% { box-shadow: 0 0 12px rgba(255, 0, 51, 0.9); }
+}
+
+/* Dual Bar Graphics */
+.bars-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bar-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--cockpit-text-muted);
+  font-family: monospace;
+}
+
+.bar-track {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bar-fill-trim {
+  height: 100%;
+  background: #238636;
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+.target-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 4px #ffffff;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.bar-fill-load {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.1s linear, background-color 0.2s ease;
+}
+
+/* Controls row inside widget */
+.rope-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  gap: 6px;
+}
+
+.clutch-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--cockpit-border);
+  background: #21262d;
+  color: var(--cockpit-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: monospace;
+  transition: all 0.15s ease;
+}
+
+.clutch-btn.clamped {
+  background: rgba(88, 166, 255, 0.15);
+  border-color: #58a6ff;
+  color: #79c0ff;
+}
+
+.clutch-btn:hover {
+  filter: brightness(1.2);
+}
+
+.step-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.step-btn {
+  font-size: 9px;
+  padding: 2px 6px;
+  background: #21262d;
+  border: 1px solid var(--cockpit-border);
+  color: var(--cockpit-text-muted);
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: monospace;
+}
+
+.step-btn:hover {
+  background: #30363d;
+  color: #ffffff;
+}
+
+/* Center Column Helm & Rudder Axiometer Console */
+.helm-rudder-widget {
+  background: var(--cockpit-card-bg);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.helm-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.helm-large-wheel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.wheel-svg-wrapper-large {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.wheel-svg-wrapper-large.dragging {
+  cursor: grabbing;
+}
+
+.helm-wheel-svg-large {
+  transition: transform 0.04s ease-out;
+  transform-origin: center center;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+}
+
+.wheel-center-hud {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(13, 17, 23, 0.85);
+  border: 1.5px solid rgba(88, 166, 255, 0.4);
+  border-radius: 50%;
+  width: 54px;
+  height: 54px;
+  backdrop-filter: blur(4px);
+  transition: all 0.15s ease;
+  z-index: 10;
+}
+
+.wheel-center-hud:hover {
+  background: rgba(22, 27, 34, 0.95);
+  border-color: #58a6ff;
+  box-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
+  transform: scale(1.06);
+}
+
+.wheel-center-hud:active {
+  transform: scale(0.95);
+  background: rgba(88, 166, 255, 0.2);
+}
+
+.hud-turns {
+  font-size: 7.5px;
+  color: var(--cockpit-text-muted);
+  font-family: monospace;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hud-angle {
+  font-size: 9.5px;
+  color: #79c0ff;
+  font-family: monospace;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.hud-reset-badge {
+  font-size: 6.5px;
+  color: #58a6ff;
+  font-family: monospace;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+}
+
+.wheel-hint-text {
+  font-size: 8.5px;
+  color: var(--cockpit-text-muted);
+  font-family: monospace;
+  text-align: center;
+}
+
+/* Rudder Axiometer (Индикатор пера руля) */
+.rudder-axiometer-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.axiometer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.5px;
+  font-family: monospace;
+  padding: 0 2px;
+}
+
+.axiometer-actual-readout {
+  color: var(--cockpit-text-muted);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.axiometer-cmd-readout {
+  font-size: 9px;
+  color: var(--cockpit-text-muted);
+  font-family: monospace;
+}
+
+.axiometer-track-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.axiometer-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7.5px;
+  font-family: monospace;
+  color: var(--cockpit-text-muted);
+  padding: 0 2px;
+}
+
+.axiometer-bar-track {
+  height: 10px;
+  background: #0d1117;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+}
+
+.axiometer-mid-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.axiometer-zone-port-danger { width: 14.3%; background: rgba(255, 59, 48, 0.25); }
+.axiometer-zone-port-warn { width: 21.4%; background: rgba(255, 204, 0, 0.2); }
+.axiometer-zone-center-ok { width: 28.6%; background: rgba(52, 199, 89, 0.2); }
+.axiometer-zone-stbd-warn { width: 21.4%; background: rgba(255, 204, 0, 0.2); }
+.axiometer-zone-stbd-danger { width: 14.3%; background: rgba(255, 59, 48, 0.25); }
+
+.axiometer-actual-pointer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  background: #f0f6fc;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+  z-index: 3;
+  transition: left 0.08s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.axiometer-cmd-pointer {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 4px;
+  margin-left: -2px;
+  background: #58a6ff;
+  border-radius: 2px;
+  opacity: 0.8;
+  z-index: 2;
+  transition: left 0.08s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* Center Column Traveler Slider */
+.traveler-widget {
+  background: var(--cockpit-card-bg);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.traveler-track-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.traveler-slider-input {
+  width: 100%;
+  accent-color: #58a6ff;
+  cursor: pointer;
+}
+
+.traveler-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  font-family: monospace;
+  color: var(--cockpit-text-muted);
+}
+
+/* Bottom Reefing Dock */
+.reefing-dock {
+  background: #11151c;
+  border: 1px solid var(--cockpit-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reefing-presets-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.preset-btn {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #c9d1d9;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.preset-btn:hover {
+  background: #30363d;
+  color: #58a6ff;
+  border-color: #58a6ff;
+}
+
+.preset-btn.active {
+  background: rgba(88, 166, 255, 0.2);
+  border-color: #58a6ff;
+  color: #79c0ff;
+}
+
+.interlock-alert {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 59, 48, 0.15);
+  border: 1px solid #ff3b30;
+  color: #ff7b72;
+  display: none;
+}

@@ -281,6 +281,7 @@ SAIL_RULES_CATALOG_V1_1: dict[str, Any] = {
     ],
 }
 
+
 class CanonicalSailId(StrEnum):
     """Canonical unique identifiers for all sails across SIA Core, Simulation, and Rig physics."""
 
@@ -308,3 +309,135 @@ CANONICAL_SAIL_NAMES_RU: dict[str, str] = {
     CanonicalSailId.STORM_JIB: "Штормовой стаксель (Storm Jib)",
 }
 
+
+# ===========================================================================
+# Phase 12: Rig & Cockpit Control System Contracts (v2.0)
+# ===========================================================================
+
+
+class RopeStatus(StrEnum):
+    """Operational status of a line/rope."""
+
+    OK = "OK"  # Normal operating condition within safe working load
+    SLACK = "SLACK"  # Slack line (tension < slack_threshold)
+    TAUT = "TAUT"  # High tension approaching working limit
+    OVERLOAD = "OVERLOAD"  # tension > max_working_load_n (SWL)
+    CLAMPED = "CLAMPED"  # Clutch / stopper is locked
+    BROKEN = "BROKEN"  # Line snapped (tension > breaking_load_n)
+
+
+class SailStatus(StrEnum):
+    """Aerodynamic flow and mechanical status of a sail."""
+
+    OK = "OK"  # Attached laminar flow, optimal lift
+    LUFFING = "LUFFING"  # AoA < luffing_threshold (flapping luff)
+    ATTACHED = "ATTACHED"  # Transitional flow, attached without full power
+    STALL = "STALL"  # AoA > stall_angle (flow separation)
+    OVERLOAD = "OVERLOAD"  # Aerodynamic loading exceeds structural limits
+    FURLED = "FURLED"  # Fully furled (effective area == 0)
+
+
+class RopeControlInput(BaseModel):
+    """Skipper command for a single control line."""
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    rope_id: str
+    target_trim: float = Field(ge=0.0, le=1.0, description="0.0 (fully eased) to 1.0 (fully sheeted in)")
+    clamped: bool = Field(description="Clutch locked status")
+    ease_rate: float = Field(default=1.0, ge=0.1, le=5.0, description="Speed multiplier for easing")
+
+
+class TravelerControlInput(BaseModel):
+    """Skipper command for mainsheet traveler position."""
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    traveler_id: str = "traveler"
+    target_pos: float = Field(ge=-1.0, le=1.0, description="-1.0 (port) ... 0.0 (center) ... +1.0 (starboard)")
+    clamped: bool = Field(description="Traveler brake locked status")
+
+
+class RopeState(BaseModel):
+    """Physical state of a rig line/rope."""
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    id: str
+    side: Literal["port", "starboard", "center"]
+    group: Literal["jib", "main", "reef", "rig"]
+
+    # Control
+    target_trim: float = Field(ge=0.0, le=1.0)
+    actual_trim: float = Field(ge=0.0, le=1.0)
+    clamped: bool
+
+    # Mechanics
+    length_m: float = Field(ge=0.0)
+    speed_m_s: float = 0.0  # >0 hauling/trimming, <0 easing
+    accel_m_s2: float = 0.0
+
+    # Loads
+    tension_n: float = Field(ge=0.0)
+    max_working_load_n: float = Field(gt=0.0)
+    breaking_load_n: float = Field(gt=0.0)
+
+    status: RopeStatus
+
+
+class TravelerState(BaseModel):
+    """Physical state of mainsheet traveler car."""
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    id: str = "traveler"
+    target_pos: float = Field(ge=-1.0, le=1.0)
+    actual_pos: float = Field(ge=-1.0, le=1.0)
+    speed_m_s: float = 0.0
+    clamped: bool
+    status: RopeStatus = RopeStatus.OK
+
+
+class FurlerState(BaseModel):
+    """Physical state of headsail furling drum."""
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    id: str = "jib_furler"
+    line_trim: float = Field(ge=0.0, le=1.0, description="0.0 (line eased) ... 1.0 (line hauled)")
+    line_length_m: float = Field(ge=0.0)
+    drum_turns: float = Field(ge=0.0)
+    furled_ratio: float = Field(ge=0.0, le=1.0, description="0.0 (unfurled) ... 1.0 (fully furled)")
+    area_ratio: float = Field(ge=0.0, le=1.0, description="1.0 - furled_ratio")
+    status: RopeStatus = RopeStatus.OK
+
+
+class SailState(BaseModel):
+    """Aggregated aerodynamic and structural state of a sail."""
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    sail_id: str
+    effective_area_m2: float = Field(ge=0.0)
+    area_ratio: float = Field(ge=0.0, le=1.0)
+    angle_of_attack_deg: float
+    twist_deg: float = 0.0
+    camber_ratio: float = Field(default=0.0, ge=0.0, le=0.3)
+    lift_force_n: float = 0.0
+    drag_force_n: float = 0.0
+    center_of_effort_z: float = 0.0
+    reef_level: int = Field(default=0, ge=0, le=4)
+    status: SailStatus
+
+
+class RigState(BaseModel):
+    """Complete rig telemetry frame at a single discrete simulation tick."""
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    timestamp_ms: int
+    ropes: dict[str, RopeState]
+    traveler: TravelerState
+    furler: FurlerState
+    sails: dict[str, SailState]
+    wind: dict[str, Any] = Field(default_factory=dict)

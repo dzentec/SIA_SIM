@@ -63,9 +63,7 @@ class ActuatorSensorModel:
         is_fault = self._hardware_fault or fault_override
         is_freeze = self._frozen or freeze_override
 
-        rudder = self.degrader_rudder.process(
-            vessel.rudder_angle_deg, sim_time_ms, is_fault, is_freeze
-        )
+        rudder = self.degrader_rudder.process(vessel.rudder_angle_deg, sim_time_ms, is_fault, is_freeze)
 
         # Mainsheet feedback is None on standard vessels unless explicitly enabled
         mainsheet = mainsheet_trim_pct if self.enable_mainsheet_sensor else None

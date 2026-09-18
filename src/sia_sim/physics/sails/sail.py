@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass
 from typing import NamedTuple
 
+from sia_sim.contracts.sails import SailStatus
 from sia_sim.physics.forces import RHO_AIR
 from sia_sim.physics.sails.polars import SailType, evaluate_sail_polar
 
@@ -38,6 +39,8 @@ class SailConfig:
     camber_ratio: float = 0.12
     max_boom_angle_deg: float = 75.0
     is_furling: bool = False
+    stall_angle_base_deg: float = 16.0
+    luffing_threshold_deg: float = 3.0
 
 
 @dataclass
@@ -51,9 +54,12 @@ class SailEvaluationResult:
     sheet_trim_ratio: float
     boom_angle_deg: float
     alpha_deg: float
+    twist_deg: float
+    camber_ratio: float
     cl: float
     cd: float
     is_stalled: bool
+    status: SailStatus
     blanket_ratio: float
     coe: tuple[float, float, float]  # (x, y, z) in body frame
     force_body_n: tuple[float, float, float]  # (Fx drive, Fy side, Fz vertical)
@@ -69,6 +75,10 @@ class Sail:
         self.reefed_ratio: float = 1.0  # [0.0 ... 1.0]
         self.sheet_trim_ratio: float = 1.0  # 1.0 = trimmed in, 0.0 = fully eased
         self.manual_boom_angle_deg: float | None = None
+        self.twist_trim: float = 1.0  # 1.0 = full vang/twist closed, 0.0 = loose vang
+        self.outhaul_trim: float = 0.5  # 0.0 = full bag, 1.0 = flat profile
+        self.cunningham_trim: float = 0.0  # 0.0 = loose luff, 1.0 = tight luff
+        self.max_twist_deg: float = 12.0
 
     def calculate_boom_angle(self, awa_deg: float) -> float:
         """Calculate dynamic boom/clew angle (degrees) based on sheet trim and apparent wind.
@@ -101,13 +111,13 @@ class Sail:
         return -sign_wind * min(self.config.max_boom_angle_deg, target_boom_angle)
 
     def compute_center_of_effort(
-        self, boom_angle_deg: float, reefed_ratio: float
+        self, boom_angle_deg: float, reefed_ratio: float, twist_deg: float = 0.0
     ) -> tuple[float, float, float]:
         """Compute instantaneous 3D Center of Effort (CoE) in body frame coordinates.
 
         - Base CoE is centroid of triangle (Tack, Head, Clew).
         - Lateral shift y_CoE shifts with boom angle sin(theta_boom).
-        - Vertical z_CoE drops as sail is reefed.
+        - Vertical z_CoE drops as sail is reefed, and shifts slightly upward when twist increases.
         """
         tack = self.config.tack_point
         head = self.config.head_point
@@ -126,7 +136,9 @@ class Sail:
         # Triangular centroid of sail
         coe_x = (tack[0] + effective_head_x + clew_x) / 3.0
         coe_y = (tack[1] + head[1] + clew_y) / 3.0
-        coe_z = (tack[2] + effective_head_z + clew_z) / 3.0
+        # High twist causes upper leech to spill, slightly shifting CoE height
+        twist_z_shift = (twist_deg / 20.0) * 0.1 * (head[2] - tack[2])
+        coe_z = (tack[2] + effective_head_z + clew_z) / 3.0 + twist_z_shift
 
         return (coe_x, coe_y, coe_z)
 
@@ -139,8 +151,17 @@ class Sail:
         slot_effect_boost: float = 0.0,
     ) -> SailEvaluationResult:
         """Calculate aerodynamic forces and 3D moments for this sail."""
+        twist_deg = self.max_twist_deg * (1.0 - max(0.0, min(1.0, self.twist_trim)))
+        effective_camber = max(0.04, min(0.20, self.config.camber_ratio - (self.outhaul_trim - 0.5) * 0.06))
+        stall_angle_deg = (
+            self.config.stall_angle_base_deg
+            + (self.cunningham_trim * 2.5)
+            + (effective_camber - self.config.camber_ratio) * 15.0
+        )
+
         if not self.is_active or self.reefed_ratio <= 0.0 or aws_m_s <= 0.0:
-            coe = self.compute_center_of_effort(0.0, max(0.1, self.reefed_ratio))
+            coe = self.compute_center_of_effort(0.0, max(0.1, self.reefed_ratio), twist_deg)
+            status = SailStatus.FURLED if self.reefed_ratio <= 0.0 else SailStatus.ATTACHED
             return SailEvaluationResult(
                 sail_id=self.config.sail_id,
                 is_active=False,
@@ -149,9 +170,12 @@ class Sail:
                 sheet_trim_ratio=self.sheet_trim_ratio,
                 boom_angle_deg=0.0,
                 alpha_deg=0.0,
+                twist_deg=twist_deg,
+                camber_ratio=effective_camber,
                 cl=0.0,
                 cd=0.0,
                 is_stalled=False,
+                status=status,
                 blanket_ratio=blanket_ratio,
                 coe=coe,
                 force_body_n=(0.0, 0.0, 0.0),
@@ -170,49 +194,51 @@ class Sail:
         polar = evaluate_sail_polar(
             sail_type=self.config.sail_type,
             alpha_deg=alpha_deg,
-            camber_ratio=self.config.camber_ratio,
+            camber_ratio=effective_camber,
             is_furled=is_furled,
             furled_ratio=(1.0 - self.reefed_ratio) if is_furled else 0.0,
         )
 
-        cl = polar.cl * (1.0 + slot_effect_boost)
+        # Twist degrades lift efficiency of upper leech
+        twist_factor = 1.0 - (twist_deg / 40.0)
+        cl = polar.cl * (1.0 + slot_effect_boost) * twist_factor
         cd = polar.cd
 
         # 3. Dynamic pressure & effective sail area
         heel_rad = math.radians(heel_deg)
         cos_heel = max(0.1, math.cos(heel_rad))
-        effective_area = (
-            self.config.nominal_area_m2 * self.reefed_ratio * (1.0 - blanket_ratio) * cos_heel
-        )
+        effective_area = self.config.nominal_area_m2 * self.reefed_ratio * (1.0 - blanket_ratio) * cos_heel
         q = 0.5 * RHO_AIR * (aws_m_s**2) * effective_area
 
         # 4. Aerodynamic lift (perpendicular to AWA) & drag (parallel to AWA)
-        # In wind coordinates:
-        # L acts at +90° to apparent wind flow vector, D acts along wind flow vector
         abs_awa_rad = math.radians(abs(awa_deg))
         sign_wind = 1.0 if awa_deg >= 0 else -1.0
 
         # Decompose into Vessel Body frame:
-        # Fx (Drive): forward along keel centerline (+x)
-        # Fy (Side): lateral (+y starboard, -y port)
-        # Fz (Vertical): down (+z in NED) or roll induced lift
         fx_drive = q * (abs(cl) * math.sin(abs_awa_rad) - cd * math.cos(abs_awa_rad))
         side_mag = q * (abs(cl) * math.cos(abs_awa_rad) + cd * math.sin(abs_awa_rad))
-        fy_side = -sign_wind * side_mag  # Starboard wind (+AWA) pushes vessel to port (-y)
-        fz_vert = -q * abs(cl) * math.sin(abs(heel_rad)) * 0.1  # small vertical aerodynamic lift
+        fy_side = -sign_wind * side_mag
+        fz_vert = -q * abs(cl) * math.sin(abs(heel_rad)) * 0.1
 
         # 5. Dynamic 3D Center of Effort
-        coe_x, coe_y, coe_z = self.compute_center_of_effort(boom_angle_deg, self.reefed_ratio)
+        coe_x, coe_y, coe_z = self.compute_center_of_effort(boom_angle_deg, self.reefed_ratio, twist_deg)
 
         # 6. 3D Cross-Product Moments: M = r x F
-        # r = [coe_x, coe_y, coe_z] (relative to Center of Gravity / Center of Lateral Resistance)
-        # F = [fx_drive, fy_side, fz_vert]
-        # Mx = ry * Fz - rz * Fy  (Heeling moment, + starboard roll)
-        # My = rz * Fx - rx * Fz  (Pitching moment, + bow down)
-        # Mz = rx * Fy - ry * Fx  (Yawing moment, + starboard turning / weather helm)
         mx_heel = (coe_y * fz_vert) - (coe_z * fy_side)
         my_pitch = (coe_z * fx_drive) - (coe_x * fz_vert)
         mz_yaw = (coe_x * fy_side) - (coe_y * fx_drive)
+
+        # 7. Status determination
+        if self.reefed_ratio < 0.01:
+            status = SailStatus.FURLED
+        elif alpha_deg < self.config.luffing_threshold_deg:
+            status = SailStatus.LUFFING
+        elif alpha_deg > stall_angle_deg or polar.is_stalled:
+            status = SailStatus.STALL
+        elif alpha_deg < (self.config.luffing_threshold_deg + 3.0):
+            status = SailStatus.ATTACHED
+        else:
+            status = SailStatus.OK
 
         return SailEvaluationResult(
             sail_id=self.config.sail_id,
@@ -222,9 +248,12 @@ class Sail:
             sheet_trim_ratio=self.sheet_trim_ratio,
             boom_angle_deg=boom_angle_deg,
             alpha_deg=alpha_deg,
+            twist_deg=twist_deg,
+            camber_ratio=effective_camber,
             cl=cl,
             cd=cd,
-            is_stalled=polar.is_stalled,
+            is_stalled=(status == SailStatus.STALL),
+            status=status,
             blanket_ratio=blanket_ratio,
             coe=(coe_x, coe_y, coe_z),
             force_body_n=(fx_drive, fy_side, fz_vert),

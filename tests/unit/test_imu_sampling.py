@@ -8,9 +8,7 @@ from sia_sim.contracts.data import VesselState
 from sia_sim.sensors.imu import IMUSensorModel
 
 
-def make_dummy_vessel(
-    heel_deg: float = 10.0, pitch_deg: float = 2.0, roll_rate: float = 5.0
-) -> VesselState:
+def make_dummy_vessel(heel_deg: float = 10.0, pitch_deg: float = 2.0, roll_rate: float = 5.0) -> VesselState:
     return VesselState(
         x_m=0.0,
         y_m=0.0,

@@ -34,9 +34,7 @@ class MockSIA(SIACore):
         self.heel_critical_deg = heel_critical_deg
         self.yaw_rate_threshold_deg_s = yaw_rate_threshold_deg_s
         self.hull_type = hull_type
-        self.available_sails = (
-            tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
-        )
+        self.available_sails = tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
         self._decision_count = 0
         self.last_sail_advisory: SailAdvisoryPayload | None = None
 
@@ -47,9 +45,7 @@ class MockSIA(SIACore):
     ) -> None:
         """Update active hull type and on-board sail inventory for the simulation."""
         self.hull_type = hull_type
-        self.available_sails = (
-            tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
-        )
+        self.available_sails = tuple(available_sails) if available_sails is not None else ALL_SAIL_IDS
 
     def reset(self) -> None:
         """Reset internal temporal counters and filters."""

@@ -15,7 +15,12 @@ This roadmap delivers the MVP Milestone (M0–M6) for SIA Simulation: an end-to-
 - [x] **Phase 8: SIA Simulation Workbench UI** - Single-screen night bridge cockpit, 6-dial marine console, 100 Hz lab terminal, and event timeline builder.
 - [x] **Phase 9: Architecture Decoupling, Modular Frontend & 3D Sail Aerodynamics Engine** - Frontend ES-modularization, physics/sails submodule with individual sails, dynamic 3D CoE & boom kinematics, and MDA v2.2 safety channel status.
 
+- [x] **Phase 10: B&G SailSteer Navigation Display** - Authentic B&G SailSteer display widget and sliding mode toggle.
+- [ ] **Phase 11: Real Marine Data Engine (DAE) & Tactical Chartplotter** - Data Acquisition Engine (Open-Meteo, GEBCO bathymetry, S-57 ENC hazards), EnvironmentProvider decoupling, and Workbench Tactical Chartplotter display.
+- [ ] **Phase 12: Cockpit & Rig Control System** - Deterministic state-driven rig mechanics, winch inertia, clutches, dynamic aerodynamic statuses, REST/WS Rig API with interlock preset engine, and accessible Workbench Cockpit UI (Dual-Bar Ropes, Traveler & Reefing Dock).
+
 ## Phase Details
+
 
 ### Phase 1: Project Skeleton & Deterministic Harness (M0)
 
@@ -208,23 +213,70 @@ Plans:
 - [x] 10-02: Workbench UI 5-Zone Layout, CSS Styling & Slide Viewport Controller (`index.html`, `workbench.css`, `app.js`).
 - [x] 10-03: Live & Playback Telemetry Integration & Validation against 6 Test Scenarios (`playback.js`, tests).
 
+### Phase 11: Real Marine Data Engine (DAE) & Tactical Chartplotter
+
+**Goal**: Implement the Data Acquisition Engine (DAE v1.0) architecture conforming to `.init_docs/real_geo_data.md`, decoupling environment generation via `EnvironmentProvider` (`SyntheticEnvironmentProvider` and `RealGeoEnvironmentProvider`), integrating Open-Meteo, GEBCO GeoTIFF bathymetry, S-57 ENC hazard parser, and building an interactive Tactical Marine Chartplotter in the Workbench UI.  
+**Depends on**: Phase 10  
+**Requirements**: DAE-01..DAE-12  
+**Success Criteria**:  
+
+1. `DAE` schemas, meteorological/oceanographic vector formulas, and `UnifiedCache` (0.05° grid) pass validation and unit tests.
+2. `BathymetryPipeline` reads GEBCO GeoTIFF with $2\times 2$ bilinear interpolation (safe `None` handling, never `0.0` on error).
+3. `S57HazardPipeline` indexes multiple `.000` charts into Shapely `STRtree` with `CATWRK`/`VALSOU` filters and `pyproj.Geod` distance calculations.
+4. `EnvironmentProvider` abstraction seamlessly switches between Synthetic and Real Geo data modes without any `SIACore` boundary leakage.
+5. Simulation dead reckoning tracks vessel geographic $(lat, lon)$ coordinates at 100 Hz.
+6. Workbench UI features a 3-way sliding console (`6-Dial` ⟷ `SailSteer` ⟷ `Tactical Chartplotter`) with real-time vectors, S-57 features, and night/day tactical themes.
+
+**Plans**: 0/4 plans executed  
+
+Plans:
+
+- [ ] 11-01: DAE Core Contracts, Math Engine & Meteo/GRIB2 Pipeline (`schemas.py`, `cache.py`, `meteo.py`, `grib2.py`).
+- [ ] 11-02: Spatial Pipelines: GEBCO Bathymetry & S-57 Hazard Spatial Index (`bathymetry.py`, `s57.py`, `assembler.py`).
+- [ ] 11-03: EnvironmentProvider Abstraction, Dead Reckoning & Simulation Engine Integration (`environment.py`, `world.py`, `runner.py`, `cli.py`).
+- [ ] 11-04: Tactical Marine Chartplotter Display in Workbench UI (`chartplotter.js`, `chartplotter.css`, `index.html`, `server.py`).
+
+### Phase 12: Cockpit & Rig Control System (SIA Workbench & Physics Integration)
+
+**Goal**: Implement the complete Cockpit & Rig Control System conforming to `.init_docs/COCKPIT & RIG CONTROL_control.md` v2.0, establishing strict data contracts (`RopeState`, `TravelerState`, `FurlerState`, `SailState`, `RigState`), realistic winch inertia & clutch physics under dynamic aerodynamic loads, REST/WS Rig API with safety-interlocked preset scenarios, and a WCAG AA-compliant, dual-channel Workbench cockpit interface with dual-bar rope widgets, centered bipolar traveler, and interactive Reefing Dock.
+**Depends on**: Phase 10
+**Requirements**: RIG-01..RIG-14
+**Success Criteria**:
+
+1. Strict separation of `RopeStatus` and `SailStatus` enums, signed Traveler range `[-1.0, 1.0]`, and discrete Furler kinematics (`line_trim` → `furled_ratio` → `area_ratio`).
+2. Winch model implements inertia rate limits, acceleration limits, and speed degradation under heavy tension load ($1 - T_{\text{rope}}/SWL$). Clutch lock freezes `actual_trim` unconditionally.
+3. Outhaul, Boom Vang, and Cunningham drive dynamic modifications to camber, twist, and stall angle without ad-hoc magic constants.
+4. Rig API supports batch control inputs, state telemetry streaming, and preset orchestration with prerequisite checks (e.g. mainsheet eased check before reefing).
+5. Workbench UI provides 3-column layout, dual-bar widgets (Trim & Load), centered bipolar traveler slider, modal Reefing Dock, tack-aware sheet dimming, and independent rope ID vs status color channels.
+
+**Plans**: 4/4 plans executed
+
+Plans:
+
+- [x] 12-01: Rig & Sail Data Contracts, Enums & Strict Validation (`contracts/sails.py`, `tests/unit/test_sails_ropes_contracts.py`).
+- [x] 12-02: Rig Kinematics, Winch Inertia & Clutch/Stopper Physics Engine (`physics/sails/rig.py`, `physics/sails/sail.py`, `tests/unit/test_rig_physics.py`).
+- [x] 12-03: Rig Control JSON API & Preset Interlock Orchestrator (`web/server.py`, `engine/rig_controller.py`, `tests/integration/test_rig_api.py`).
+- [x] 12-04: SIA Simulation Workbench Cockpit UI (Dual-Bar Ropes, Traveler & Reefing Dock) (`cockpit.js`, `cockpit.css`, `index.html`, `app.js`).
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Project Skeleton & Harness (M0) | 2/2 | Completed | 2026-09-15 |
 | 2. Data Contracts & Validation (M1) | 3/3 | Completed | 2026-09-15 |
 | 3. Simplified Deterministic Causal Dynamics (M2) | 3/3 | Completed | 2026-09-15 |
-| 4. Sensor Degradation & Faults (M3) | 3/3 | Completed | 2026-09-15 |
+| 4. Deterministic Sensor Degradation & Faults (M3) | 3/3 | Completed | 2026-09-15 |
 | 5. SIACore Boundary & MockSIA (M4) | 3/3 | Completed | 2026-09-15 |
 | 6. Oracle & Evaluator (M5) | 3/3 | Completed | 2026-09-15 |
 | 7. Complete Pipeline PASS (M6) | 3/3 | Completed | 2026-09-15 |
 | 8. SIA Simulation Workbench UI | 4/4 | Completed | 2026-09-16 |
 | 9. Architecture Decoupling & 3D Sails | 3/3 | Completed | 2026-09-17 |
 | 10. B&G SailSteer Navigation Display | 3/3 | Completed | 2026-09-18 |
+| 11. Real Marine Data Engine & Chartplotter | 0/4 | Planned | - |
+| 12. Cockpit & Rig Control System | 4/4 | Completed | 2026-09-18 |
 
 ---
 *Roadmap defined: 2026-09-10*

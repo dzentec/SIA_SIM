@@ -136,9 +136,7 @@ class ChannelDegrader:
         is_frozen = self._is_frozen or freeze_override
         if is_frozen:
             if self._frozen_value is None:
-                self._frozen_value = (
-                    self._last_output if self._last_output is not None else delayed_output
-                )
+                self._frozen_value = self._last_output if self._last_output is not None else delayed_output
             result = self._frozen_value
         else:
             self._frozen_value = None

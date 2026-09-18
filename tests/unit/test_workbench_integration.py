@@ -22,6 +22,8 @@ def test_static_assets_exist() -> None:
 
     js_files = [
         "instruments.js",
+        "sailsteer.js",
+        "cockpit.js",
         "timeline.js",
         "query_loop.js",
         "state.js",
@@ -32,6 +34,9 @@ def test_static_assets_exist() -> None:
     for js_name in js_files:
         js_file = STATIC_DIR / "js" / js_name
         assert js_file.exists() and js_file.stat().st_size > 200
+
+    cockpit_css = STATIC_DIR / "css" / "cockpit.css"
+    assert cockpit_css.exists() and cockpit_css.stat().st_size > 200
 
 
 @pytest.fixture(scope="module")
@@ -55,6 +60,7 @@ def test_serve_static_index(running_workbench: str) -> None:
         assert "<title>SIA Simulation Workbench" in content
         assert 'id="zoneGroundTruth"' in content
         assert 'id="zoneSensorView"' in content
+        assert 'id="zoneCockpitControl"' in content
         assert 'id="zoneSiaAdvisory"' in content
         assert 'id="zoneTimeline"' in content
         assert 'id="zoneQueryLoop"' in content
@@ -64,7 +70,10 @@ def test_serve_static_js_and_css(running_workbench: str) -> None:
     """Verifies that CSS and JS bundles are served correctly with HTTP 200."""
     endpoints = [
         "/css/workbench.css",
+        "/css/cockpit.css",
         "/js/instruments.js",
+        "/js/sailsteer.js",
+        "/js/cockpit.js",
         "/js/timeline.js",
         "/js/query_loop.js",
         "/js/state.js",

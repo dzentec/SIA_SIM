@@ -19,9 +19,7 @@ from sia_sim.contracts.scenario import (
 
 
 class TestCrossContractIntegration:
-    def test_sensor_frame_to_decision_payload_linkage(
-        self, minimal_sensor_frame_healthy: SensorFrame
-    ) -> None:
+    def test_sensor_frame_to_decision_payload_linkage(self, minimal_sensor_frame_healthy: SensorFrame) -> None:
         """DecisionPayload explicitly references the SensorFrame sequence number."""
         payload = DecisionPayload(
             decision_id="DEC-000042",
@@ -75,9 +73,7 @@ class TestCrossContractIntegration:
     ) -> None:
         """Active events in GroundTruthFrame map to Scenario.events."""
         event_id = minimal_scenario.events[0].event_id
-        gt_frame_with_event = minimal_ground_truth_frame.model_copy(
-            update={"active_event_ids": (event_id,)}
-        )
+        gt_frame_with_event = minimal_ground_truth_frame.model_copy(update={"active_event_ids": (event_id,)})
         assert event_id in gt_frame_with_event.active_event_ids
         assert gt_frame_with_event.active_event_ids[0] == minimal_scenario.events[0].event_id
 

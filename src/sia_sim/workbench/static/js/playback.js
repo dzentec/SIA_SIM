@@ -291,6 +291,14 @@ function renderZeroState() {
     chipWind.textContent = 'WIND: IDLE';
   }
 
+  // Phase 12 Cockpit & Rig Control Zero State
+  if (window.CockpitController && typeof window.CockpitController.update === 'function') {
+    window.CockpitController.update({
+      wind: { awa_deg: 40.0, aws_kt: 15.0 },
+      helm: { rudder_deg: 0.0, command_deg: 0.0, hydro_loss: 0.0 }
+    });
+  }
+
   // SIA Advisory Panel at IDLE
   const siaHazardBadge = document.getElementById('siaHazardBadge');
   if (siaHazardBadge) {
@@ -578,7 +586,23 @@ function renderAtTime(simTimeMs) {
     chipWind.textContent = activeTick.sensor_frame.wind.fault ? 'WIND: FAULT' : 'WIND: OK';
   }
 
+  // Phase 12 Cockpit & Rig Control Live Wind & Helm Update
+  if (window.CockpitController && typeof window.CockpitController.update === 'function') {
+    window.CockpitController.update({
+      wind: {
+        awa_deg: awa !== null ? awa : 40.0,
+        aws_kt: aws !== null ? aws : 15.0,
+      },
+      helm: {
+        rudder_deg: rudder !== null ? rudder : (actRudder !== null ? actRudder : 0.0),
+        command_deg: sel.rudder_command_deg !== null ? sel.rudder_command_deg : (actRudder !== null ? actRudder : 0.0),
+        hydro_loss: hydroLoss !== null ? hydroLoss : 0.0,
+      }
+    });
+  }
+
   // B&G SailSteer™ Navigation Display Render
+
   const sailSteerCanvas = document.getElementById('sailSteerCanvas');
   if (sailSteerCanvas && window.SailSteerRenderer && window.SailSteerController) {
     const rawTick = {

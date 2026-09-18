@@ -69,9 +69,7 @@ class TestGoldenSIM005:
             == res3.evaluation.detection_latency_ms
         )
         assert (
-            res1.evaluation.safety_margin_pct
-            == res2.evaluation.safety_margin_pct
-            == res3.evaluation.safety_margin_pct
+            res1.evaluation.safety_margin_pct == res2.evaluation.safety_margin_pct == res3.evaluation.safety_margin_pct
         )
 
     def test_golden_sim005_performance_benchmark(self) -> None:

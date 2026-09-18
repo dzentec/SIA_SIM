@@ -134,13 +134,10 @@ class TestSIABoundaryProtocol:
                 # 2. Check 'from x import y'
                 elif isinstance(node, ast.ImportFrom):
                     mod = node.module or ""
-                    assert mod not in FORBIDDEN_MODULES, (
-                        f"Illegal module import from '{mod}' found in {py_file.name}"
-                    )
+                    assert mod not in FORBIDDEN_MODULES, f"Illegal module import from '{mod}' found in {py_file.name}"
                     for alias in node.names:
                         assert alias.name not in FORBIDDEN_SYMBOLS, (
-                            f"Illegal symbol import '{alias.name}' from '{mod}' "
-                            f"found in {py_file.name}"
+                            f"Illegal symbol import '{alias.name}' from '{mod}' found in {py_file.name}"
                         )
 
     def test_process_enforces_sensor_frame_type(self) -> None:

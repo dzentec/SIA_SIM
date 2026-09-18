@@ -83,8 +83,7 @@ class SafetyOracle:
             # Detect hazard onset: broach precursor is characterized by severe heel
             # combined with yaw rate or high heel (>=30 deg)
             is_hazard = (
-                heel >= self.config.heel_hazard_deg
-                and yaw_rate >= self.config.yaw_rate_hazard_deg_s
+                heel >= self.config.heel_hazard_deg and yaw_rate >= self.config.yaw_rate_hazard_deg_s
             ) or heel >= 30.0
 
             if is_hazard and hazard_onset_ms is None:
@@ -118,12 +117,9 @@ class SafetyOracle:
         else:
             tail_count = max(1, len(ground_truth_frames) // 10)
             final_frames = ground_truth_frames[-tail_count:]
-            final_heel_ok = all(
-                abs(f.vessel.heel_deg) <= self.config.recovery_heel_deg for f in final_frames
-            )
+            final_heel_ok = all(abs(f.vessel.heel_deg) <= self.config.recovery_heel_deg for f in final_frames)
             final_yaw_ok = all(
-                abs(f.vessel.yaw_rate_deg_s) <= self.config.recovery_yaw_rate_deg_s
-                for f in final_frames
+                abs(f.vessel.yaw_rate_deg_s) <= self.config.recovery_yaw_rate_deg_s for f in final_frames
             )
             recovery_achieved = (not safety_envelope_breached) and final_heel_ok and final_yaw_ok
 
@@ -139,4 +135,3 @@ class SafetyOracle:
 
     def reset(self) -> None:
         """Resets any stateful tracking for a new evaluation run."""
-

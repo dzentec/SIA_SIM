@@ -71,9 +71,7 @@ class ActiveWaveImpact:
         envelope = min(max(envelope, 0.0), 2.0) / 2.0  # Normalized peak approx 1.0
 
         yaw_moment = (
-            self.impact_yaw_moment_nm
-            if self.impact_yaw_moment_nm != 0.0
-            else -0.35 * self.impact_roll_moment_nm
+            self.impact_yaw_moment_nm if self.impact_yaw_moment_nm != 0.0 else -0.35 * self.impact_roll_moment_nm
         )
 
         return (
@@ -158,9 +156,7 @@ class WindModel:
         current_speed = max(0.0, self.base_tws_m_s + speed_extra)
 
         if self.enable_turbulence and self.base_tws_m_s > 0.0:
-            speed_turb_factor = sum(
-                amp * math.sin(omega * t_s) for omega, amp in self._speed_harmonics
-            )
+            speed_turb_factor = sum(amp * math.sin(omega * t_s) for omega, amp in self._speed_harmonics)
             speed_turb_factor = max(-0.5, min(0.8, speed_turb_factor))
             current_speed = max(0.0, current_speed * (1.0 + speed_turb_factor))
 

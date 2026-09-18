@@ -44,9 +44,7 @@ def format_run_payload(runner_result: Any) -> dict[str, Any]:
         roll_deg = round(sf.imu.roll_deg, 2) if sf.imu.roll_deg is not None else None
         pitch_deg = round(sf.imu.pitch_deg, 2) if sf.imu.pitch_deg is not None else None
         roll_rate = round(sf.imu.roll_rate_deg_s, 2) if sf.imu.roll_rate_deg_s is not None else None
-        pitch_rate = (
-            round(sf.imu.pitch_rate_deg_s, 2) if sf.imu.pitch_rate_deg_s is not None else None
-        )
+        pitch_rate = round(sf.imu.pitch_rate_deg_s, 2) if sf.imu.pitch_rate_deg_s is not None else None
         yaw_rate = round(sf.imu.yaw_rate_deg_s, 2) if sf.imu.yaw_rate_deg_s is not None else None
         acc_z = round(sf.imu.accel_z_m_s2, 2) if sf.imu.accel_z_m_s2 is not None else None
         acc_x = round(sf.imu.accel_x_m_s2, 2) if sf.imu.accel_x_m_s2 is not None else None
@@ -54,25 +52,11 @@ def format_run_payload(runner_result: Any) -> dict[str, Any]:
         gps_sog = round(sf.gps.sog_kt, 2) if sf.gps.sog_kt is not None else None
         gps_cog = round(sf.gps.cog_deg, 1) if sf.gps.cog_deg is not None else None
 
-        aws = (
-            round(sf.wind.apparent_wind_speed_kt, 2)
-            if sf.wind.apparent_wind_speed_kt is not None
-            else None
-        )
-        awa = (
-            round(sf.wind.apparent_wind_angle_deg, 1)
-            if sf.wind.apparent_wind_angle_deg is not None
-            else None
-        )
+        aws = round(sf.wind.apparent_wind_speed_kt, 2) if sf.wind.apparent_wind_speed_kt is not None else None
+        awa = round(sf.wind.apparent_wind_angle_deg, 1) if sf.wind.apparent_wind_angle_deg is not None else None
 
-        rudder_angle = (
-            round(sf.actuators.rudder_angle_deg, 1)
-            if sf.actuators.rudder_angle_deg is not None
-            else None
-        )
-        mainsheet = (
-            round(sf.actuators.mainsheet_pct, 1) if sf.actuators.mainsheet_pct is not None else None
-        )
+        rudder_angle = round(sf.actuators.rudder_angle_deg, 1) if sf.actuators.rudder_angle_deg is not None else None
+        mainsheet = round(sf.actuators.mainsheet_pct, 1) if sf.actuators.mainsheet_pct is not None else None
 
         sel_resp = dec.selected_response.model_dump(mode="json") if dec.selected_response else None
 
@@ -80,10 +64,7 @@ def format_run_payload(runner_result: Any) -> dict[str, Any]:
         is_wave_impact = False
         slam_force_val = 0.0
         for evt in runner_result.scenario.events:
-            if (
-                evt.event_type in ("wave_impact", "slam", "wave_slam")
-                and evt.event_id in gt.active_event_ids
-            ):
+            if evt.event_type in ("wave_impact", "slam", "wave_slam") and evt.event_id in gt.active_event_ids:
                 is_wave_impact = True
                 force_n = float(evt.parameters.get("impact_force_n", 12000.0))
                 slam_force_val = round(force_n / 1000.0, 1)
@@ -91,16 +72,12 @@ def format_run_payload(runner_result: Any) -> dict[str, Any]:
 
         if not is_wave_impact:
             slam_force_val = (
-                round(abs(gt.environment.wave_height_m * 1.5), 1)
-                if gt.environment.wave_height_m > 2.0
-                else 0.0
+                round(abs(gt.environment.wave_height_m * 1.5), 1) if gt.environment.wave_height_m > 2.0 else 0.0
             )
 
         slam_force_kn = slam_force_val
         heave_m = round(
-            gt.environment.wave_height_m
-            * 0.45
-            * (0.8 + 0.2 * math.cos(gt.sim_time_ms / 1000.0 * 2.0)),
+            gt.environment.wave_height_m * 0.45 * (0.8 + 0.2 * math.cos(gt.sim_time_ms / 1000.0 * 2.0)),
             2,
         )
 
@@ -213,6 +190,8 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             self._handle_get_vessels()
         elif self.path == "/api/sails":
             self._handle_get_sails()
+        elif self.path == "/api/v1/telemetry/rig":
+            self._handle_get_rig_telemetry()
         elif self.path == "/api/health":
             self._send_json({"status": "ok", "version": "0.1.0"})
         else:
@@ -225,6 +204,12 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
         from sia_sim.contracts.sails import SAIL_RULES_CATALOG_V1_1
 
         self._send_json(SAIL_RULES_CATALOG_V1_1)
+
+    def _handle_get_rig_telemetry(self) -> None:
+        from sia_sim.web.server import global_rig_controller
+
+        state = global_rig_controller.get_telemetry_state()
+        self._send_json(state.model_dump())
 
     def do_POST(self) -> None:
         content_length = int(self.headers.get("Content-Length", 0))
@@ -239,8 +224,47 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
             self._handle_run_simulation(payload)
         elif self.path == "/api/query-action":
             self._handle_query_action(payload)
+        elif self.path == "/api/v1/controls/rig":
+            self._handle_post_rig_controls(payload)
+        elif self.path == "/api/v1/controls/preset":
+            self._handle_post_rig_preset(payload)
         else:
             self.send_error(HTTPStatus.NOT_FOUND, "Endpoint not found")
+
+    def _handle_post_rig_controls(self, payload: dict[str, Any]) -> None:
+        from sia_sim.engine.rig_controller import RigControlError
+        from sia_sim.web.server import global_rig_controller
+
+        try:
+            res = global_rig_controller.process_controls(payload)
+            self._send_json(res)
+        except RigControlError as rce:
+            self.send_response(rce.status_code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": rce.error_code, "message": rce.message}).encode("utf-8"))
+
+    def _handle_post_rig_preset(self, payload: dict[str, Any]) -> None:
+        from sia_sim.engine.rig_controller import RigControlError
+        from sia_sim.web.server import global_rig_controller
+
+        try:
+            res = global_rig_controller.execute_preset(payload)
+            if res.get("status") == "REJECTED":
+                self.send_response(HTTPStatus.CONFLICT)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps(res).encode("utf-8"))
+            else:
+                self._send_json(res)
+        except RigControlError as rce:
+            self.send_response(rce.status_code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": rce.error_code, "message": rce.message}).encode("utf-8"))
 
     def _handle_get_vessels(self) -> None:
         from sia_sim.scenarios.presets import list_vessel_presets
@@ -297,10 +321,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     v_overrides["loa_m"] = float(custom_vessel["loa_m"])
                 if "beam_m" in custom_vessel and custom_vessel["beam_m"] is not None:
                     v_overrides["beam_m"] = float(custom_vessel["beam_m"])
-                if (
-                    "displacement_kg" in custom_vessel
-                    and custom_vessel["displacement_kg"] is not None
-                ):
+                if "displacement_kg" in custom_vessel and custom_vessel["displacement_kg"] is not None:
                     v_overrides["displacement_kg"] = float(custom_vessel["displacement_kg"])
                 if "mast_height_m" in custom_vessel and custom_vessel["mast_height_m"] is not None:
                     v_overrides["mast_height_m"] = float(custom_vessel["mast_height_m"])
@@ -308,21 +329,14 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                     v_overrides["sail_area_m2"] = float(custom_vessel["sail_area_m2"])
                 if custom_vessel.get("hull_type"):
                     v_overrides["hull_type"] = str(custom_vessel["hull_type"])
-                if (
-                    "available_sails" in custom_vessel
-                    and custom_vessel["available_sails"] is not None
-                ):
-                    v_overrides["available_sails"] = tuple(
-                        str(s) for s in custom_vessel["available_sails"]
-                    )
+                if "available_sails" in custom_vessel and custom_vessel["available_sails"] is not None:
+                    v_overrides["available_sails"] = tuple(str(s) for s in custom_vessel["available_sails"])
                 if (
                     "active_sails" in custom_vessel
                     and custom_vessel["active_sails"] is not None
                     and isinstance(custom_vessel["active_sails"], dict)
                 ):
-                    v_overrides["active_sails"] = {
-                        str(k): float(v) for k, v in custom_vessel["active_sails"].items()
-                    }
+                    v_overrides["active_sails"] = {str(k): float(v) for k, v in custom_vessel["active_sails"].items()}
 
                 if v_overrides:
                     updates["vessel"] = curr_v.model_copy(update=v_overrides)
@@ -349,9 +363,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                 if "initial_sog_kt" in custom_world:
                     vessel_updates["initial_sog_kt"] = float(custom_world["initial_sog_kt"])
                 if "initial_heading_deg" in custom_world:
-                    vessel_updates["initial_heading_deg"] = float(
-                        custom_world["initial_heading_deg"]
-                    )
+                    vessel_updates["initial_heading_deg"] = float(custom_world["initial_heading_deg"])
                 if "initial_heel_deg" in custom_world:
                     vessel_updates["initial_heel_deg"] = float(custom_world["initial_heel_deg"])
 
@@ -454,9 +466,7 @@ class WorkbenchRequestHandler(SimpleHTTPRequestHandler):
                 },
             ]
         elif sail_set in ("STORM_JIB", "STORM_JIB_ONLY"):
-            note = (
-                f"Skipper confirmed {sail_set} — minimal sail area. Storm survival tactics engaged."
-            )
+            note = f"Skipper confirmed {sail_set} — minimal sail area. Storm survival tactics engaged."
             candidates = [
                 {
                     "response_id": f"RESP-{sim_time_ms}-01-RECALC",

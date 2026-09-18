@@ -231,16 +231,12 @@ class TestImmutability:
 
 
 class TestRoundTrip:
-    def test_decision_payload_json_round_trip(
-        self, sample_decision_payload: DecisionPayload
-    ) -> None:
+    def test_decision_payload_json_round_trip(self, sample_decision_payload: DecisionPayload) -> None:
         json_str = sample_decision_payload.model_dump_json()
         restored = DecisionPayload.model_validate_json(json_str)
         assert restored == sample_decision_payload
 
-    def test_evaluation_result_json_round_trip(
-        self, sample_evaluation_result: EvaluationResult
-    ) -> None:
+    def test_evaluation_result_json_round_trip(self, sample_evaluation_result: EvaluationResult) -> None:
         json_str = sample_evaluation_result.model_dump_json()
         restored = EvaluationResult.model_validate_json(json_str)
         assert restored == sample_evaluation_result

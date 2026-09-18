@@ -13,12 +13,13 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from sia_sim.contracts.data import GroundTruthFrame
 from sia_sim.contracts.scenario import Scenario, ScenarioEvent, VesselConfig
+from sia_sim.engine.rig_controller import RigControlError, RigController
 from sia_sim.physics.dynamics import VesselDynamics
 from sia_sim.physics.world import WorldModel
 from sia_sim.sensors.pipeline import SensorPipeline
@@ -28,11 +29,13 @@ logger = logging.getLogger("sia_sim.web")
 logging.basicConfig(level=logging.INFO)
 
 # Path to the HTML interface
-HTML_PATH = (
-    Path(__file__).parents[3] / ".planning" / "sketches" / "sia-simulation-workbench" / "index.html"
-)
+HTML_PATH = Path(__file__).parents[3] / ".planning" / "sketches" / "sia-simulation-workbench" / "index.html"
 
 app = FastAPI(title="SIA Simulation Workbench API")
+
+# Phase 12 Global Rig Controller
+global_rig_controller = RigController()
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -250,13 +253,9 @@ class SimulationRunner:
             "sensor_frame": {
                 "imu": {
                     "roll_deg": sensor_frame.imu.roll_deg if sensor_frame.imu else None,
-                    "roll_rate_deg_s": sensor_frame.imu.roll_rate_deg_s
-                    if sensor_frame.imu
-                    else None,
+                    "roll_rate_deg_s": sensor_frame.imu.roll_rate_deg_s if sensor_frame.imu else None,
                     "pitch_deg": sensor_frame.imu.pitch_deg if sensor_frame.imu else None,
-                    "pitch_rate_deg_s": sensor_frame.imu.pitch_rate_deg_s
-                    if sensor_frame.imu
-                    else None,
+                    "pitch_rate_deg_s": sensor_frame.imu.pitch_rate_deg_s if sensor_frame.imu else None,
                     "yaw_rate_deg_s": sensor_frame.imu.yaw_rate_deg_s if sensor_frame.imu else None,
                 },
                 "gps": {
@@ -265,32 +264,71 @@ class SimulationRunner:
                     "hdop": sensor_frame.gps.hdop if sensor_frame.gps else None,
                 },
                 "wind": {
-                    "awa_deg": sensor_frame.wind.apparent_wind_angle_deg
-                    if sensor_frame.wind
-                    else None,
-                    "aws_kt": sensor_frame.wind.apparent_wind_speed_kt
-                    if sensor_frame.wind
-                    else None,
+                    "awa_deg": sensor_frame.wind.apparent_wind_angle_deg if sensor_frame.wind else None,
+                    "aws_kt": sensor_frame.wind.apparent_wind_speed_kt if sensor_frame.wind else None,
                 },
                 "actuators": {
-                    "rudder_angle_deg": sensor_frame.actuators.rudder_angle_deg
-                    if sensor_frame.actuators
-                    else None,
+                    "rudder_angle_deg": sensor_frame.actuators.rudder_angle_deg if sensor_frame.actuators else None,
                 },
             },
             "decision": {
                 "confidence": decision.risk_assessment.confidence,
                 "risk_score": decision.risk_assessment.risk_score,
-                "primary_action": decision.selected_response.action_type
-                if decision.selected_response
-                else None,
-                "primary_score": decision.selected_response.priority_score
-                if decision.selected_response
-                else None,
+                "primary_action": decision.selected_response.action_type if decision.selected_response else None,
+                "primary_score": decision.selected_response.priority_score if decision.selected_response else None,
                 "target_hazard": decision.risk_assessment.hazard_id,
                 "candidates_count": len(decision.candidates),
             },
         }
+
+
+@app.post("/api/v1/controls/rig")
+async def post_rig_controls(request: Request) -> JSONResponse:
+    """Batch control line input endpoint."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "INVALID_JSON", "message": "Malformed JSON payload"})
+
+    try:
+        res = global_rig_controller.process_controls(payload)
+        return JSONResponse(status_code=200, content=res)
+    except RigControlError as rce:
+        return JSONResponse(status_code=rce.status_code, content={"error": rce.error_code, "message": rce.message})
+    except Exception as e:
+        logger.error(f"Error processing rig controls: {e}")
+        return JSONResponse(status_code=500, content={"error": "INTERNAL_ERROR", "message": str(e)})
+
+
+@app.post("/api/v1/controls/preset")
+async def post_rig_preset(request: Request) -> JSONResponse:
+    """Rig preset execution endpoint with interlock validation."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "INVALID_JSON", "message": "Malformed JSON payload"})
+
+    try:
+        res = global_rig_controller.execute_preset(payload)
+        if res.get("status") == "REJECTED":
+            return JSONResponse(status_code=409, content=res)
+        return JSONResponse(status_code=200, content=res)
+    except RigControlError as rce:
+        return JSONResponse(status_code=rce.status_code, content={"error": rce.error_code, "message": rce.message})
+    except Exception as e:
+        logger.error(f"Error executing preset: {e}")
+        return JSONResponse(status_code=500, content={"error": "INTERNAL_ERROR", "message": str(e)})
+
+
+@app.get("/api/v1/telemetry/rig")
+async def get_rig_telemetry() -> JSONResponse:
+    """Returns the current complete RigState telemetry."""
+    try:
+        state = global_rig_controller.get_telemetry_state()
+        return JSONResponse(status_code=200, content=state.model_dump())
+    except Exception as e:
+        logger.error(f"Error fetching rig telemetry: {e}")
+        return JSONResponse(status_code=500, content={"error": "INTERNAL_ERROR", "message": str(e)})
 
 
 @app.get("/", response_class=HTMLResponse)

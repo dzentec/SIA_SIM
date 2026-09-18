@@ -110,14 +110,10 @@ class TestGroundTruthFrameEdgeCases:
                 active_event_ids=(),
             )
 
-    def test_active_event_ids_empty_tuple_valid(
-        self, minimal_ground_truth_frame: GroundTruthFrame
-    ) -> None:
+    def test_active_event_ids_empty_tuple_valid(self, minimal_ground_truth_frame: GroundTruthFrame) -> None:
         assert minimal_ground_truth_frame.active_event_ids == ()
 
-    def test_active_event_ids_must_be_tuple_not_list(
-        self, minimal_ground_truth_frame: GroundTruthFrame
-    ) -> None:
+    def test_active_event_ids_must_be_tuple_not_list(self, minimal_ground_truth_frame: GroundTruthFrame) -> None:
         with pytest.raises(ValidationError):
             GroundTruthFrame(
                 sim_time_ms=0,
@@ -166,9 +162,7 @@ class TestScenarioEdgeCases:
 
 
 class TestDecisionPayloadEdgeCases:
-    def test_candidates_cannot_exceed_three(
-        self, minimal_decision_payload: DecisionPayload
-    ) -> None:
+    def test_candidates_cannot_exceed_three(self, minimal_decision_payload: DecisionPayload) -> None:
         cand = CandidateResponse(
             response_id="R",
             action_type="ACT",
@@ -182,9 +176,7 @@ class TestDecisionPayloadEdgeCases:
         with pytest.raises(ValidationError):
             DecisionPayload.model_validate(data)
 
-    def test_empty_candidates_with_none_selected_valid(
-        self, minimal_decision_payload: DecisionPayload
-    ) -> None:
+    def test_empty_candidates_with_none_selected_valid(self, minimal_decision_payload: DecisionPayload) -> None:
         assert minimal_decision_payload.candidates == ()
         assert minimal_decision_payload.selected_response is None
 
@@ -215,17 +207,13 @@ class TestDecisionPayloadEdgeCases:
 
 
 class TestEvaluationResultEdgeCases:
-    def test_verdict_invalid_string_rejected(
-        self, minimal_evaluation_result_pass: EvaluationResult
-    ) -> None:
+    def test_verdict_invalid_string_rejected(self, minimal_evaluation_result_pass: EvaluationResult) -> None:
         data = minimal_evaluation_result_pass.model_dump()
         data["verdict"] = "UNKNOWN"
         with pytest.raises(ValidationError):
             EvaluationResult.model_validate(data)
 
-    def test_false_positives_negatives_non_negative(
-        self, minimal_evaluation_result_pass: EvaluationResult
-    ) -> None:
+    def test_false_positives_negatives_non_negative(self, minimal_evaluation_result_pass: EvaluationResult) -> None:
         d1 = minimal_evaluation_result_pass.model_dump()
         d1["false_positives"] = -1
         with pytest.raises(ValidationError):
@@ -236,17 +224,13 @@ class TestEvaluationResultEdgeCases:
         with pytest.raises(ValidationError):
             EvaluationResult.model_validate(d2)
 
-    def test_detection_latency_none_valid(
-        self, minimal_evaluation_result_pass: EvaluationResult
-    ) -> None:
+    def test_detection_latency_none_valid(self, minimal_evaluation_result_pass: EvaluationResult) -> None:
         data = minimal_evaluation_result_pass.model_dump()
         data["detection_latency_ms"] = None
         res = EvaluationResult.model_validate(data)
         assert res.detection_latency_ms is None
 
-    def test_safety_margin_negative_allowed(
-        self, minimal_evaluation_result_pass: EvaluationResult
-    ) -> None:
+    def test_safety_margin_negative_allowed(self, minimal_evaluation_result_pass: EvaluationResult) -> None:
         data = minimal_evaluation_result_pass.model_dump()
         data["safety_margin_pct"] = -15.5
         res = EvaluationResult.model_validate(data)
@@ -263,9 +247,7 @@ class TestImmutabilityAcrossContracts:
         with pytest.raises(ValidationError):
             setattr(minimal_sensor_frame, "sequence_number", 999)  # noqa: B010
 
-    def test_ground_truth_frame_is_frozen(
-        self, minimal_ground_truth_frame: GroundTruthFrame
-    ) -> None:
+    def test_ground_truth_frame_is_frozen(self, minimal_ground_truth_frame: GroundTruthFrame) -> None:
         with pytest.raises(ValidationError):
             setattr(minimal_ground_truth_frame, "sim_time_ms", 999)  # noqa: B010
 
@@ -281,9 +263,7 @@ class TestImmutabilityAcrossContracts:
         with pytest.raises(ValidationError):
             setattr(minimal_oracle_result_no_hazard, "recovery_achieved", False)  # noqa: B010
 
-    def test_evaluation_result_is_frozen(
-        self, minimal_evaluation_result_pass: EvaluationResult
-    ) -> None:
+    def test_evaluation_result_is_frozen(self, minimal_evaluation_result_pass: EvaluationResult) -> None:
         with pytest.raises(ValidationError):
             setattr(minimal_evaluation_result_pass, "verdict", "FAIL")  # noqa: B010
 
@@ -294,35 +274,27 @@ class TestImmutabilityAcrossContracts:
 
 
 class TestNonePreservationAcrossContracts:
-    def test_none_imu_fields_preserved_in_model_dump(
-        self, minimal_sensor_frame: SensorFrame
-    ) -> None:
+    def test_none_imu_fields_preserved_in_model_dump(self, minimal_sensor_frame: SensorFrame) -> None:
         dumped = minimal_sensor_frame.model_dump()
         imu = dumped["imu"]
         assert imu["roll_deg"] is None, "None must not be coerced to 0.0"
         assert imu["roll_rate_deg_s"] is None, "None must not be coerced to 0.0"
         assert "roll_deg" in imu, "None field must not be omitted from dump"
 
-    def test_none_gps_fields_preserved_in_model_dump(
-        self, minimal_sensor_frame: SensorFrame
-    ) -> None:
+    def test_none_gps_fields_preserved_in_model_dump(self, minimal_sensor_frame: SensorFrame) -> None:
         dumped = minimal_sensor_frame.model_dump()
         gps = dumped["gps"]
         assert gps["latitude_deg"] is None
         assert gps["sog_kt"] is None
         assert "latitude_deg" in gps
 
-    def test_none_oracle_timing_preserved(
-        self, minimal_oracle_result_no_hazard: OracleResult
-    ) -> None:
+    def test_none_oracle_timing_preserved(self, minimal_oracle_result_no_hazard: OracleResult) -> None:
         dumped = minimal_oracle_result_no_hazard.model_dump()
         assert dumped["hazard_onset_ms"] is None
         assert dumped["required_response_window_ms"] is None
         assert "hazard_onset_ms" in dumped
 
-    def test_none_evaluation_latency_preserved(
-        self, minimal_evaluation_result_pass: EvaluationResult
-    ) -> None:
+    def test_none_evaluation_latency_preserved(self, minimal_evaluation_result_pass: EvaluationResult) -> None:
         res = minimal_evaluation_result_pass.model_copy(update={"detection_latency_ms": None})
         dumped = res.model_dump()
         assert dumped["detection_latency_ms"] is None

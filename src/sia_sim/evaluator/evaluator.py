@@ -49,9 +49,7 @@ class SimulationEvaluator:
         """Evaluates decisions against Oracle expectations and returns an EvaluationResult."""
         scenario_id = oracle_result.scenario_id
         t_onset = oracle_result.hazard_onset_ms
-        window_ms = (
-            oracle_result.required_response_window_ms or self.config.max_acceptable_latency_ms
-        )
+        window_ms = oracle_result.required_response_window_ms or self.config.max_acceptable_latency_ms
 
         false_positives = 0
         false_negatives = 0
@@ -88,8 +86,7 @@ class SimulationEvaluator:
 
             if false_positives > self.config.max_allowed_false_positives:
                 failure_reasons.append(
-                    f"Premature false alarms ({false_positives}) before "
-                    f"hazard onset at {t_onset}ms."
+                    f"Premature false alarms ({false_positives}) before hazard onset at {t_onset}ms."
                 )
 
             # 2. Find first valid detection on or after onset
@@ -112,8 +109,7 @@ class SimulationEvaluator:
                 if detection_latency_ms > window_ms:
                     false_negatives += 1
                     failure_reasons.append(
-                        f"Detection latency ({detection_latency_ms}ms) exceeded "
-                        f"required window ({window_ms}ms)."
+                        f"Detection latency ({detection_latency_ms}ms) exceeded required window ({window_ms}ms)."
                     )
                 # Calculate safety margin percentage based on response timing
                 remaining_window = max(0, window_ms - detection_latency_ms)
@@ -130,9 +126,7 @@ class SimulationEvaluator:
             failure_reasons.append("Safety envelope was breached (e.g. knockdown/capsize).")
 
         if self.config.require_recovery and not oracle_result.recovery_achieved:
-            failure_reasons.append(
-                "Vessel failed to achieve safe upright recovery at scenario completion."
-            )
+            failure_reasons.append("Vessel failed to achieve safe upright recovery at scenario completion.")
 
         if safety_margin_pct < self.config.min_safety_margin_pct and t_onset is not None:
             failure_reasons.append(
@@ -150,9 +144,7 @@ class SimulationEvaluator:
                 f"FP: {false_positives}, FN: {false_negatives}."
             )
         else:
-            notes = f"FAIL: {scenario_id} failed verification. Reasons: " + "; ".join(
-                failure_reasons
-            )
+            notes = f"FAIL: {scenario_id} failed verification. Reasons: " + "; ".join(failure_reasons)
 
         return EvaluationResult(
             scenario_id=scenario_id,

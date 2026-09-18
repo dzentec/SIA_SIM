@@ -118,12 +118,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         sys.stdout.write(f"Verdict:   {eval_res.verdict}\n")
         if eval_res.detection_latency_ms is not None:
             sys.stdout.write(
-                f"Latency:   {eval_res.detection_latency_ms} ms "
-                f"(Safety Margin: {eval_res.safety_margin_pct:.1f}%)\n"
+                f"Latency:   {eval_res.detection_latency_ms} ms (Safety Margin: {eval_res.safety_margin_pct:.1f}%)\n"
             )
-        sys.stdout.write(
-            f"False Pos: {eval_res.false_positives} | False Neg: {eval_res.false_negatives}\n"
-        )
+        sys.stdout.write(f"False Pos: {eval_res.false_positives} | False Neg: {eval_res.false_negatives}\n")
         sys.stdout.write(f"Notes:     {eval_res.notes}\n")
     else:
         sys.stdout.write(f"{eval_res.verdict}: {scenario.scenario_id}\n")

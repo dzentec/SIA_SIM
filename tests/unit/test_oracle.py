@@ -46,10 +46,7 @@ def _make_gt_frame(
 class TestSafetyOracle:
     def test_nominal_flat_run(self) -> None:
         oracle = SafetyOracle()
-        frames = [
-            _make_gt_frame(t, seq=i, heel_deg=8.0, yaw_rate_deg_s=0.2)
-            for i, t in enumerate(range(0, 5000, 10))
-        ]
+        frames = [_make_gt_frame(t, seq=i, heel_deg=8.0, yaw_rate_deg_s=0.2) for i, t in enumerate(range(0, 5000, 10))]
         result = oracle.evaluate(frames, scenario_id="SIM-NOMINAL")
 
         assert result.scenario_id == "SIM-NOMINAL"
@@ -122,6 +119,4 @@ class TestSafetyOracle:
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
                 for alias in node.names:
-                    assert alias.name not in prohibited, (
-                        f"Prohibited import in Oracle: {alias.name}"
-                    )
+                    assert alias.name not in prohibited, f"Prohibited import in Oracle: {alias.name}"

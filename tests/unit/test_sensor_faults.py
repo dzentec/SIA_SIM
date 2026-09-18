@@ -43,9 +43,7 @@ def make_dynamic_gt(t_ms: int) -> GroundTruthFrame:
 class TestSensorFaultModes:
     def test_latency_queue_exact_tick_delay(self) -> None:
         """Verify 100 ms latency exactly delays measurement by 10 ticks."""
-        degrader = ChannelDegrader(
-            DegradationConfig(latency_ms=100, noise_std=0.0, warmup_fill=False)
-        )
+        degrader = ChannelDegrader(DegradationConfig(latency_ms=100, noise_std=0.0, warmup_fill=False))
 
         inputs = [float(i * 10) for i in range(30)]  # 0, 10, 20, ..., 290
         outputs: list[float | None] = []

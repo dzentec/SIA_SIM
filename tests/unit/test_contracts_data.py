@@ -254,9 +254,7 @@ class TestGroundTruthFrameConstruction:
         assert ground_truth_frame.sequence_number == 0
         assert ground_truth_frame.active_event_ids == ()
 
-    def test_ground_truth_with_events(
-        self, vessel_state: VesselState, environment_state: EnvironmentState
-    ) -> None:
+    def test_ground_truth_with_events(self, vessel_state: VesselState, environment_state: EnvironmentState) -> None:
         frame = GroundTruthFrame(
             sim_time_ms=10000,
             vessel=vessel_state,
@@ -274,9 +272,7 @@ class TestGroundTruthFrameConstruction:
 
 
 class TestNonePreservation:
-    def test_imu_none_fields_preserved_in_model_dump(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_imu_none_fields_preserved_in_model_dump(self, sensor_frame_all_failed: SensorFrame) -> None:
         """None sensor values must NOT be coerced to 0.0 in serialized output."""
         dumped = sensor_frame_all_failed.model_dump()
         imu = dumped["imu"]
@@ -287,26 +283,20 @@ class TestNonePreservation:
         assert "roll_deg" in imu, "None field must not be omitted from dump"
         assert "accel_x_m_s2" in imu, "None field must not be omitted"
 
-    def test_gps_none_fields_preserved_in_model_dump(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_gps_none_fields_preserved_in_model_dump(self, sensor_frame_all_failed: SensorFrame) -> None:
         dumped = sensor_frame_all_failed.model_dump()
         gps = dumped["gps"]
         assert gps["latitude_deg"] is None
         assert gps["sog_kt"] is None
         assert "latitude_deg" in gps
 
-    def test_wind_none_fields_preserved_in_model_dump(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_wind_none_fields_preserved_in_model_dump(self, sensor_frame_all_failed: SensorFrame) -> None:
         dumped = sensor_frame_all_failed.model_dump()
         wind = dumped["wind"]
         assert wind["apparent_wind_speed_kt"] is None
         assert wind["apparent_wind_angle_deg"] is None
 
-    def test_actuator_none_fields_preserved_in_model_dump(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_actuator_none_fields_preserved_in_model_dump(self, sensor_frame_all_failed: SensorFrame) -> None:
         dumped = sensor_frame_all_failed.model_dump()
         act = dumped["actuators"]
         assert act["rudder_angle_deg"] is None
@@ -421,9 +411,7 @@ class TestStrictTypeEnforcement:
 
 
 class TestRoundTripSerialization:
-    def test_sensor_frame_all_failed_round_trips(
-        self, sensor_frame_all_failed: SensorFrame
-    ) -> None:
+    def test_sensor_frame_all_failed_round_trips(self, sensor_frame_all_failed: SensorFrame) -> None:
         dumped = sensor_frame_all_failed.model_dump()
         restored = SensorFrame.model_validate(dumped)
         assert restored == sensor_frame_all_failed
@@ -451,9 +439,7 @@ class TestRoundTripSerialization:
 
 
 class TestSafetyChannelStatusContracts:
-    def test_default_safety_channel_status_is_wired_verified(
-        self, sensor_frame_healthy: SensorFrame
-    ) -> None:
+    def test_default_safety_channel_status_is_wired_verified(self, sensor_frame_healthy: SensorFrame) -> None:
         from sia_sim.contracts.data import SafetyChannelStatus
 
         assert sensor_frame_healthy.safety_channel_status == SafetyChannelStatus.WIRED_VERIFIED
@@ -483,9 +469,7 @@ class TestSafetyChannelStatusContracts:
         )
         assert frame_mixed.safety_channel_status == SafetyChannelStatus.MIXED
 
-    def test_invalid_safety_channel_status_raises_validation_error(
-        self, sensor_frame_healthy: SensorFrame
-    ) -> None:
+    def test_invalid_safety_channel_status_raises_validation_error(self, sensor_frame_healthy: SensorFrame) -> None:
         with pytest.raises(ValidationError):
             SensorFrame(
                 sim_time_ms=100,
@@ -496,4 +480,3 @@ class TestSafetyChannelStatusContracts:
                 sequence_number=1,
                 safety_channel_status="INVALID_STATUS",  # type: ignore[arg-type]
             )
-

@@ -40,9 +40,7 @@ def sample_events() -> tuple[ScenarioEvent, ...]:
 
 
 @pytest.fixture
-def sample_scenario(
-    sample_vessel: VesselConfig, sample_events: tuple[ScenarioEvent, ...]
-) -> Scenario:
+def sample_scenario(sample_vessel: VesselConfig, sample_events: tuple[ScenarioEvent, ...]) -> Scenario:
     return Scenario(
         scenario_id="SIM-005",
         scenario_version="1.0.0",

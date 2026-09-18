@@ -60,9 +60,7 @@ def resolve_wardrobe_for_hull(hull_type: str = "monohull") -> dict[str, Effectiv
         reef_recs: list[ReefRecommendation] = []
         for r in merged.get("reef_recommendations_kt", []):
             if isinstance(r, dict):
-                reef_recs.append(
-                    ReefRecommendation(reef=int(r["reef"]), wind_speed_kt=float(r["wind_speed_kt"]))
-                )
+                reef_recs.append(ReefRecommendation(reef=int(r["reef"]), wind_speed_kt=float(r["wind_speed_kt"])))
             elif isinstance(r, ReefRecommendation):
                 reef_recs.append(r)
         merged["reef_recommendations_kt"] = tuple(reef_recs)
@@ -140,15 +138,15 @@ def evaluate_sail_suitability(
         and abs_twa >= 165.0
     ):
         return SailSuitability(
-                sail_id=sail.id,
-                name=sail.name,
-                category=sail.category,
-                status=SailSuitabilityStatus.MARGINAL,
-                score=0.40,
-                is_available_on_board=is_available,
-                recommended_action=f"Увалиться/привестись до TWA {opt_twa_max:.0f}°",
-                reason=f"Чистый фордевинд (TWA {abs_twa:.0f}°) на катамаране опасен схлопыванием и потерей скорости",
-            )
+            sail_id=sail.id,
+            name=sail.name,
+            category=sail.category,
+            status=SailSuitabilityStatus.MARGINAL,
+            score=0.40,
+            is_available_on_board=is_available,
+            recommended_action=f"Увалиться/привестись до TWA {opt_twa_max:.0f}°",
+            reason=f"Чистый фордевинд (TWA {abs_twa:.0f}°) на катамаране опасен схлопыванием и потерей скорости",
+        )
 
     # 5. Check TWA Angle ranges
     is_optimal_twa = opt_twa_min <= abs_twa <= opt_twa_max

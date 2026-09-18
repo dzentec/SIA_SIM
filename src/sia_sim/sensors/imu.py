@@ -35,21 +35,11 @@ class IMUSensorModel:
         self.lpf_cutoff_hz = lpf_cutoff_hz
 
         # Default realistic MEMS IMU noise profiles if none provided
-        self.degrader_roll = ChannelDegrader(
-            roll_config or DegradationConfig(noise_std=0.1), self.rng
-        )
-        self.degrader_pitch = ChannelDegrader(
-            pitch_config or DegradationConfig(noise_std=0.1), self.rng
-        )
-        self.degrader_roll_rate = ChannelDegrader(
-            roll_rate_config or DegradationConfig(noise_std=0.2), self.rng
-        )
-        self.degrader_pitch_rate = ChannelDegrader(
-            pitch_rate_config or DegradationConfig(noise_std=0.2), self.rng
-        )
-        self.degrader_yaw_rate = ChannelDegrader(
-            yaw_rate_config or DegradationConfig(noise_std=0.2), self.rng
-        )
+        self.degrader_roll = ChannelDegrader(roll_config or DegradationConfig(noise_std=0.1), self.rng)
+        self.degrader_pitch = ChannelDegrader(pitch_config or DegradationConfig(noise_std=0.1), self.rng)
+        self.degrader_roll_rate = ChannelDegrader(roll_rate_config or DegradationConfig(noise_std=0.2), self.rng)
+        self.degrader_pitch_rate = ChannelDegrader(pitch_rate_config or DegradationConfig(noise_std=0.2), self.rng)
+        self.degrader_yaw_rate = ChannelDegrader(yaw_rate_config or DegradationConfig(noise_std=0.2), self.rng)
 
         acc_cfg = accel_config or DegradationConfig(noise_std=0.05)
         self.degrader_acc_x = ChannelDegrader(acc_cfg, self.rng)
@@ -108,9 +98,7 @@ class IMUSensorModel:
     def set_frozen(self, frozen: bool) -> None:
         self._frozen = frozen
 
-    def _apply_lpf(
-        self, prev: float | None, current: float | None, dt_s: float = 0.01
-    ) -> float | None:
+    def _apply_lpf(self, prev: float | None, current: float | None, dt_s: float = 0.01) -> float | None:
         if current is None:
             return None
         if prev is None:
@@ -151,13 +139,9 @@ class IMUSensorModel:
 
         raw_roll = self.degrader_roll.process(vessel.heel_deg, sim_time_ms, is_fault, is_freeze)
         raw_pitch = self.degrader_pitch.process(vessel.pitch_deg, sim_time_ms, is_fault, is_freeze)
-        raw_roll_rate = self.degrader_roll_rate.process(
-            vessel.roll_rate_deg_s, sim_time_ms, is_fault, is_freeze
-        )
+        raw_roll_rate = self.degrader_roll_rate.process(vessel.roll_rate_deg_s, sim_time_ms, is_fault, is_freeze)
         raw_pitch_rate = self.degrader_pitch_rate.process(0.0, sim_time_ms, is_fault, is_freeze)
-        raw_yaw_rate = self.degrader_yaw_rate.process(
-            vessel.yaw_rate_deg_s, sim_time_ms, is_fault, is_freeze
-        )
+        raw_yaw_rate = self.degrader_yaw_rate.process(vessel.yaw_rate_deg_s, sim_time_ms, is_fault, is_freeze)
 
         raw_acc_x = self.degrader_acc_x.process(raw_ax, sim_time_ms, is_fault, is_freeze)
         raw_acc_y = self.degrader_acc_y.process(raw_ay, sim_time_ms, is_fault, is_freeze)
@@ -190,19 +174,12 @@ class IMUSensorModel:
 
         # 3. Peak Envelope Edge Accumulator (MOD-01)
         if raw_acc_z is not None:
-            g_mag = (
-                math.sqrt(
-                    (raw_acc_x or 0.0) ** 2 + (raw_acc_y or 0.0) ** 2 + (raw_acc_z or 0.0) ** 2
-                )
-                / GRAVITY
-            )
+            g_mag = math.sqrt((raw_acc_x or 0.0) ** 2 + (raw_acc_y or 0.0) ** 2 + (raw_acc_z or 0.0) ** 2) / GRAVITY
             self._peak_accel_g = max(self._peak_accel_g, g_mag)
         if raw_roll_rate is not None:
             self._peak_roll_rate_deg_s = max(self._peak_roll_rate_deg_s, abs(raw_roll_rate))
 
-        has_fault = is_fault or (
-            roll_out is None and roll_rate_out is None and yaw_rate_out is None
-        )
+        has_fault = is_fault or (roll_out is None and roll_rate_out is None and yaw_rate_out is None)
 
         if should_sample:
             self._last_sample_time_ms = sim_time_ms

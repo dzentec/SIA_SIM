@@ -61,9 +61,7 @@ class TestSimulationEvaluator:
             safety_envelope_breached=False,
             severity="NONE",
         )
-        decisions = [
-            _make_decision(t, seq=i, risk_score=0.1) for i, t in enumerate(range(0, 5000, 10))
-        ]
+        decisions = [_make_decision(t, seq=i, risk_score=0.1) for i, t in enumerate(range(0, 5000, 10))]
 
         result = evaluator.evaluate(oracle_result, decisions, run_id="RUN-NOMINAL-01")
 
@@ -156,9 +154,7 @@ class TestSimulationEvaluator:
             severity="CRITICAL",
         )
         # SIA never detects anything
-        decisions = [
-            _make_decision(t, seq=i, risk_score=0.1) for i, t in enumerate(range(0, 20000, 10))
-        ]
+        decisions = [_make_decision(t, seq=i, risk_score=0.1) for i, t in enumerate(range(0, 20000, 10))]
 
         result = evaluator.evaluate(oracle_result, decisions, run_id="RUN-MISSED-FAIL")
 
@@ -201,9 +197,7 @@ class TestSimulationEvaluator:
             severity="CRITICAL",
         )
         decisions = [
-            _make_decision(
-                t, seq=i, risk_score=0.8, hazard_id="BROACH_PRECURSOR", with_candidate=True
-            )
+            _make_decision(t, seq=i, risk_score=0.8, hazard_id="BROACH_PRECURSOR", with_candidate=True)
             for i, t in enumerate(range(0, 15000, 10))
         ]
 

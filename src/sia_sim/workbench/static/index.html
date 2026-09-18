@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/workbench.css">
+  <link rel="stylesheet" href="/css/cockpit.css">
 </head>
+
 <body class="mode-live">
 
   <!-- HEADER BAR -->
@@ -559,9 +561,15 @@
           </div>
         </div>
       </section>
+
+      <!-- BLOCK 5: COCKPIT & RIG CONTROL SYSTEM (PHASE 12) -->
+      <section class="zone-card zone-cockpit-section" id="zoneCockpitControl">
+        <div id="cockpitRoot"></div>
+      </section>
     </div>
 
     <!-- COLUMN 3: SKIPPER QUERY LOOP & SIA CORE ADVISORY -->
+
     <div class="core-col core-col-right">
 
       <!-- ZONE 5: SKIPPER INTERACTIVE QUERY LOOP (TOP OF RIGHT COLUMN) -->
@@ -959,6 +967,13 @@
   <script src="/js/state.js"></script>
   <script src="/js/playback.js"></script>
   <script src="/js/modals.js"></script>
+  <script type="module">
+    import { CockpitController } from '/js/cockpit.js';
+    window.CockpitController = new CockpitController('cockpitRoot');
+    // Initial fetch
+    window.CockpitController.fetchTelemetry();
+  </script>
   <script src="/js/app.js"></script>
 </body>
 </html>
+

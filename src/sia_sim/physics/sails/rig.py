@@ -12,10 +12,214 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
 
+from sia_sim.contracts.sails import (
+    FurlerState,
+    RigState,
+    RopeControlInput,
+    RopeState,
+    RopeStatus,
+    SailState,
+    TravelerControlInput,
+    TravelerState,
+)
 from sia_sim.physics.sails.polars import SailType
 from sia_sim.physics.sails.sail import Sail, SailConfig, SailEvaluationResult
+
+# ---------------------------------------------------------------------------
+# Phase 12: Rig Kinematics & Winch/Clutch Dynamic Models ([CORRECT] fidelity)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class WinchModel:
+    """Deterministic dynamic winch and clutch/stopper physics model.
+
+    Adheres strictly to [CORRECT] fidelity:
+    - clamped == True: d(actual_trim)/dt = 0, tension continues to update from aerodynamic forces.
+    - load_factor: hauling speed drops under tension (1.0 - tension / SWL).
+    - acceleration limit: clamped by a_winch_max.
+    - breaking load: tension > breaking_load_n transitions to BROKEN.
+    """
+
+    id: str
+    side: Literal["port", "starboard", "center"]
+    group: Literal["jib", "main", "reef", "rig"]
+    max_length_m: float = 10.0
+    v_winch_max_m_s: float = 0.5
+    a_winch_max_m_s2: float = 2.0
+    max_working_load_n: float = 2500.0  # Safe Working Load (SWL)
+    breaking_load_n: float = 5000.0
+    slack_threshold_n: float = 50.0
+    taut_threshold_n: float = 1800.0
+
+    target_trim: float = 0.5
+    actual_trim: float = 0.5
+    clamped: bool = True
+    speed_m_s: float = 0.0
+    accel_m_s2: float = 0.0
+    tension_n: float = 0.0
+    is_broken: bool = False
+
+    def step(
+        self,
+        target_trim: float,
+        clamped: bool,
+        external_tension_n: float,
+        dt: float,
+        ease_rate: float = 1.0,
+    ) -> RopeState:
+        """Advance winch state by dt seconds."""
+        self.target_trim = max(0.0, min(1.0, target_trim))
+        self.clamped = clamped
+        self.tension_n = max(0.0, external_tension_n)
+
+        if self.tension_n > self.breaking_load_n:
+            self.is_broken = True
+
+        if self.is_broken:
+            self.speed_m_s = 0.0
+            self.accel_m_s2 = 0.0
+            return self.get_state(RopeStatus.BROKEN)
+
+        if self.clamped:
+            self.speed_m_s = 0.0
+            self.accel_m_s2 = 0.0
+            status = self._evaluate_status()
+            return self.get_state(status)
+
+        # Winch kinematics when unclamped
+        trim_diff = self.target_trim - self.actual_trim
+        if abs(trim_diff) < 1e-4:
+            self.speed_m_s = 0.0
+            self.accel_m_s2 = 0.0
+            self.actual_trim = self.target_trim
+        else:
+            direction = 1.0 if trim_diff > 0 else -1.0
+            is_hauling = direction > 0
+            base_speed = self.v_winch_max_m_s if is_hauling else (self.v_winch_max_m_s * ease_rate)
+
+            # Load factor drops hauling speed under tension
+            if is_hauling and self.max_working_load_n > 0:
+                load_factor = max(0.1, min(1.0, 1.0 - (self.tension_n / self.max_working_load_n)))
+            else:
+                load_factor = 1.0
+
+            v_desired = direction * base_speed * load_factor
+            a_desired = (v_desired - self.speed_m_s) / max(1e-4, dt)
+            self.accel_m_s2 = max(-self.a_winch_max_m_s2, min(self.a_winch_max_m_s2, a_desired))
+            self.speed_m_s += self.accel_m_s2 * dt
+
+            trim_delta = (self.speed_m_s * dt) / max(0.1, self.max_length_m)
+            self.actual_trim = max(0.0, min(1.0, self.actual_trim + trim_delta))
+
+        status = self._evaluate_status()
+        return self.get_state(status)
+
+    def _evaluate_status(self) -> RopeStatus:
+        if self.is_broken or self.tension_n > self.breaking_load_n:
+            return RopeStatus.BROKEN
+        if self.tension_n > self.max_working_load_n:
+            return RopeStatus.OVERLOAD
+        if self.tension_n > self.taut_threshold_n:
+            return RopeStatus.TAUT
+        if self.tension_n < self.slack_threshold_n:
+            return RopeStatus.SLACK
+        if self.clamped:
+            return RopeStatus.CLAMPED
+        return RopeStatus.OK
+
+    def get_state(self, status: RopeStatus | None = None) -> RopeState:
+        stat = status or self._evaluate_status()
+        length_m = (1.0 - self.actual_trim) * self.max_length_m
+        return RopeState(
+            id=self.id,
+            side=self.side,
+            group=self.group,
+            target_trim=self.target_trim,
+            actual_trim=self.actual_trim,
+            clamped=self.clamped,
+            length_m=length_m,
+            speed_m_s=self.speed_m_s,
+            accel_m_s2=self.accel_m_s2,
+            tension_n=self.tension_n,
+            max_working_load_n=self.max_working_load_n,
+            breaking_load_n=self.breaking_load_n,
+            status=stat,
+        )
+
+
+@dataclass
+class TravelerModel:
+    """Mainsheet traveler car with signed range [-1.0 ... +1.0]."""
+
+    id: str = "traveler"
+    target_pos: float = 0.0
+    actual_pos: float = 0.0
+    speed_m_s: float = 0.0
+    clamped: bool = True
+    v_traveler_max: float = 0.4  # travel pos units/s
+
+    def step(self, target_pos: float, clamped: bool, dt: float) -> TravelerState:
+        self.target_pos = max(-1.0, min(1.0, target_pos))
+        self.clamped = clamped
+        if not self.clamped:
+            diff = self.target_pos - self.actual_pos
+            step_max = self.v_traveler_max * dt
+            step = max(-step_max, min(step_max, diff))
+            self.actual_pos = max(-1.0, min(1.0, self.actual_pos + step))
+            self.speed_m_s = step / max(1e-4, dt)
+        else:
+            self.speed_m_s = 0.0
+
+        status = RopeStatus.CLAMPED if self.clamped else RopeStatus.OK
+        return TravelerState(
+            id=self.id,
+            target_pos=self.target_pos,
+            actual_pos=self.actual_pos,
+            speed_m_s=self.speed_m_s,
+            clamped=self.clamped,
+            status=status,
+        )
+
+
+@dataclass
+class FurlerModel:
+    """Headsail furling drum physical geometry model."""
+
+    id: str = "jib_furler"
+    drum_circumference_m: float = 0.4
+    furling_pitch_m: float = 0.25
+    luff_length_m: float = 14.0
+    max_furling_line_m: float = 20.0
+    cd_furled_penalty: float = 0.35
+
+    line_trim: float = 0.0  # 0.0 = line eased (unfurled), 1.0 = line hauled (furled)
+    furled_ratio: float = 0.0
+    area_ratio: float = 1.0
+    clamped: bool = True
+
+    def step(self, line_trim: float, clamped: bool, dt: float) -> FurlerState:
+        self.line_trim = max(0.0, min(1.0, line_trim))
+        self.clamped = clamped
+        line_length_m = self.line_trim * self.max_furling_line_m
+        drum_turns = line_length_m / max(0.01, self.drum_circumference_m)
+        furled_length_m = drum_turns * self.furling_pitch_m
+        self.furled_ratio = max(0.0, min(1.0, furled_length_m / max(0.01, self.luff_length_m)))
+        self.area_ratio = max(0.0, min(1.0, 1.0 - self.furled_ratio))
+
+        status = RopeStatus.CLAMPED if self.clamped else RopeStatus.OK
+        return FurlerState(
+            id=self.id,
+            line_trim=self.line_trim,
+            line_length_m=line_length_m,
+            drum_turns=drum_turns,
+            furled_ratio=self.furled_ratio,
+            area_ratio=self.area_ratio,
+            status=status,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Extensibility Hook Protocols (For future physics subsystems)
@@ -102,6 +306,11 @@ class RigEvaluationResult:
     total_effective_area_m2: float
     sail_results: list[SailEvaluationResult] = field(default_factory=list)
 
+    @property
+    def sails(self) -> list[SailEvaluationResult]:
+        """Convenience alias for sail_results."""
+        return self.sail_results
+
 
 class SailRig:
     """Multi-sail rig coordinating individual sails, interactions, and moments."""
@@ -128,19 +337,31 @@ class SailRig:
                     return s
         if any(w in target for w in ("headsail", "genoa", "jib", "solent")):
             for s in self.sails:
-                if s.config.sail_id.lower() in ("headsail", "genoa", "jib") or s.config.sail_type in (SailType.GENOA, SailType.JIB):
+                if s.config.sail_id.lower() in ("headsail", "genoa", "jib") or s.config.sail_type in (
+                    SailType.GENOA,
+                    SailType.JIB,
+                ):
                     return s
         if "code" in target:
             for s in self.sails:
-                if s.config.sail_id.lower() in ("code_zero", "code0", "code_0") or s.config.sail_type == SailType.CODE_ZERO:
+                if (
+                    s.config.sail_id.lower() in ("code_zero", "code0", "code_0")
+                    or s.config.sail_type == SailType.CODE_ZERO
+                ):
                     return s
         if any(w in target for w in ("gennaker", "spinnaker", "para", "a2", "a3")):
             for s in self.sails:
-                if s.config.sail_id.lower() in ("gennaker", "spinnaker", "a2") or s.config.sail_type in (SailType.GENNAKER, SailType.SPINNAKER):
+                if s.config.sail_id.lower() in ("gennaker", "spinnaker", "a2") or s.config.sail_type in (
+                    SailType.GENNAKER,
+                    SailType.SPINNAKER,
+                ):
                     return s
         if "storm" in target:
             for s in self.sails:
-                if s.config.sail_id.lower() in ("storm_jib", "stormjib", "storm") or s.config.sail_type == SailType.STORM_JIB:
+                if (
+                    s.config.sail_id.lower() in ("storm_jib", "stormjib", "storm")
+                    or s.config.sail_type == SailType.STORM_JIB
+                ):
                     return s
         return None
 
@@ -159,7 +380,7 @@ class SailRig:
                 sail = self.get_sail(sail_id)
                 if sail:
                     sail.is_active = True
-                    sail.reefed_ratio = max(0.01, min(1.0, float(reef_ratio)))
+                    sail.reefed_ratio = max(0.01, min(1.0, reef_ratio))
 
     def set_sail_plan(self, plan_name: str) -> None:
         """Configure active sails and reefing levels based on high-level sail plan."""
@@ -474,3 +695,266 @@ def create_standard_sloop_rig(
             storm_sail,
         ]
     )
+
+
+# ---------------------------------------------------------------------------
+# Rig Control System Manager (Phase 12 [CORRECT] Orchestrator)
+# ---------------------------------------------------------------------------
+
+
+class RigControlSystem:
+    """Coordinates winch physics, traveler kinematics, furler drum, and aerodynamic rig.
+
+    Provides discrete simulation step advancing all lines, calculating realistic tension loads
+    from sail aerodynamics, and emitting immutable RigState telemetry.
+    """
+
+    def __init__(self, rig: SailRig) -> None:
+        self.rig = rig
+        self.winches: dict[str, WinchModel] = {
+            "jib_sheet_port": WinchModel(
+                id="jib_sheet_port", side="port", group="jib", max_working_load_n=1800.0, breaking_load_n=4000.0
+            ),
+            "jib_sheet_starboard": WinchModel(
+                id="jib_sheet_starboard",
+                side="starboard",
+                group="jib",
+                max_working_load_n=1800.0,
+                breaking_load_n=4000.0,
+            ),
+            "jib_halyard": WinchModel(
+                id="jib_halyard",
+                side="port",
+                group="jib",
+                max_working_load_n=2500.0,
+                breaking_load_n=5000.0,
+                actual_trim=1.0,
+            ),
+            "furling_line": WinchModel(
+                id="furling_line",
+                side="port",
+                group="jib",
+                max_working_load_n=1200.0,
+                breaking_load_n=2500.0,
+                actual_trim=0.0,
+            ),
+            "cunningham": WinchModel(
+                id="cunningham",
+                side="port",
+                group="main",
+                max_working_load_n=1500.0,
+                breaking_load_n=3000.0,
+                actual_trim=0.0,
+            ),
+            "outhaul": WinchModel(
+                id="outhaul",
+                side="port",
+                group="main",
+                max_working_load_n=1500.0,
+                breaking_load_n=3000.0,
+                actual_trim=0.5,
+            ),
+            "reef_line_1": WinchModel(
+                id="reef_line_1",
+                side="port",
+                group="reef",
+                max_working_load_n=2000.0,
+                breaking_load_n=4500.0,
+                actual_trim=0.0,
+            ),
+            "reef_line_2": WinchModel(
+                id="reef_line_2",
+                side="port",
+                group="reef",
+                max_working_load_n=2000.0,
+                breaking_load_n=4500.0,
+                actual_trim=0.0,
+            ),
+            "mainsheet": WinchModel(
+                id="mainsheet",
+                side="starboard",
+                group="main",
+                max_working_load_n=2500.0,
+                breaking_load_n=5500.0,
+                actual_trim=0.6,
+            ),
+            "main_halyard": WinchModel(
+                id="main_halyard",
+                side="starboard",
+                group="main",
+                max_working_load_n=3000.0,
+                breaking_load_n=6000.0,
+                actual_trim=1.0,
+            ),
+            "boom_vang": WinchModel(
+                id="boom_vang",
+                side="starboard",
+                group="main",
+                max_working_load_n=2500.0,
+                breaking_load_n=5000.0,
+                actual_trim=0.8,
+            ),
+        }
+        self.traveler = TravelerModel(id="traveler", target_pos=0.0, actual_pos=0.0, clamped=True)
+        self.furler = FurlerModel(id="jib_furler", line_trim=0.0, furled_ratio=0.0, area_ratio=1.0, clamped=True)
+        self.reef_level: int = 0
+
+    def apply_rope_control(self, control: RopeControlInput) -> None:
+        """Apply skipper command to a specific line."""
+        if control.rope_id in self.winches:
+            winch = self.winches[control.rope_id]
+            winch.target_trim = control.target_trim
+            winch.clamped = control.clamped
+
+    def apply_traveler_control(self, control: TravelerControlInput) -> None:
+        """Apply skipper command to traveler."""
+        self.traveler.target_pos = control.target_pos
+        self.traveler.clamped = control.clamped
+
+    def step(
+        self,
+        timestamp_ms: int,
+        dt: float,
+        aws_m_s: float,
+        awa_deg: float,
+        heel_deg: float = 0.0,
+        rope_controls: list[RopeControlInput] | None = None,
+        traveler_control: TravelerControlInput | None = None,
+    ) -> tuple[RigEvaluationResult, RigState]:
+        """Advance rig physics by dt seconds and return forces and telemetry state."""
+        # 1. Apply incoming controls if provided
+        if rope_controls:
+            for rc in rope_controls:
+                self.apply_rope_control(rc)
+        if traveler_control:
+            self.apply_traveler_control(traveler_control)
+
+        # 2. Advance traveler kinematics
+        traveler_state = self.traveler.step(self.traveler.target_pos, self.traveler.clamped, dt)
+
+        # 3. Advance furler kinematics from furling line
+        furling_winch = self.winches["furling_line"]
+        furler_state = self.furler.step(furling_winch.actual_trim, furling_winch.clamped, dt)
+
+        # 4. Map control states to aerodynamic sails
+        main_sail = self.rig.get_sail("mainsail")
+        headsail = self.rig.get_sail("headsail") or self.rig.get_sail("jib") or self.rig.get_sail("genoa")
+
+        if main_sail:
+            main_sail.sheet_trim_ratio = self.winches["mainsheet"].actual_trim
+            main_sail.twist_trim = self.winches["boom_vang"].actual_trim
+            main_sail.outhaul_trim = self.winches["outhaul"].actual_trim
+            main_sail.cunningham_trim = self.winches["cunningham"].actual_trim
+
+            # Reefing level geometry
+            if self.reef_level == 1:
+                main_sail.reefed_ratio = 0.75
+            elif self.reef_level == 2:
+                main_sail.reefed_ratio = 0.50
+            elif self.reef_level >= 3:
+                main_sail.reefed_ratio = 0.25
+            else:
+                main_sail.reefed_ratio = self.winches["main_halyard"].actual_trim
+
+        if headsail:
+            # Side-aware jib sheet: active sheet depends on tack (AWA sign)
+            # AWA > 0: starboard tack -> port sheet loaded; AWA < 0: port tack -> starboard sheet loaded
+            if awa_deg >= 0:
+                active_sheet = self.winches["jib_sheet_port"]
+                inactive_sheet = self.winches["jib_sheet_starboard"]
+            else:
+                active_sheet = self.winches["jib_sheet_starboard"]
+                inactive_sheet = self.winches["jib_sheet_port"]
+
+            headsail.sheet_trim_ratio = active_sheet.actual_trim
+            headsail.reefed_ratio = furler_state.area_ratio
+
+        # 5. Evaluate rig aerodynamic forces
+        eval_result = self.rig.evaluate(aws_m_s=aws_m_s, awa_deg=awa_deg, heel_deg=heel_deg)
+
+        # 6. Estimate line tensions from aerodynamic forces
+        main_eval = next((s for s in eval_result.sail_results if s.sail_id == "mainsail"), None)
+        head_eval = next((s for s in eval_result.sail_results if s.sail_id in ("headsail", "genoa", "jib")), None)
+
+        main_force_mag = (
+            math.sqrt(main_eval.force_body_n[0] ** 2 + main_eval.force_body_n[1] ** 2) if main_eval else 0.0
+        )
+        head_force_mag = (
+            math.sqrt(head_eval.force_body_n[0] ** 2 + head_eval.force_body_n[1] ** 2) if head_eval else 0.0
+        )
+
+        # Main sheet tension scales with main drive force and trim
+        mainsheet_tension = main_force_mag * 0.85 * (0.3 + 0.7 * self.winches["mainsheet"].actual_trim)
+        # Jib sheet tension scales with headsail force
+        active_jib_tension = head_force_mag * 0.90 * (0.3 + 0.7 * active_sheet.actual_trim) if headsail else 0.0
+        inactive_jib_tension = 10.0  # slack line
+
+        # Assign external tensions
+        tensions: dict[str, float] = {
+            "mainsheet": mainsheet_tension,
+            "boom_vang": main_force_mag * 0.40 * (1.0 - (main_eval.twist_deg / 20.0 if main_eval else 0.0)),
+            "main_halyard": main_force_mag * 0.50,
+            "outhaul": main_force_mag * 0.25 * self.winches["outhaul"].actual_trim,
+            "cunningham": main_force_mag * 0.20 * self.winches["cunningham"].actual_trim,
+            "reef_line_1": main_force_mag * 0.60 if self.reef_level == 1 else 0.0,
+            "reef_line_2": main_force_mag * 0.60 if self.reef_level == 2 else 0.0,
+            "furling_line": head_force_mag * 0.35 * (1.0 - furler_state.area_ratio),
+            "jib_halyard": head_force_mag * 0.45,
+            active_sheet.id: active_jib_tension,
+            inactive_sheet.id: inactive_jib_tension,
+        }
+
+        # 7. Step winches
+        rope_states: dict[str, RopeState] = {}
+        for wid, winch in self.winches.items():
+            ext_t = tensions.get(wid, 20.0)
+            rope_states[wid] = winch.step(
+                target_trim=winch.target_trim,
+                clamped=winch.clamped,
+                external_tension_n=ext_t,
+                dt=dt,
+            )
+
+        # 8. Build SailStates
+        sail_states: dict[str, SailState] = {}
+        for s_eval in eval_result.sail_results:
+            sail_states[s_eval.sail_id] = SailState(
+                sail_id=s_eval.sail_id,
+                effective_area_m2=s_eval.effective_area_m2,
+                area_ratio=s_eval.reefed_ratio,
+                angle_of_attack_deg=s_eval.alpha_deg,
+                twist_deg=s_eval.twist_deg,
+                camber_ratio=s_eval.camber_ratio,
+                lift_force_n=math.sqrt(s_eval.force_body_n[0] ** 2 + s_eval.force_body_n[1] ** 2),
+                drag_force_n=abs(s_eval.force_body_n[0]),
+                center_of_effort_z=s_eval.coe[2],
+                reef_level=self.reef_level if s_eval.sail_id == "mainsail" else 0,
+                status=s_eval.status,
+            )
+
+        rig_state = RigState(
+            timestamp_ms=timestamp_ms,
+            ropes=rope_states,
+            traveler=traveler_state,
+            furler=furler_state,
+            sails=sail_states,
+            wind={"aws_m_s": aws_m_s, "awa_deg": awa_deg, "heel_deg": heel_deg},
+        )
+
+        return eval_result, rig_state
+
+
+def create_default_rig_control_system(
+    loa_m: float = 13.94,
+    mainsail_area_m2: float = 52.0,
+    headsail_area_m2: float = 48.0,
+    mast_height_m: float = 18.5,
+) -> RigControlSystem:
+    """Create a fully initialized RigControlSystem with standard Oceanis 45 rig geometry."""
+    rig = create_standard_sloop_rig(
+        loa_m=loa_m,
+        mainsail_area_m2=mainsail_area_m2,
+        headsail_area_m2=headsail_area_m2,
+        mast_height_m=mast_height_m,
+    )
+    return RigControlSystem(rig=rig)

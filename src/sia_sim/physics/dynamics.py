@@ -183,13 +183,7 @@ class VesselDynamics:
             # Total forces and moments (including continuous ambient wave excitation)
             total_x = x_sail + x_drag
             total_y = y_sail + y_rudder + y_drag + wave_impact_force_n
-            total_k = (
-                k_sail
-                + k_roll_drag
-                + k_righting
-                + wave_impact_roll_moment_nm
-                + ambient_wave_roll_moment_nm
-            )
+            total_k = k_sail + k_roll_drag + k_righting + wave_impact_roll_moment_nm + ambient_wave_roll_moment_nm
             total_n = n_sail + n_rudder + n_yaw_drag + wave_impact_yaw_moment_nm
 
             # Kinematics

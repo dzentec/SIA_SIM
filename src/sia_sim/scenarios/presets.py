@@ -538,9 +538,7 @@ def get_preset_by_id(
     if pid in WORLD_PRESETS:
         fn = WORLD_PRESETS[pid]
         if fn is get_gale_force_preset:
-            return get_gale_force_preset(
-                seed=seed, duration_ms=duration_ms, with_events=with_events
-            )
+            return get_gale_force_preset(seed=seed, duration_ms=duration_ms, with_events=with_events)
         return fn(seed=seed, duration_ms=duration_ms)
 
     # Fallback to coastal cruise

@@ -136,9 +136,7 @@ class TestEvaluationScenarios:
         assert oracle_result.safety_envelope_breached is False
 
         # 7. Run Simulation Evaluator
-        evaluator = SimulationEvaluator(
-            EvaluatorConfig(max_acceptable_latency_ms=1500, require_recovery=False)
-        )
+        evaluator = SimulationEvaluator(EvaluatorConfig(max_acceptable_latency_ms=1500, require_recovery=False))
         eval_result = evaluator.evaluate(oracle_result, decisions, run_id="SIM005-RUN-01")
 
         assert eval_result.verdict == "PASS"
@@ -217,9 +215,7 @@ class TestEvaluationScenarios:
                 )
             )
 
-        evaluator = SimulationEvaluator(
-            EvaluatorConfig(max_acceptable_latency_ms=1500, require_recovery=False)
-        )
+        evaluator = SimulationEvaluator(EvaluatorConfig(max_acceptable_latency_ms=1500, require_recovery=False))
         eval_res = evaluator.evaluate(oracle_res, delayed_decisions, run_id="LATE-RUN-01")
 
         assert eval_res.verdict == "FAIL"

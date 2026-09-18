@@ -56,9 +56,7 @@ class TestDegradationPrimitives:
 
     def test_latency_queue_delay(self) -> None:
         # 50 ms latency = 5 ticks of 10ms
-        degrader = ChannelDegrader(
-            DegradationConfig(latency_ms=50, noise_std=0.0, warmup_fill=False)
-        )
+        degrader = ChannelDegrader(DegradationConfig(latency_ms=50, noise_std=0.0, warmup_fill=False))
 
         # Ticks 0..4 (0..40ms): queue is filling, returns None
         for t_ms in range(0, 50, 10):

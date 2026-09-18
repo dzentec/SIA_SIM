@@ -100,12 +100,8 @@ def evaluate_sail_polar(
         is_stalled = False
     elif abs_alpha <= 45.0:
         # Stall & separation regime
-        stall_decay = math.cos(
-            (math.pi / 2.0) * ((abs_alpha - alpha_stall_deg) / (45.0 - alpha_stall_deg))
-        )
-        cl = (cl_max * 0.7 * stall_decay) + (
-            1.2 * math.sin(alpha_rad) * math.cos(alpha_rad) * (1.0 - stall_decay)
-        )
+        stall_decay = math.cos((math.pi / 2.0) * ((abs_alpha - alpha_stall_deg) / (45.0 - alpha_stall_deg)))
+        cl = (cl_max * 0.7 * stall_decay) + (1.2 * math.sin(alpha_rad) * math.cos(alpha_rad) * (1.0 - stall_decay))
         cd = cd_0 + 0.35 * (1.0 - stall_decay) + (1.2 * (math.sin(alpha_rad) ** 2))
         is_stalled = True
     else:
