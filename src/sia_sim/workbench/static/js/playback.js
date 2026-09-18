@@ -605,6 +605,11 @@ function renderAtTime(simTimeMs) {
         rudder_deg: rudder !== null ? rudder : (actRudder !== null ? actRudder : 0.0),
         command_deg: cmdRudderDeg,
         hydro_loss: hydroLoss !== null ? hydroLoss : 0.0,
+      },
+      vessel: {
+        heel_deg: heel !== null ? heel : 0.0,
+        pitch_deg: pitch !== null ? pitch : 0.0,
+        sog_kt: sog !== null ? sog : 0.0,
       }
     });
   }

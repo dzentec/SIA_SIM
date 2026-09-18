@@ -26,6 +26,19 @@ const ROPE_METADATA = {
   boom_vang: { name: 'Boom Vang', side: 'starboard', badge: 'VANG', color: '#FFD60A', group: 'main' },
 };
 
+const DEFAULT_ROPE_CONFIG = {
+  mainsheet: { max_working_load_n: 2500, default_trim: 0.65, max_length_m: 14.0 },
+  boom_vang: { max_working_load_n: 2200, default_trim: 0.40, max_length_m: 6.0 },
+  main_halyard: { max_working_load_n: 3500, default_trim: 0.95, max_length_m: 22.0 },
+  jib_sheet_port: { max_working_load_n: 2500, default_trim: 0.60, max_length_m: 16.0 },
+  jib_sheet_starboard: { max_working_load_n: 2500, default_trim: 0.60, max_length_m: 16.0 },
+  furling_line: { max_working_load_n: 1800, default_trim: 0.05, max_length_m: 20.0 },
+  cunningham: { max_working_load_n: 1800, default_trim: 0.30, max_length_m: 4.0 },
+  outhaul: { max_working_load_n: 2000, default_trim: 0.70, max_length_m: 5.0 },
+  reef_line_1: { max_working_load_n: 2500, default_trim: 0.05, max_length_m: 12.0 },
+  reef_line_2: { max_working_load_n: 2500, default_trim: 0.05, max_length_m: 15.0 },
+};
+
 export class CockpitController {
   constructor(containerElement, apiBaseUrl = '') {
     this.container = typeof containerElement === 'string' ? document.getElementById(containerElement) : containerElement;
@@ -45,9 +58,31 @@ export class CockpitController {
     this.draggingRopeId = null;
     this.controlMode = 'autopilot'; // 'autopilot' | 'skipper'
 
+    this.heel_deg = 0.0;
+    this.activePreset = 'FULL_SAIL';
+
+    // Initialize dynamic rope states
+    this.ropeStates = {};
+    Object.entries(DEFAULT_ROPE_CONFIG).forEach(([ropeId, cfg]) => {
+      this.ropeStates[ropeId] = {
+        rope_id: ropeId,
+        actual_trim: cfg.default_trim,
+        target_trim: cfg.default_trim,
+        length_m: cfg.default_trim * cfg.max_length_m,
+        max_length_m: cfg.max_length_m,
+        tension_n: 200,
+        max_working_load_n: cfg.max_working_load_n,
+        status: 'OK',
+        clamped: true,
+        is_broken: false,
+      };
+    });
+
     if (this.container) {
       this.render();
       this.bindEvents();
+      this.computeDynamicRopeTensions(this.aws_kt, this.awa_deg, this.heel_deg);
+      this.updateRopeVisuals();
     }
   }
 
@@ -366,11 +401,11 @@ export class CockpitController {
         this.setControlMode('skipper', 'Шаг натяжки каната');
         const ropeId = btn.dataset.rope;
         const action = btn.dataset.action;
-        if (!ropeId || !this.state?.ropes?.[ropeId]) return;
+        if (!ropeId || !this.ropeStates[ropeId]) return;
 
-        const rope = this.state.ropes[ropeId];
+        const rope = this.ropeStates[ropeId];
         const step = action === 'trim' ? 0.05 : -0.05;
-        const newTrim = Math.max(0.0, Math.min(1.0, rope.target_trim + step));
+        const newTrim = Math.max(0.0, Math.min(1.0, Math.round((rope.actual_trim + step) * 100) / 100));
         this.sendRopeControl(ropeId, newTrim, false); // Auto unclamp when stepping
       });
     });
@@ -397,8 +432,11 @@ export class CockpitController {
           if (trimFill) trimFill.style.width = `${pct.toFixed(1)}%`;
           if (trimVal) trimVal.textContent = `${pct.toFixed(0)}% (CMD)`;
 
-          if (this.state && this.state.ropes && this.state.ropes[ropeId]) {
-            this.state.ropes[ropeId].target_trim = ratio;
+          if (this.ropeStates[ropeId]) {
+            this.ropeStates[ropeId].actual_trim = ratio;
+            this.ropeStates[ropeId].target_trim = ratio;
+            this.computeDynamicRopeTensions(this.aws_kt, this.awa_deg, this.heel_deg);
+            this.updateRopeVisuals();
           }
 
           const now = performance.now();
@@ -443,20 +481,15 @@ export class CockpitController {
         widget.addEventListener('wheel', (e) => {
           e.preventDefault();
           this.setControlMode('skipper', `Колесо мыши ${ropeId}`);
-          const currTrim = this.state?.ropes?.[ropeId]?.target_trim ?? this.state?.ropes?.[ropeId]?.actual_trim ?? 0.5;
+          const currTrim = this.ropeStates[ropeId] ? this.ropeStates[ropeId].actual_trim : 0.5;
           const step = e.deltaY < 0 ? 0.05 : -0.05;
           const newTrim = Math.max(0.0, Math.min(1.0, Math.round((currTrim + step) * 100) / 100));
 
-          // Optimistic UI updates
-          const targetMarker = document.getElementById(`${ropeId}-target-marker`);
-          const trimFill = document.getElementById(`${ropeId}-trim-fill`);
-          const trimVal = document.getElementById(`${ropeId}-trim-val`);
-          if (targetMarker) targetMarker.style.left = `${(newTrim * 100).toFixed(1)}%`;
-          if (trimFill) trimFill.style.width = `${(newTrim * 100).toFixed(1)}%`;
-          if (trimVal) trimVal.textContent = `${(newTrim * 100).toFixed(0)}% (CMD)`;
-
-          if (this.state && this.state.ropes && this.state.ropes[ropeId]) {
-            this.state.ropes[ropeId].target_trim = newTrim;
+          if (this.ropeStates[ropeId]) {
+            this.ropeStates[ropeId].actual_trim = newTrim;
+            this.ropeStates[ropeId].target_trim = newTrim;
+            this.computeDynamicRopeTensions(this.aws_kt, this.awa_deg, this.heel_deg);
+            this.updateRopeVisuals();
           }
 
           this.sendRopeControl(ropeId, newTrim, false);
@@ -709,7 +742,144 @@ export class CockpitController {
     }
   }
 
+  computeDynamicRopeTensions(aws_kt, awa_deg, heel_deg = 0) {
+    const aws_m_s = Math.max(0.5, (aws_kt ?? 15.0) * 0.514444);
+    const dynPressure = 0.5 * 1.225 * (aws_m_s * aws_m_s); // N/m2 dynamic wind pressure
+
+    // Effective sail areas
+    const furlerTrim = this.ropeStates.furling_line ? this.ropeStates.furling_line.actual_trim : 0.05;
+    const jibArea = 48.0 * Math.max(0.0, 1.0 - furlerTrim);
+    
+    let mainArea = 52.0;
+    if (this.activePreset === 'REEF_1') mainArea *= 0.75;
+    else if (this.activePreset === 'REEF_2') mainArea *= 0.50;
+    else if (this.activePreset === 'REEF_3' || this.activePreset === 'STORM_JIB') mainArea *= 0.25;
+
+    // Aerodynamic force estimates with apparent wind angle & heel relief factor
+    const radAwa = Math.abs(awa_deg ?? 40.0) * (Math.PI / 180.0);
+    const radHeel = Math.abs(heel_deg ?? 0.0) * (Math.PI / 180.0);
+    const angleLiftFactor = Math.max(0.25, Math.sin(radAwa));
+    const heelRelief = Math.max(0.4, Math.cos(radHeel));
+
+    const mainAeroForce = dynPressure * mainArea * 0.92 * angleLiftFactor * heelRelief;
+    const jibAeroForce = dynPressure * jibArea * 0.95 * angleLiftFactor * heelRelief;
+
+    const isStarboardTack = (awa_deg ?? 0) >= 0; // Wind from starboard -> port sheet loaded
+
+    Object.keys(DEFAULT_ROPE_CONFIG).forEach(ropeId => {
+      const r = this.ropeStates[ropeId];
+      if (!r) return;
+
+      let tension = 20.0; // base idle tension
+
+      if (ropeId === 'mainsheet') {
+        const trimFactor = 0.3 + 0.7 * r.actual_trim;
+        tension = mainAeroForce * 0.85 * trimFactor;
+      } else if (ropeId === 'boom_vang') {
+        const msTrim = this.ropeStates.mainsheet ? this.ropeStates.mainsheet.actual_trim : 0.65;
+        const vangDemand = (1.0 - msTrim * 0.4) * (Math.abs(awa_deg ?? 40.0) / 80.0);
+        tension = mainAeroForce * 0.40 * Math.max(0.2, vangDemand) * (0.3 + 0.7 * r.actual_trim);
+      } else if (ropeId === 'main_halyard') {
+        tension = 800.0 * r.actual_trim + mainAeroForce * 0.45;
+      } else if (ropeId === 'jib_sheet_port') {
+        if (isStarboardTack) {
+          tension = jibAeroForce * 0.90 * (0.3 + 0.7 * r.actual_trim);
+        } else {
+          tension = 25.0; // slack idle on leeward side
+        }
+      } else if (ropeId === 'jib_sheet_starboard') {
+        if (!isStarboardTack) {
+          tension = jibAeroForce * 0.90 * (0.3 + 0.7 * r.actual_trim);
+        } else {
+          tension = 25.0; // slack idle
+        }
+      } else if (ropeId === 'furling_line') {
+        tension = jibAeroForce * 0.35 * r.actual_trim;
+      } else if (ropeId === 'cunningham') {
+        tension = mainAeroForce * 0.20 * r.actual_trim + 50.0;
+      } else if (ropeId === 'outhaul') {
+        tension = mainAeroForce * 0.25 * r.actual_trim + 80.0;
+      } else if (ropeId === 'reef_line_1') {
+        tension = (this.activePreset === 'REEF_1' || this.activePreset === 'REEF_2') ? mainAeroForce * 0.65 * r.actual_trim : 30.0;
+      } else if (ropeId === 'reef_line_2') {
+        tension = (this.activePreset === 'REEF_2') ? mainAeroForce * 0.70 * r.actual_trim : 30.0;
+      }
+
+      r.tension_n = Math.max(10.0, Math.round(tension));
+      
+      // Update status based on tension vs SWL
+      const loadRatio = r.tension_n / r.max_working_load_n;
+      if (r.is_broken) {
+        r.status = 'BROKEN';
+      } else if (loadRatio > 1.0) {
+        r.status = 'OVERLOAD';
+      } else if (loadRatio > 0.85) {
+        r.status = 'TAUT';
+      } else if (r.tension_n < 50.0) {
+        r.status = 'SLACK';
+      } else if (r.clamped) {
+        r.status = 'OK';
+      } else {
+        r.status = 'OK';
+      }
+    });
+  }
+
+  updateRopeVisuals() {
+    Object.entries(this.ropeStates).forEach(([ropeId, rState]) => {
+      const trimFill = document.getElementById(`${ropeId}-trim-fill`);
+      const targetMarker = document.getElementById(`${ropeId}-target-marker`);
+      const trimVal = document.getElementById(`${ropeId}-trim-val`);
+      const loadFill = document.getElementById(`${ropeId}-load-fill`);
+      const loadVal = document.getElementById(`${ropeId}-load-val`);
+      const statusBadge = document.getElementById(`${ropeId}-status-badge`);
+      const clutchBtn = document.getElementById(`${ropeId}-clutch-btn`);
+
+      if (this.draggingRopeId !== ropeId) {
+        if (trimFill) trimFill.style.width = `${Math.round(rState.actual_trim * 100)}%`;
+        if (targetMarker) targetMarker.style.left = `${Math.round(rState.target_trim * 100)}%`;
+        const lenM = rState.length_m || (rState.actual_trim * (DEFAULT_ROPE_CONFIG[ropeId]?.max_length_m || 10.0));
+        if (trimVal) trimVal.textContent = `${Math.round(rState.actual_trim * 100)}% (${lenM.toFixed(1)}m)`;
+      }
+
+      // Load calculation & color
+      const loadPct = rState.max_working_load_n > 0 ? (rState.tension_n / rState.max_working_load_n) * 100 : 0;
+      if (loadFill) {
+        loadFill.style.width = `${Math.min(100, Math.round(loadPct))}%`;
+        if (loadPct > 100) {
+          loadFill.style.backgroundColor = 'var(--load-overload)';
+        } else if (loadPct > 85) {
+          loadFill.style.backgroundColor = 'var(--load-red)';
+        } else if (loadPct > 60) {
+          loadFill.style.backgroundColor = 'var(--load-yellow)';
+        } else {
+          loadFill.style.backgroundColor = 'var(--load-green)';
+        }
+      }
+      if (loadVal) {
+        loadVal.textContent = `${Math.round(rState.tension_n)} N / SWL ${Math.round(rState.max_working_load_n)} N`;
+      }
+
+      if (statusBadge) {
+        statusBadge.textContent = rState.status;
+        statusBadge.className = `rope-status-badge status-${rState.status.toLowerCase()}`;
+      }
+
+      if (clutchBtn) {
+        clutchBtn.classList.toggle('clamped', Boolean(rState.clamped));
+        clutchBtn.textContent = rState.clamped ? '🔒 CLAMPED' : '🔓 EASED';
+      }
+    });
+  }
+
   async sendRopeControl(ropeId, targetTrim, clamped) {
+    if (this.ropeStates[ropeId]) {
+      this.ropeStates[ropeId].actual_trim = targetTrim;
+      this.ropeStates[ropeId].target_trim = targetTrim;
+      this.ropeStates[ropeId].clamped = clamped;
+      this.computeDynamicRopeTensions(this.aws_kt, this.awa_deg, this.heel_deg);
+      this.updateRopeVisuals();
+    }
     try {
       const payload = {
         timestamp_ms: Date.now(),
@@ -752,6 +922,21 @@ export class CockpitController {
     if (alertBox) alertBox.style.display = 'none';
 
     try {
+      this.activePreset = presetName;
+      if (presetName === 'REEF_1') {
+        if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.85;
+        if (this.ropeStates.mainsheet) this.ropeStates.mainsheet.actual_trim = Math.max(0.4, this.ropeStates.mainsheet.actual_trim * 0.85);
+      } else if (presetName === 'REEF_2') {
+        if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.85;
+        if (this.ropeStates.reef_line_2) this.ropeStates.reef_line_2.actual_trim = 0.90;
+        if (this.ropeStates.mainsheet) this.ropeStates.mainsheet.actual_trim = Math.max(0.3, this.ropeStates.mainsheet.actual_trim * 0.70);
+      } else if (presetName === 'FULL_SAIL') {
+        if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.05;
+        if (this.ropeStates.reef_line_2) this.ropeStates.reef_line_2.actual_trim = 0.05;
+      }
+
+      this.computeDynamicRopeTensions(this.aws_kt, this.awa_deg, this.heel_deg);
+      this.updateRopeVisuals();
       const payload = { timestamp_ms: Date.now(), preset: presetName };
       const res = await fetch(`${this.apiBaseUrl}/api/v1/controls/preset`, {
         method: 'POST',
