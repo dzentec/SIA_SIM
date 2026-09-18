@@ -101,10 +101,10 @@
   gap: 12px;
 }
 
-/* 3-Column Grid Layout (Port 30% | Center 40% | Starboard 30%) */
+/* 3-Column Grid Layout (Port 25% | Center 50% | Starboard 25%) */
 .cockpit-grid {
   display: grid;
-  grid-template-columns: 3fr 4fr 3fr;
+  grid-template-columns: 1fr 2fr 1fr;
   gap: 14px;
 }
 

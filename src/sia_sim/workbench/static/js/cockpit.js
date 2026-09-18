@@ -198,7 +198,7 @@ export class CockpitController {
             </div>
           </div>
 
-          <!-- Starboard Column (30%) -->
+          <!-- Starboard Column (25%) -->
           <div class="cockpit-col col-starboard">
             <div class="col-header">
               <span>STARBOARD/RIGHT</span>
