@@ -175,43 +175,9 @@ export class CockpitController {
                 </div>
               </div>
             </div>
-
-            <!-- Traveler Widget -->
-            <div class="traveler-widget">
-              <div class="rope-widget-top">
-                <div class="rope-title-row">
-                  <span class="rope-badge" style="background:#636366">CTR</span>
-                  <span>TRAVELER (Погон гика)</span>
-                </div>
-                <button class="clutch-btn clamped" id="traveler-clutch-btn">🔒 BRAKE</button>
-              </div>
-
-              <div class="traveler-track-container">
-                <input type="range" class="traveler-slider-input" id="traveler-slider" min="-100" max="100" value="0" step="5" />
-                <div class="traveler-scale">
-                  <span>◀ PORT (-100%)</span>
-                  <span id="traveler-val-readout"><b>0% (CENTER)</b></span>
-                  <span>STBD (+100%) ▶</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Reefing Dock Drawer Button / Preview -->
-            <div class="reefing-dock">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:10px; font-weight:700; color:#c9d1d9;">REEFING SCENARIOS</span>
-                <span id="reef-status-text" style="font-size:9px; color:#58a6ff;">FULL MAIN (100%)</span>
-              </div>
-              <div class="reefing-presets-row">
-                <button class="preset-btn active" data-preset="FULL_MAIN">FULL MAIN</button>
-                <button class="preset-btn" data-preset="REEF_1">REEF 1 (75%)</button>
-                <button class="preset-btn" data-preset="REEF_2">REEF 2 (50%)</button>
-              </div>
-              <div id="interlock-alert-box" class="interlock-alert"></div>
-            </div>
           </div>
 
-          <!-- Starboard Column -->
+          <!-- Starboard Column (30%) -->
           <div class="cockpit-col col-starboard">
             <div class="col-header">
               <span>STARBOARD (Правый борт)</span>
@@ -223,8 +189,42 @@ export class CockpitController {
           </div>
         </div>
 
-        <!-- Lower Expanded Rig Dock -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px; margin-top:4px;">
+        <!-- Tier 2: Traveler / Погон гика (100% Width) -->
+        <div class="traveler-widget-full">
+          <div class="rope-widget-top">
+            <div class="rope-title-row">
+              <span class="rope-badge" style="background:#636366">CTR</span>
+              <span>TRAVELER (Погон гика)</span>
+            </div>
+            <button class="clutch-btn clamped" id="traveler-clutch-btn">🔒 BRAKE</button>
+          </div>
+
+          <div class="traveler-track-container">
+            <input type="range" class="traveler-slider-input" id="traveler-slider" min="-100" max="100" value="0" step="5" />
+            <div class="traveler-scale">
+              <span>◀ PORT (-100%)</span>
+              <span id="traveler-val-readout"><b>0% (CENTER)</b></span>
+              <span>STBD (+100%) ▶</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tier 3: Reefing Scenarios (100% Width) -->
+        <div class="reefing-dock-full">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:10px; font-weight:700; color:#c9d1d9;">REEFING SCENARIOS</span>
+            <span id="reef-status-text" style="font-size:9px; color:#58a6ff;">FULL MAIN (100%)</span>
+          </div>
+          <div class="reefing-presets-row">
+            <button class="preset-btn active" data-preset="FULL_MAIN">FULL MAIN</button>
+            <button class="preset-btn" data-preset="REEF_1">REEF 1 (75%)</button>
+            <button class="preset-btn" data-preset="REEF_2">REEF 2 (50%)</button>
+          </div>
+          <div id="interlock-alert-box" class="interlock-alert"></div>
+        </div>
+
+        <!-- Tier 4: Lower Rig Dock (4 cards x 25% each: Main Halyard, Reef Line 1, Reef Line 2, Outhaul) -->
+        <div class="cockpit-reef-deck-grid">
           <div id="rope-main_halyard"></div>
           <div id="rope-reef_line_1"></div>
           <div id="rope-reef_line_2"></div>

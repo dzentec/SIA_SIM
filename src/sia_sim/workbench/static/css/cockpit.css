@@ -52,10 +52,10 @@
   gap: 12px;
 }
 
-/* 3-Column Grid Layout */
+/* 3-Column Grid Layout (Port 30% | Center 40% | Starboard 30%) */
 .cockpit-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 3fr 4fr 3fr;
   gap: 14px;
 }
 
@@ -477,14 +477,16 @@
 }
 
 /* Center Column Traveler Slider */
-.traveler-widget {
+/* Full-Width Traveler Deck (100% width) */
+.traveler-widget-full {
   background: var(--cockpit-card-bg);
   border: 1px solid var(--cockpit-border);
   border-radius: 6px;
-  padding: 10px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
 }
 
 .traveler-track-container {
@@ -502,20 +504,21 @@
 .traveler-scale {
   display: flex;
   justify-content: space-between;
-  font-size: 8px;
+  font-size: 8.5px;
   font-family: monospace;
   color: var(--cockpit-text-muted);
 }
 
-/* Bottom Reefing Dock */
-.reefing-dock {
+/* Full-Width Reefing Dock (100% width) */
+.reefing-dock-full {
   background: #11151c;
   border: 1px solid var(--cockpit-border);
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
 }
 
 .reefing-presets-row {
@@ -528,7 +531,7 @@
   font-size: 11px;
   font-weight: 700;
   font-family: monospace;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 4px;
   border: 1px solid #30363d;
   background: #21262d;
@@ -560,4 +563,12 @@
   border: 1px solid #ff3b30;
   color: #ff7b72;
   display: none;
+}
+
+/* Lower Rig Deck (4 cards: Main Halyard 25%, Reef 1 25%, Reef 2 25%, Outhaul 25%) */
+.cockpit-reef-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
 }
