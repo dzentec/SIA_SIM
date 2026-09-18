@@ -122,16 +122,16 @@ export class CockpitController {
     this.container.innerHTML = `
       <div class="cockpit-container">
         <div class="cockpit-header">
-          <div class="cockpit-title">
-            <span>⚙ COCKPIT & RIG CONTROL</span>
+          <div class="cockpit-header-left">
+            <span class="cockpit-title-text">⚙ COCKPIT</span>
             <div id="cockpit-mode-container" class="cockpit-mode-badge-wrap">
-              <button id="btn-cockpit-mode-toggle" class="cockpit-mode-btn mode-autopilot" title="Режим: АВТОПИЛОТ. Троньте любой инструмент для перехода на ручное управление шкипера">
+              <button id="btn-cockpit-mode-toggle" class="cockpit-mode-btn mode-autopilot" title="Режим: АВТОПИЛОТ. Нажмите для перехода на ручное управление шкипера">
                 <span id="cockpit-mode-icon">🤖</span>
-                <span id="cockpit-mode-text">АВТОПИЛОТ (СЦЕНАРИЙ)</span>
+                <span id="cockpit-mode-text">АВТОПИЛОТ</span>
               </button>
             </div>
             <button id="btn-cockpit-popout" class="cockpit-popout-btn" title="Открыть кокпит в отдельном окне / на 2-м мониторе (🗗 Pop-out)">
-              <span>🗗 В отдельном окне</span>
+              <span>🗗 В окне</span>
             </button>
           </div>
           <div class="cockpit-wind-summary" id="cockpit-wind-summary">
@@ -383,7 +383,7 @@ export class CockpitController {
         btn.title = 'Режим: ШКИПЕР (Ручное управление). Нажмите для возврата на АВТОПИЛОТ';
       }
       if (icon) icon.textContent = '🕹';
-      if (text) text.textContent = 'ШКИПЕР (РУЧНОЕ) • ↩ АВТОПИЛОТ';
+      if (text) text.textContent = 'ШКИПЕР (РУЧНОЕ)';
       if (window.Logger && triggerSource) {
         window.Logger.log('COCKPIT', 'WARN', `Шкипер взял управление в свои руки (${triggerSource}) • SKIPPER MODE.`);
       }
@@ -393,7 +393,7 @@ export class CockpitController {
         btn.title = 'Режим: АВТОПИЛОТ (Сценарий). Троньте любой инструмент для перехода на ручное управление';
       }
       if (icon) icon.textContent = '🤖';
-      if (text) text.textContent = 'АВТОПИЛОТ (СЦЕНАРИЙ)';
+      if (text) text.textContent = 'АВТОПИЛОТ';
       if (window.Logger) {
         window.Logger.log('COCKPIT', 'INFO', 'Управление передано автопилоту сценария • AUTOPILOT MODE.');
       }

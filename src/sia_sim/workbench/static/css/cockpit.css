@@ -31,37 +31,49 @@
   align-items: center;
   border-bottom: 1px solid var(--cockpit-border);
   padding-bottom: 8px;
+  gap: 12px;
+  flex-wrap: nowrap;
 }
 
-.cockpit-title {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: #79c0ff;
+.cockpit-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cockpit-title-text {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #79c0ff;
+  white-space: nowrap;
+  margin-right: 4px;
 }
 
 .cockpit-mode-badge-wrap {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .cockpit-mode-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   font-family: monospace;
-  padding: 3px 8px;
+  padding: 3px 7px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .cockpit-mode-btn.mode-autopilot {
@@ -89,19 +101,22 @@
 }
 
 .cockpit-popout-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 600;
   font-family: monospace;
-  padding: 3px 8px;
+  padding: 3px 7px;
   border-radius: 4px;
   cursor: pointer;
   background: #21262d;
   border: 1px solid #30363d;
   color: #c9d1d9;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.2;
+  flex-shrink: 0;
 }
 
 .cockpit-popout-btn:hover {
@@ -117,11 +132,18 @@
 }
 
 .cockpit-wind-summary {
-  font-size: 11px;
+  font-size: 10.5px;
   font-family: monospace;
   color: var(--cockpit-text-muted);
   display: flex;
+  align-items: center;
   gap: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cockpit-wind-summary span {
+  white-space: nowrap;
 }
 
 /* 3-Column Grid Layout (Port 25% | Center 50% | Starboard 25%) */
