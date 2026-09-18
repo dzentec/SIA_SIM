@@ -509,15 +509,16 @@
   color: var(--cockpit-text-muted);
 }
 
-/* Full-Width Reefing Dock (100% width) */
+/* Center Column Reefing Dock (40% width in Center Column) */
+.reefing-dock,
 .reefing-dock-full {
   background: #11151c;
   border: 1px solid var(--cockpit-border);
   border-radius: 6px;
-  padding: 10px 14px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 

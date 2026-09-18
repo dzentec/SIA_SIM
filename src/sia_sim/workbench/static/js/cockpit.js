@@ -175,6 +175,20 @@ export class CockpitController {
                 </div>
               </div>
             </div>
+
+            <!-- Reefing Scenarios (Center Column 40% under Axiometer) -->
+            <div class="reefing-dock">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:10px; font-weight:700; color:#c9d1d9;">REEFING SCENARIOS</span>
+                <span id="reef-status-text" style="font-size:9px; color:#58a6ff;">FULL MAIN (100%)</span>
+              </div>
+              <div class="reefing-presets-row">
+                <button class="preset-btn active" data-preset="FULL_MAIN">FULL MAIN</button>
+                <button class="preset-btn" data-preset="REEF_1">REEF 1 (75%)</button>
+                <button class="preset-btn" data-preset="REEF_2">REEF 2 (50%)</button>
+              </div>
+              <div id="interlock-alert-box" class="interlock-alert"></div>
+            </div>
           </div>
 
           <!-- Starboard Column (30%) -->
@@ -209,21 +223,7 @@ export class CockpitController {
           </div>
         </div>
 
-        <!-- Tier 3: Reefing Scenarios (100% Width) -->
-        <div class="reefing-dock-full">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:10px; font-weight:700; color:#c9d1d9;">REEFING SCENARIOS</span>
-            <span id="reef-status-text" style="font-size:9px; color:#58a6ff;">FULL MAIN (100%)</span>
-          </div>
-          <div class="reefing-presets-row">
-            <button class="preset-btn active" data-preset="FULL_MAIN">FULL MAIN</button>
-            <button class="preset-btn" data-preset="REEF_1">REEF 1 (75%)</button>
-            <button class="preset-btn" data-preset="REEF_2">REEF 2 (50%)</button>
-          </div>
-          <div id="interlock-alert-box" class="interlock-alert"></div>
-        </div>
-
-        <!-- Tier 4: Lower Rig Dock (4 cards x 25% each: Main Halyard, Reef Line 1, Reef Line 2, Outhaul) -->
+        <!-- Tier 3: Lower Rig Dock (4 cards x 25% each: Main Halyard, Reef Line 1, Reef Line 2, Outhaul) -->
         <div class="cockpit-reef-deck-grid">
           <div id="rope-main_halyard"></div>
           <div id="rope-reef_line_1"></div>
