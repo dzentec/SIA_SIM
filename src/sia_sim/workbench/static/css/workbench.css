@@ -273,6 +273,43 @@ body {
   color: var(--accent-cyan);
 }
 
+.view-mode-pill-group {
+  display: flex;
+  background: #040810;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-left: var(--space-xs);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.view-pill {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.view-pill:hover:not(.active) {
+  color: var(--text-bright);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.view-pill.active {
+  background: rgba(0, 229, 255, 0.18);
+  color: var(--accent-cyan);
+  box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.45);
+}
+
 .duration-input-group {
   display: flex;
   align-items: center;
@@ -1082,8 +1119,68 @@ body.is-scrubbing .timeline-handle {
 }
 
 /* ==========================================================================
-   ZONE 3: SENSOR VIEW (MARINE CONSOLE)
+   ZONE 3: SENSOR VIEW (MULTI-VIEW: 6-DIAL CONSOLE & B&G SAILSTEER)
    ========================================================================== */
+
+.view-mode-pill-group {
+  display: flex;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-left: var(--space-xs);
+}
+
+.view-pill {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+.view-pill:hover {
+  color: var(--text-bright);
+}
+
+.view-pill.active {
+  background: var(--accent-cyan);
+  color: #040810;
+  box-shadow: 0 0 8px var(--accent-cyan-glow);
+}
+
+/* Sliding Viewport & Track */
+.instruments-slider-viewport {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.instruments-slider-track {
+  display: flex;
+  width: 200%;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.instruments-slider-track.view-mode-6dial {
+  transform: translateX(0%);
+}
+
+.instruments-slider-track.view-mode-sailsteer {
+  transform: translateX(-50%);
+}
+
+.instruments-slide {
+  width: 50%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
 
 .sensor-health-bar {
   display: flex;
@@ -1157,6 +1254,295 @@ body.is-scrubbing .timeline-handle {
   width: 100%;
   max-width: 200px;
   height: auto;
+}
+
+/* ==========================================================================
+   B&G SAILSTEER™ AUTHENTIC DISPLAY DESIGN SYSTEM (PIXEL-PERFECT 1:1)
+   ========================================================================== */
+
+.bg-sailsteer-screen {
+  background: #000000;
+  width: 100%;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  user-select: none;
+  border: 1px solid #1C1C1E;
+}
+
+/* 1. Top Status Bar */
+.bg-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #000000;
+  padding: 3px 8px;
+  height: 26px;
+  border-bottom: 1px solid #1C1C1E;
+}
+
+.bg-top-btn {
+  background: #2C2C2E;
+  border: 1px solid #3A3A3C;
+  border-radius: 4px;
+  padding: 2px 8px;
+  color: #FFFFFF;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.bg-icon-dots {
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.bg-top-center {
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--font-mono);
+}
+
+.bg-top-dash {
+  color: #636366;
+}
+
+/* 2. Main Body with Gold Frame */
+.bg-main-body {
+  display: flex;
+  background: #000000;
+  padding: 4px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.bg-gold-frame {
+  display: flex;
+  border: 1.5px solid #FF9500;
+  border-radius: 3px;
+  flex: 1;
+  padding: 4px;
+  background: #000000;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+/* 3. Left Column (Wind Data) */
+.bg-col-wind {
+  width: 90px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #222224;
+  padding-right: 4px;
+  justify-content: space-between;
+}
+
+.bg-data-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 2px;
+  border-bottom: 1px solid #222224;
+  flex: 1;
+  justify-content: center;
+}
+
+.bg-data-cell.bg-cell-last {
+  border-bottom: none;
+}
+
+.bg-cell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.bg-lbl {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.04em;
+}
+
+.bg-unit {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.bg-unit-left {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #FFFFFF;
+  margin-right: 3px;
+}
+
+.bg-cell-val {
+  font-size: 21px;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-align: right;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin-top: 1px;
+}
+
+.bg-time-val {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  font-family: var(--font-mono), monospace !important;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+
+.bg-var-footer {
+  font-size: 9.5px;
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 3px 2px 1px 2px;
+  line-height: 1;
+}
+
+/* 4. Center Section (Dial + Embedded Nav on Right) */
+.bg-center-section {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.bg-canvas-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.bg-canvas-box canvas {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.bg-col-mid-nav {
+  width: 104px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 2px 2px 4px;
+  box-sizing: border-box;
+}
+
+.bg-mid-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 2px;
+  border-bottom: 1px solid #1C1C1E;
+  flex: 1;
+  justify-content: center;
+}
+
+.bg-mid-cell:last-child {
+  border-bottom: none;
+}
+
+.bg-lay-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 4px;
+  line-height: 1.1;
+}
+
+.bg-lay-tag {
+  font-size: 12px;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.bg-lay-val {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.bg-wpt-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.bg-wpt-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: 0.05em;
+}
+
+/* 5. Far Right Column (Quick Bar) */
+.bg-col-quick {
+  width: 108px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #222224;
+  padding-left: 6px;
+  padding-right: 4px;
+  box-sizing: border-box;
+  justify-content: space-between;
+}
+
+.bg-quick-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 2px;
+  border-bottom: 1px solid #1C1C1E;
+  flex: 1;
+  justify-content: center;
+}
+
+.bg-quick-cell.bg-cell-last {
+  border-bottom: none;
+}
+
+.bg-pos-block {
+  display: flex;
+  flex-direction: column;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+  font-family: var(--font-mono), monospace;
+  text-align: right;
+  line-height: 1.15;
+  margin-top: 1px;
+}
+
+.bg-steer-val-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.bg-steer-arrow {
+  color: #8E8E93;
+  font-size: 12px;
+  line-height: 1;
 }
 
 /* ==========================================================================

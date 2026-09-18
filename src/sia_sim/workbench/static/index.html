@@ -311,111 +311,251 @@
         </div>
       </section>
 
-      <!-- BLOCK 4: SENSOR VIEW (6-DIAL MARINE CONSOLE) -->
+      <!-- BLOCK 4: SENSOR VIEW (MULTI-VIEW: 6-DIAL CONSOLE & B&G SAILSTEER) -->
       <section class="zone-card zone-sensor-view" id="zoneSensorView">
-        <div class="card-header">
-          <div class="header-title-group">
+        <div class="card-header sensor-view-header">
+          <div class="header-left-group">
             <span class="zone-badge badge-sensor-frame">● SENSOR FRAME — OBSERVED BY SIA</span>
-            <h2 class="card-title">MARINE CONSOLE INSTRUMENTS (6 DIALS)</h2>
           </div>
+
+          <!-- CENTER TOGGLE IN INSTRUMENT BLOCK HEADER -->
+          <div class="view-mode-pill-group" id="headerViewModeGroup">
+            <button id="btnView6Dial" class="view-pill active" data-view="6dial" title="6-Dial Marine Instrument Console (Hotkey: S)">⊞ 6 DIAL CONSOLE</button>
+            <button id="btnViewSailSteer" class="view-pill" data-view="sailsteer" title="Authentic B&G SailSteer Navigation Display (Hotkey: S)">🧭 SAILSTEER B&G</button>
+          </div>
+
           <div class="sensor-health-bar" id="sensorHealthBar">
             <span class="health-chip chip-ok" id="chipImu">IMU: OK</span>
             <span class="health-chip chip-ok" id="chipGps">GPS: OK</span>
             <span class="health-chip chip-ok" id="chipWind">WIND: OK</span>
           </div>
         </div>
-        <div class="card-content marine-content">
-          <div class="dials-grid-6">
-            <!-- 1. AWA / AWS Wind Dial -->
-            <div class="dial-card">
-              <div class="dial-title">APPARENT WIND (AWA / AWS)</div>
-              <div class="canvas-wrapper">
-                <canvas id="dialWindCanvas" width="200" height="200"></canvas>
-              </div>
-              <div class="dial-footer" id="windDialFooter">
-                <span class="dial-footer-label">AWS:</span>
-                <span class="dial-footer-val" id="valAws">17.2 <span class="unit">kt</span></span>
+
+        <div class="instruments-slider-viewport" id="instrumentsSliderViewport">
+          <div class="instruments-slider-track view-mode-6dial" id="instrumentsSliderTrack">
+            
+            <!-- SLIDE 1: CLASSIC 6-DIAL MARINE CONSOLE -->
+            <div class="instruments-slide slide-6dial" id="slide6Dial">
+              <div class="card-content marine-content">
+                <div class="dials-grid-6">
+                  <!-- 1. AWA / AWS Wind Dial -->
+                  <div class="dial-card">
+                    <div class="dial-title">APPARENT WIND (AWA / AWS)</div>
+                    <div class="canvas-wrapper">
+                      <canvas id="dialWindCanvas" width="200" height="200"></canvas>
+                    </div>
+                    <div class="dial-footer" id="windDialFooter">
+                      <span class="dial-footer-label">AWS:</span>
+                      <span class="dial-footer-val" id="valAws">17.2 <span class="unit">kt</span></span>
+                    </div>
+                  </div>
+
+                  <!-- 2. Heel Inclinometer (Roll) -->
+                  <div class="dial-card">
+                    <div class="dial-title">HEEL INCLINOMETER (ROLL)</div>
+                    <div class="canvas-wrapper">
+                      <canvas id="dialHeelCanvas" width="200" height="200"></canvas>
+                    </div>
+                    <div class="dial-footer" id="heelDialFooter">
+                      <span class="dial-footer-label">HEEL:</span>
+                      <span class="dial-footer-val" id="valHeel">-15.2 <span class="unit">°</span></span>
+                    </div>
+                  </div>
+
+                  <!-- 3. Pitch Inclinometer / Trim -->
+                  <div class="dial-card">
+                    <div class="dial-title">PITCH / TRIM INCLINOMETER</div>
+                    <div class="canvas-wrapper">
+                      <canvas id="dialPitchCanvas" width="200" height="200"></canvas>
+                    </div>
+                    <div class="dial-footer" id="pitchDialFooter">
+                      <span class="dial-footer-label">PITCH:</span>
+                      <span class="dial-footer-val" id="valPitch">0.0 <span class="unit">°</span></span>
+                    </div>
+                  </div>
+
+                  <!-- 4. Navigation (SOG / COG) -->
+                  <div class="dial-card">
+                    <div class="dial-title">NAVIGATION (SOG / COG)</div>
+                    <div class="canvas-wrapper">
+                      <canvas id="dialNavCanvas" width="200" height="200"></canvas>
+                    </div>
+                    <div class="dial-footer" id="navDialFooter">
+                      <span class="dial-footer-label">SOG:</span>
+                      <span class="dial-footer-val" id="valSog">5.1 <span class="unit">kt</span></span>
+                    </div>
+                  </div>
+
+                  <!-- 5. Heave & Vertical Accel -->
+                  <div class="dial-card">
+                    <div class="dial-title">HEAVE & ACCEL AZ</div>
+                    <div class="canvas-wrapper">
+                      <canvas id="dialHeaveCanvas" width="200" height="200"></canvas>
+                    </div>
+                    <div class="dial-footer" id="heaveDialFooter">
+                      <span class="dial-footer-label">AZ:</span>
+                      <span class="dial-footer-val" id="valHeaveAccel">1.00 <span class="unit">g</span></span>
+                    </div>
+                  </div>
+
+                  <!-- 6. Slamming & Hull Shock Meter -->
+                  <div class="dial-card" id="cardSlamming">
+                    <div class="dial-title">SLAM IMPACT SHOCK</div>
+                    <div class="canvas-wrapper">
+                      <canvas id="dialSlamCanvas" width="200" height="200"></canvas>
+                    </div>
+                    <div class="dial-footer" id="slamDialFooter">
+                      <span class="dial-footer-label">IMPACT:</span>
+                      <span class="dial-footer-val" id="valSlamForce">0.0 <span class="unit">kN</span></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sensor-readings-strip">
+                  <div class="strip-item">
+                    <span class="strip-lbl">PITCH RATE</span>
+                    <span class="strip-val" id="valPitchRate">0.0 °/s</span>
+                  </div>
+                  <div class="strip-item">
+                    <span class="strip-lbl">YAW RATE</span>
+                    <span class="strip-val" id="valYawRate">0.0 °/s</span>
+                  </div>
+                  <div class="strip-item">
+                    <span class="strip-lbl">RUDDER ANGLE</span>
+                    <span class="strip-val" id="valRudderSensor">0.0 °</span>
+                  </div>
+                  <div class="strip-item">
+                    <span class="strip-lbl">MAINSAIL TRIM</span>
+                    <span class="strip-val" id="valSailSensor">UNKNOWN</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- 2. Heel Inclinometer (Roll) -->
-            <div class="dial-card">
-              <div class="dial-title">HEEL INCLINOMETER (ROLL)</div>
-              <div class="canvas-wrapper">
-                <canvas id="dialHeelCanvas" width="200" height="200"></canvas>
-              </div>
-              <div class="dial-footer" id="heelDialFooter">
-                <span class="dial-footer-label">HEEL:</span>
-                <span class="dial-footer-val" id="valHeel">-15.2 <span class="unit">°</span></span>
+            <!-- SLIDE 2: AUTHENTIC B&G SAILSTEER NAVIGATION DISPLAY -->
+            <div class="instruments-slide slide-sailsteer" id="slideSailSteer">
+              <div class="bg-sailsteer-screen">
+                <!-- TOP STATUS BAR -->
+                <div class="bg-top-bar" id="bgTopBar">
+                  <div class="bg-top-btn bg-top-left">
+                    <span class="bg-icon-dots">:::</span>
+                    <span class="bg-icon-signal">📶</span>
+                  </div>
+                  <div class="bg-top-center">
+                    <span id="ssTime">12:04:37</span>
+                    <span class="bg-top-dash">---</span>
+                    <span id="ssDepthTop">29.8 m</span>
+                  </div>
+                  <div class="bg-top-btn bg-top-right">
+                    <span class="bg-icon-menu">☰</span>
+                  </div>
+                </div>
+
+                <!-- MAIN B&G DISPLAY BODY WITH GOLD ACCENT FRAME -->
+                <div class="bg-main-body">
+                  <div class="bg-gold-frame">
+                    <!-- LEFT COLUMN: WIND DATA (5 ROWS + VAR) -->
+                    <div class="bg-col-wind">
+                      <div class="bg-data-cell">
+                        <div class="bg-cell-header"><span class="bg-lbl">SOG</span><span class="bg-unit">kn</span></div>
+                        <div class="bg-cell-val" id="ssLeftSog">4.5</div>
+                      </div>
+                      <div class="bg-data-cell">
+                        <div class="bg-cell-header"><span class="bg-lbl">TWA</span><span class="bg-unit">°</span></div>
+                        <div class="bg-cell-val" id="ssLeftTwa">-57</div>
+                      </div>
+                      <div class="bg-data-cell">
+                        <div class="bg-cell-header"><span class="bg-lbl">AWA</span><span class="bg-unit">°</span></div>
+                        <div class="bg-cell-val" id="ssLeftAwa">-50</div>
+                      </div>
+                      <div class="bg-data-cell">
+                        <div class="bg-cell-header"><span class="bg-lbl">TWS</span><span class="bg-unit">kn</span></div>
+                        <div class="bg-cell-val" id="ssLeftTws">16.2</div>
+                      </div>
+                      <div class="bg-data-cell bg-cell-last">
+                        <div class="bg-cell-header"><span class="bg-lbl">TWD</span><span class="bg-unit">°M</span></div>
+                        <div class="bg-cell-val" id="ssLeftTwd">096</div>
+                      </div>
+                      <div class="bg-var-footer" id="ssVarBottom">Var: 1.7°W</div>
+                    </div>
+
+                    <!-- CENTER DIAL & EMBEDDED NAVIGATION COLUMN -->
+                    <div class="bg-center-section">
+                      <div class="bg-canvas-box">
+                        <canvas id="sailSteerCanvas" width="420" height="420"></canvas>
+                      </div>
+
+                      <!-- EMBEDDED NAV VALUES (RIGHT OF DIAL) -->
+                      <div class="bg-col-mid-nav">
+                        <div class="bg-mid-cell">
+                          <div class="bg-cell-header"><span class="bg-unit-left">°M</span><span class="bg-lbl">STW</span><span class="bg-unit">kn</span></div>
+                          <div class="bg-cell-val" id="ssMidStw">2.8</div>
+                        </div>
+                        <div class="bg-mid-cell bg-laylines-cell">
+                          <div class="bg-lay-row"><span class="bg-lay-tag">P</span> <span class="bg-lay-val" id="ssMidLayPort">5.08</span></div>
+                          <div class="bg-lay-row"><span class="bg-lay-tag">S</span> <span class="bg-lay-val" id="ssMidLayStbd">7.82</span> <span class="bg-unit">NM</span></div>
+                        </div>
+                        <div class="bg-mid-cell">
+                          <div class="bg-cell-header"><span class="bg-lbl">HDG</span><span class="bg-unit">°M</span></div>
+                          <div class="bg-cell-val" id="ssMidHdg">155</div>
+                        </div>
+                        <div class="bg-mid-cell">
+                          <div class="bg-cell-header"><span class="bg-lbl">WPT DIST</span><span class="bg-unit">NM</span></div>
+                          <div class="bg-cell-val" id="ssMidWptDist">9.40</div>
+                        </div>
+                        <div class="bg-mid-cell bg-wpt-cell">
+                          <div class="bg-wpt-label-row">
+                            <span class="bg-wpt-name" id="ssMidWptName">FARO</span>
+                            <span class="bg-lbl">WPT BRG</span>
+                            <span class="bg-unit">°M</span>
+                          </div>
+                          <div class="bg-cell-val" id="ssMidWptBrg">107</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- FAR RIGHT COLUMN: QUICK BAR (7 ROWS) -->
+                  <div class="bg-col-quick">
+                    <div class="bg-quick-cell">
+                      <div class="bg-cell-header"><span class="bg-lbl">SOG</span><span class="bg-unit">kn</span></div>
+                      <div class="bg-cell-val" id="ssRightSog">4.5</div>
+                    </div>
+                    <div class="bg-quick-cell">
+                      <div class="bg-cell-header"><span class="bg-lbl">COG</span><span class="bg-unit">°M</span></div>
+                      <div class="bg-cell-val" id="ssRightCog">159</div>
+                    </div>
+                    <div class="bg-quick-cell bg-pos-cell">
+                      <div class="bg-cell-header"><span class="bg-lbl">POS</span></div>
+                      <div class="bg-pos-block" id="ssRightPos">
+                        <div class="pos-line">N 36°59.587'</div>
+                        <div class="pos-line">W  8°04.070'</div>
+                      </div>
+                    </div>
+                    <div class="bg-quick-cell">
+                      <div class="bg-cell-header"><span class="bg-lbl">TIEFE</span><span class="bg-unit">m</span></div>
+                      <div class="bg-cell-val" id="ssRightDepth">29.8</div>
+                    </div>
+                    <div class="bg-quick-cell">
+                      <div class="bg-cell-header"><span class="bg-lbl">TIME LOC</span><span class="bg-unit">---</span></div>
+                      <div class="bg-cell-val bg-time-val" id="ssRightTime">12:04:37</div>
+                    </div>
+                    <div class="bg-quick-cell">
+                      <div class="bg-cell-header"><span class="bg-lbl">STEUERN</span></div>
+                      <div class="bg-steer-val-row">
+                        <span class="bg-steer-arrow">◀</span>
+                        <span class="bg-cell-val" id="ssRightSteer">-55</span>
+                      </div>
+                    </div>
+                    <div class="bg-quick-cell bg-cell-last">
+                      <div class="bg-cell-header"><span class="bg-lbl">ETW</span><span class="bg-unit">---</span></div>
+                      <div class="bg-cell-val bg-time-val" id="ssRightEtw">15:24:35</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- 3. Pitch Inclinometer / Trim -->
-            <div class="dial-card">
-              <div class="dial-title">PITCH / TRIM INCLINOMETER</div>
-              <div class="canvas-wrapper">
-                <canvas id="dialPitchCanvas" width="200" height="200"></canvas>
-              </div>
-              <div class="dial-footer" id="pitchDialFooter">
-                <span class="dial-footer-label">PITCH:</span>
-                <span class="dial-footer-val" id="valPitch">0.0 <span class="unit">°</span></span>
-              </div>
-            </div>
-
-            <!-- 4. Navigation (SOG / COG) -->
-            <div class="dial-card">
-              <div class="dial-title">NAVIGATION (SOG / COG)</div>
-              <div class="canvas-wrapper">
-                <canvas id="dialNavCanvas" width="200" height="200"></canvas>
-              </div>
-              <div class="dial-footer" id="navDialFooter">
-                <span class="dial-footer-label">SOG:</span>
-                <span class="dial-footer-val" id="valSog">5.1 <span class="unit">kt</span></span>
-              </div>
-            </div>
-
-            <!-- 5. Heave & Vertical Accel -->
-            <div class="dial-card">
-              <div class="dial-title">HEAVE & ACCEL AZ</div>
-              <div class="canvas-wrapper">
-                <canvas id="dialHeaveCanvas" width="200" height="200"></canvas>
-              </div>
-              <div class="dial-footer" id="heaveDialFooter">
-                <span class="dial-footer-label">AZ:</span>
-                <span class="dial-footer-val" id="valHeaveAccel">1.00 <span class="unit">g</span></span>
-              </div>
-            </div>
-
-            <!-- 6. Slamming & Hull Shock Meter -->
-            <div class="dial-card" id="cardSlamming">
-              <div class="dial-title">SLAM IMPACT SHOCK</div>
-              <div class="canvas-wrapper">
-                <canvas id="dialSlamCanvas" width="200" height="200"></canvas>
-              </div>
-              <div class="dial-footer" id="slamDialFooter">
-                <span class="dial-footer-label">IMPACT:</span>
-                <span class="dial-footer-val" id="valSlamForce">0.0 <span class="unit">kN</span></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="sensor-readings-strip">
-            <div class="strip-item">
-              <span class="strip-lbl">PITCH RATE</span>
-              <span class="strip-val" id="valPitchRate">0.0 °/s</span>
-            </div>
-            <div class="strip-item">
-              <span class="strip-lbl">YAW RATE</span>
-              <span class="strip-val" id="valYawRate">0.0 °/s</span>
-            </div>
-            <div class="strip-item">
-              <span class="strip-lbl">RUDDER ANGLE</span>
-              <span class="strip-val" id="valRudderSensor">0.0 °</span>
-            </div>
-            <div class="strip-item">
-              <span class="strip-lbl">MAINSAIL TRIM</span>
-              <span class="strip-val" id="valSailSensor">UNKNOWN</span>
-            </div>
           </div>
         </div>
       </section>
@@ -813,6 +953,7 @@
   <!-- SCRIPTS -->
   <script src="/js/service_logger.js"></script>
   <script src="/js/instruments.js"></script>
+  <script src="/js/sailsteer.js"></script>
   <script src="/js/timeline.js"></script>
   <script src="/js/query_loop.js"></script>
   <script src="/js/state.js"></script>

@@ -10,6 +10,7 @@ async function initApp() {
   bindControls();
   bindVesselControls();
   bindLivingSeaToggle();
+  bindInstrumentsViewToggle();
 
   if (window.ModalsController) {
     window.ModalsController.bindCustomWorldControls();
@@ -21,6 +22,54 @@ async function initApp() {
   if (window.renderZeroState) {
     window.renderZeroState(); // Initial state: boat is stationary at zero
   }
+}
+
+function bindInstrumentsViewToggle() {
+  const btn6Dial = document.getElementById('btnView6Dial');
+  const btnSailSteer = document.getElementById('btnViewSailSteer');
+  const track = document.getElementById('instrumentsSliderTrack');
+
+  function setViewMode(mode) {
+    window.AppState.instrumentsViewMode = mode;
+    if (mode === 'sailsteer') {
+      if (btn6Dial) btn6Dial.classList.remove('active');
+      if (btnSailSteer) btnSailSteer.classList.add('active');
+      if (track) {
+        track.classList.remove('view-mode-6dial');
+        track.classList.add('view-mode-sailsteer');
+      }
+      if (window.Logger) {
+        window.Logger.log('PHYSICS', 'INFO', 'Режим приборов: B&G SailSteer™ Navigation Display (16:9).');
+      }
+    } else {
+      if (btnSailSteer) btnSailSteer.classList.remove('active');
+      if (btn6Dial) btn6Dial.classList.add('active');
+      if (track) {
+        track.classList.remove('view-mode-sailsteer');
+        track.classList.add('view-mode-6dial');
+      }
+      if (window.Logger) {
+        window.Logger.log('PHYSICS', 'INFO', 'Режим приборов: 6-Dial Marine Instrument Suite.');
+      }
+    }
+  }
+
+  if (btn6Dial) {
+    btn6Dial.addEventListener('click', () => setViewMode('6dial'));
+  }
+  if (btnSailSteer) {
+    btnSailSteer.addEventListener('click', () => setViewMode('sailsteer'));
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+    if (e.key === 's' || e.key === 'S') {
+      const current = window.AppState.instrumentsViewMode || '6dial';
+      setViewMode(current === '6dial' ? 'sailsteer' : '6dial');
+    }
+  });
+
+  window.setInstrumentsViewMode = setViewMode;
 }
 
 const SAIL_RIG_CATALOG = {

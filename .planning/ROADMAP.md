@@ -187,22 +187,31 @@ Plans:
 4. `SafetyChannelStatus` (`WIRED_VERIFIED`, `WIRELESS_ADVISORY`, `MIXED`) is incorporated into `SensorFrame` and sensor pipeline.  
 5. All tests pass with zero regression across the existing test suite.  
 
-- [x] **Phase 9: Architecture Decoupling, Modular Frontend & 3D Sail Aerodynamics Engine** - Frontend ES-modularization, physics/sails submodule with individual sails, dynamic 3D CoE & boom kinematics, and MDA v2.2 safety channel status.
+### Phase 10: B&G SailSteer™ Navigation Display & Multi-View Marine Console
 
-## Phase Details
-...
+**Goal**: Implement the authentic B&G SailSteer™ Navigation Display widget (conforming to `SailSteer_BG.md` v2.0) with a seamless slide-mode toggle (`[ ⊞ 6 DIAL CONSOLE ]` ⟷ `[ 🧭 SAILSTEER B&G ]`) in the central block of the SIA Simulation Workbench, rendering at 60 FPS on HTML5 Canvas across 7 graphic layers with full mathematical wind triangle resolution, laylines, fixed tack/gybe sectors, and current drift vector.  
+**Depends on**: Phase 9  
+**Requirements**: SS-01..SS-08, UI-07  
+**Success Criteria**:  
+
+1. Central block features a smooth slide-transition viewport and header toggle between the 6-Dial Marine Console and B&G SailSteer Display.  
+2. `SailSteerRenderer` implements all 7 rendering layers (Layer 0: dark background; Layer 1: rotating compass rose at `-HDG`; Layer 2: tack/gybe sectors fixed to hull; Layer 3: apparent/true wind arrows `A`/`T` and laylines; Layer 4: boat silhouette, white HDG box, neon waypoint marker; Layer 5: current drift vector; Layer 6: 5-zone UI dashboards).  
+3. Complete analytical calculation of True Wind ($TWA$, $TWS$, $TWD$), Speed Through Water ($STW$), relative current drift, steering error, and time to waypoint ($ETW$) with strict null-safety.  
+4. All 6 calibrated test scenarios from `SailSteer_BG.md` §7 pass visual and telemetry verification.  
+5. All backend, integration, and UI tests pass with zero regressions.  
+
 **Plans**: 3/3 plans executed  
 
 Plans:
 
-- [x] 09-01: Modularize Workbench UI into ES modules (`state.js`, `playback.js`, `modals.js`, `app.js`).
-- [x] 09-02: Implement `src/sia_sim/physics/sails/` with standalone `Sail` objects, dynamic boom angle, 3D $CoE$, and moment cross-products.
-- [x] 09-03: Integrate MDA v2.2 `SafetyChannelStatus`, update data contracts, and verify end-to-end test suite.
+- [x] 10-01: SailSteer Canvas Renderer & Mathematical Engine (`sailsteer.js`).
+- [x] 10-02: Workbench UI 5-Zone Layout, CSS Styling & Slide Viewport Controller (`index.html`, `workbench.css`, `app.js`).
+- [x] 10-03: Live & Playback Telemetry Integration & Validation against 6 Test Scenarios (`playback.js`, tests).
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -215,8 +224,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Complete Pipeline PASS (M6) | 3/3 | Completed | 2026-09-15 |
 | 8. SIA Simulation Workbench UI | 4/4 | Completed | 2026-09-16 |
 | 9. Architecture Decoupling & 3D Sails | 3/3 | Completed | 2026-09-17 |
+| 10. B&G SailSteer Navigation Display | 3/3 | Completed | 2026-09-18 |
 
 ---
 *Roadmap defined: 2026-09-10*
-*Last updated: 2026-09-16*
+*Last updated: 2026-09-18*
+
 

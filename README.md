@@ -17,9 +17,10 @@
 
 - [🎯 Архитектура и ключевые инварианты](#-архитектура-и-ключевые-инварианты)
 - [⚡ Быстрый старт](#-быстрый-старт)
+- [🧭 Навигационный дисплей B&G SailSteer™](#-навигационный-дисплей-bg-sailsteer)
 - [💨 3D Аэродинамический движок парусов](#-3d-аэродинамический-движок-парусов-physicssails)
 - [⛵ Единый канонический реестр парусов (`CanonicalSailId`)](#-единый-канонический-реестр-парусов-canonicalsailid)
-- [🧭 Пресеты живого морского мира (10 World Presets)](#-пресеты-живого-морского-мира-world-presets)
+- [🌊 Пресеты живого морского мира (10 World Presets)](#-пресеты-живого-морского-мира-world-presets)
 - [🎛 Интерактивный веб-кокпит (Workbench)](#-интерактивный-веб-кокпит-workbench)
 - [💬 Диалог активного опроса шкипера (Active Sensing Query Loop)](#-диалог-активного-опроса-шкипера-active-sensing-query-loop)
 - [📊 Служебный диагностический терминал логов (Service Logger)](#-служебный-диагностический-терминал-логов-service-logger)
@@ -120,6 +121,51 @@ uv run pytest -v
 
 ---
 
+## 🧭 Навигационный дисплей B&G SailSteer™
+
+В симулятор интегрирован аутентичный навигационный прибор **B&G SailSteer™** (HTML5 Canvas 2D, 60 FPS), воссоздающий функционал морских картплоттеров *B&G Zeus / Vulcan / Triton²*:
+
+```
+                          ▲ 000° (HEADING UP)
+                     . - ~ ~ ~ - .
+                 .-'       |       '-.
+               .'          |  TWD     '.
+              /     AWA ◄──┼──►        \
+             ;    [PORT]   ▲   [STBD]   ;
+            │   LAYLINE    │    LAYLINE  │
+            │      \     ┌─┴─┐     /     │
+            │       \    │   │    /      │  ◄── TWA Target Sectors (Upwind / Downwind)
+            │        \   └───┘   /       │
+             ;        \    │    /       ;
+              \        \   │   /       /
+               '.       \  │  /  ▲   .'
+                 '-.     \ │ /  / .-'   ◄── Current Vector & Drift Angle
+                     ' - ~ ~ ~ - '
+                          ▼ 180°
+```
+
+### Возможности SailSteer™ Display:
+1. **Head-Up ориентация по курсу ($HDG$)**:
+   - Роза ветров и шкала градусов вращаются синхронно с фактическим курсом судна.
+2. **Векторы и стрелки истинного ($TWD/TWS$) и вымпельного ($AWA/AWS$) ветра**:
+   - Синяя стрелка истинного ветра с цифровым указателем скорости и направления.
+   - Зеленая (Starboard) / Красная (Port) стрелки вымпельного ветра.
+3. **Оптимальные секторы лавировки и бакштага ($TWA$ Target Sectors)**:
+   - Зеленые и красные сегменты эффективных углов лавировки на ветер ($TWA \approx 40^\circ\dots 45^\circ$) и полных курсов ($TWA \approx 135^\circ\dots 145^\circ$).
+4. **Лейлайны галсов (Port / Starboard Laylines)**:
+   - Пунктирные динамические линии границы выхода на знак с учетом текущего дрейфа и угла лавировки.
+5. **Вектор течения (Current Arrow) и угол сноса**:
+   - Отображение направления и силы морского течения с расчетом скорости относительно воды ($STW$) и скорости относительно грунта ($SOG$).
+6. **Навигация на путевую точку (Waypoint)**:
+   - Курсовой пеленг ($BRG$), дистанция ($DIST$), ошибка руления (Steering Error) и расчетное время перехода ($ETW$).
+7. **Информационные угловые блоки (Corner Telemetry Blocks)**:
+   - Верхний левый: $HDG$, $STW$, $SOG$, $COG$, Магнитное склонение ($VAR$).
+   - Верхний правый: $TWA$, $TWS$, $AWA$, $AWS$, $TWD$.
+   - Нижний левый: Глубина под килем ($DEPTH$), GPS Координаты ($LAT/LON$).
+   - Нижний правый: Пеленг и дистанция до знака, время до знака ($ETW$).
+
+---
+
 ## 💨 3D Аэродинамический движок парусов (`physics/sails/`)
 
 Система рассчитывает паруса как изолированные 3D физические объекты с суммированием аэродинамических векторов и моментов на рангоуте:
@@ -205,14 +251,14 @@ uv run pytest -v
 │  WORLD PRESET & ENV   │        6-DIAL MARINE CONSOLE           │  2-COL WARDROBE QUERY │
 │  [ 10 World Presets ] │  [ AWA / AWS ] [ HEEL ]   [ PITCH ]    │  [Sails]    [Settings]│
 │  [ ⚙️ Custom Sea Edit ]│  [ COMPASS   ] [ HEAVE ]  [ SLAM  ]    │  Mainsail    Reef 1/2/3│
-├───────────────────────┤                                        ├───────────────────────┤
-│  GROUND TRUTH LAB     │  Pitch Rate / Yaw Rate / SOG / HDG     │   SIA CORE ADVISORY   │
-│  TWS / TWD / Wave     │  Actuators & Sensors Integrity State   │   Dominant: REDUCE    │
-│  True Roll / Pitch    │  Safety Channel: WIRED_VERIFIED        │   Score: 0.95 | Rules │
-├───────────────────────┤                                        ├───────────────────────┤
-│  VESSEL & RIG DECK    │                                        │   ORACLE EVALUATION   │
-│  [ Oceanis 45 | IOR ] │                                        │   Status: PASS        │
-│  [ ⛵ Active Rig Cards]│                                        │   Margin: 82%         │
+├───────────────────────┼────────────────────────────────────────┼───────────────────────┤
+│  GROUND TRUTH LAB     │       B&G SAILSTEER™ DISPLAY           │   SIA CORE ADVISORY   │
+│  TWS / TWD / Wave     │  [ HDG Rose | TWD/AWA | Laylines ]     │   Dominant: REDUCE    │
+│  True Roll / Pitch    │  [ Current Vector | Waypoint / ETW ]   │   Score: 0.95 | Rules │
+├───────────────────────┼────────────────────────────────────────┼───────────────────────┤
+│  VESSEL & RIG DECK    │  Pitch Rate / Yaw Rate / SOG / HDG     │   ORACLE EVALUATION   │
+│  [ Oceanis 45 | IOR ] │  Actuators & Sensors Integrity State   │   Status: PASS        │
+│  [ ⛵ Active Rig Cards]│  Safety Channel: WIRED_VERIFIED        │   Margin: 82%         │
 ├───────────────────────┴────────────────────────────────────────┴───────────────────────┤
 │                     INTERACTIVE TIMELINE & SCENARIO BUILDER (SCRUBBER)                 │
 │  [▶ Living Sea] [⏸ Pause] [⏹ Reset] [⏱ 00:01.36] ────────●──────────────────────────── │
@@ -285,7 +331,7 @@ src/sia_sim/
     ├── server.py       # HTTP API бэкенд + /api/run, /api/scenarios, /api/sails, /api/query-action
     └── static/         # HTML5, Canvas 2D приборы, Zero-Build ES модули
         ├── css/        # Стили Glassmorphism Dark Theme
-        └── js/         # app.js, state.js, playback.js, instruments.js, timeline.js, query_loop.js, service_logger.js, modals.js
+        └── js/         # app.js, state.js, playback.js, sailsteer.js, instruments.js, timeline.js, query_loop.js, service_logger.js, modals.js
 ```
 
 ---

@@ -246,6 +246,12 @@ function renderZeroState() {
     InstrumentRenderer.drawSlammingGauge(dialSlamCanvas, 0.0, false, 15.0, false);
   }
 
+  // SailSteer B&G Zero State
+  const sailSteerCanvas = document.getElementById('sailSteerCanvas');
+  if (window.SailSteerRenderer) {
+    window.SailSteerRenderer.renderZeroState(sailSteerCanvas);
+  }
+
   const valAws = document.getElementById('valAws');
   if (valAws) valAws.innerHTML = `0.0 <span class="unit">kt</span>`;
   const valHeel = document.getElementById('valHeel');
@@ -570,6 +576,57 @@ function renderAtTime(simTimeMs) {
   if (chipWind) {
     chipWind.className = activeTick.sensor_frame.wind.fault ? 'health-chip chip-fault' : 'health-chip chip-ok';
     chipWind.textContent = activeTick.sensor_frame.wind.fault ? 'WIND: FAULT' : 'WIND: OK';
+  }
+
+  // B&G SailSteer™ Navigation Display Render
+  const sailSteerCanvas = document.getElementById('sailSteerCanvas');
+  if (sailSteerCanvas && window.SailSteerRenderer && window.SailSteerController) {
+    const rawTick = {
+      sim_time_ms: simTimeMs,
+      ground_truth: {
+        tws_kt: tws,
+        twd_deg: twd,
+        wave_elevation_m: waveElev,
+        heave_m: heave,
+        slam_force_kn: slamForce,
+        heel_deg: heel,
+        pitch_deg: pitch,
+        yaw_deg: yaw,
+        sog_kt: sog,
+        rudder_deg: rudder,
+        current_speed_kt: 1.2,
+        current_dir_deg: 135.0,
+      },
+      sensor_frame: {
+        imu: {
+          roll_deg: imuRoll,
+          pitch_deg: imuPitch,
+          pitch_rate_deg_s: imuPitchRate,
+          yaw_rate_deg_s: imuYawRate,
+          accel_z_m_s2: imuAccelZ,
+          fault: imuFault,
+        },
+        gps: {
+          sog_kt: gpsSog,
+          cog_deg: gpsCog,
+          latitude_deg: 42.25528,
+          longitude_deg: 17.97368,
+          fault: gpsFault,
+          fix_loss: gpsFault,
+        },
+        wind: {
+          apparent_wind_speed_kt: aws,
+          apparent_wind_angle_deg: awa,
+          fault: windFault,
+        },
+        actuators: {
+          rudder_angle_deg: actRudder,
+          mainsheet_pct: actSail,
+        },
+      },
+    };
+    const ssTelemetry = SailSteerController.process(rawTick);
+    SailSteerRenderer.render(sailSteerCanvas, ssTelemetry);
   }
 
   // 5. Zone 4: SIA Advisory & Reasoning

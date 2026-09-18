@@ -17,8 +17,8 @@ const InstrumentRenderer = {
     heave: null,
     accelZ: null,
     slam: null,
-    lastTime: performance.now(),
   },
+  _lastTimes: {},
 
   reset() {
     this._smoothed.awa = null;
@@ -30,7 +30,7 @@ const InstrumentRenderer = {
     this._smoothed.heave = null;
     this._smoothed.accelZ = null;
     this._smoothed.slam = null;
-    this._smoothed.lastTime = performance.now();
+    this._lastTimes = {};
   },
 
   setDampingMode(mode) {
@@ -45,13 +45,17 @@ const InstrumentRenderer = {
     return 0.35; // Standard marine instrument damping ~350ms
   },
 
-  _smoothLinear(key, target, dtSec) {
+  _smoothLinear(key, target, now = performance.now()) {
     if (target === null || target === undefined || isNaN(target)) return target;
     const cur = this._smoothed[key];
     if (cur === null || cur === undefined || this.dampingMode === 'none') {
       this._smoothed[key] = target;
+      this._lastTimes[key] = now;
       return target;
     }
+    const last = this._lastTimes[key] || now;
+    const dtSec = Math.max(0.001, Math.min(0.2, (now - last) / 1000));
+    this._lastTimes[key] = now;
     const tau = this._getTau();
     const alpha = 1.0 - Math.exp(-dtSec / tau);
     let updated = cur + alpha * (target - cur);
@@ -62,13 +66,17 @@ const InstrumentRenderer = {
     return updated;
   },
 
-  _smoothAngle(key, targetDeg, dtSec) {
+  _smoothAngle(key, targetDeg, now = performance.now()) {
     if (targetDeg === null || targetDeg === undefined || isNaN(targetDeg)) return targetDeg;
     const cur = this._smoothed[key];
     if (cur === null || cur === undefined || this.dampingMode === 'none') {
       this._smoothed[key] = targetDeg;
+      this._lastTimes[key] = now;
       return targetDeg;
     }
+    const last = this._lastTimes[key] || now;
+    const dtSec = Math.max(0.001, Math.min(0.2, (now - last) / 1000));
+    this._lastTimes[key] = now;
     const tau = this._getTau();
     const alpha = 1.0 - Math.exp(-dtSec / tau);
     let diff = targetDeg - cur;
@@ -88,11 +96,8 @@ const InstrumentRenderer = {
    */
   drawWindDial(canvas, rawAwa, rawAws, fault = false) {
     const now = performance.now();
-    const dt = Math.max(0.005, Math.min(0.1, (now - (this._smoothed.lastTime || now)) / 1000));
-    this._smoothed.lastTime = now;
-
-    const awa = this._smoothAngle('awa', rawAwa, dt);
-    const aws = this._smoothLinear('aws', rawAws, dt);
+    const awa = this._smoothAngle('awa', rawAwa, now);
+    const aws = this._smoothLinear('aws', rawAws, now);
 
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
@@ -222,8 +227,7 @@ const InstrumentRenderer = {
    */
   drawHeelDial(canvas, rawHeel, fault = false) {
     const now = performance.now();
-    const dt = Math.max(0.005, Math.min(0.1, (now - (this._smoothed.lastTime || now)) / 1000));
-    const heel = this._smoothLinear('heel', rawHeel, dt);
+    const heel = this._smoothLinear('heel', rawHeel, now);
 
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
@@ -374,9 +378,8 @@ const InstrumentRenderer = {
    */
   drawNavDial(canvas, rawCog, rawSog, fault = false) {
     const now = performance.now();
-    const dt = Math.max(0.005, Math.min(0.1, (now - (this._smoothed.lastTime || now)) / 1000));
-    const cog = this._smoothAngle('cog', rawCog, dt);
-    const sog = this._smoothLinear('sog', rawSog, dt);
+    const cog = this._smoothAngle('cog', rawCog, now);
+    const sog = this._smoothLinear('sog', rawSog, now);
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
@@ -490,8 +493,7 @@ const InstrumentRenderer = {
    */
   drawPitchDial(canvas, rawPitchDeg, pitchRateDegS, fault = false) {
     const now = performance.now();
-    const dt = Math.max(0.005, Math.min(0.1, (now - (this._smoothed.lastTime || now)) / 1000));
-    const pitchDeg = this._smoothLinear('pitch', rawPitchDeg, dt);
+    const pitchDeg = this._smoothLinear('pitch', rawPitchDeg, now);
 
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
@@ -699,9 +701,8 @@ const InstrumentRenderer = {
    */
   drawHeaveGauge(canvas, rawHeaveM, rawAccelZ, fault = false) {
     const now = performance.now();
-    const dt = Math.max(0.005, Math.min(0.1, (now - (this._smoothed.lastTime || now)) / 1000));
-    const heaveM = this._smoothLinear('heave', rawHeaveM, dt);
-    const accelZ = this._smoothLinear('accelZ', rawAccelZ, dt);
+    const heaveM = this._smoothLinear('heave', rawHeaveM, now);
+    const accelZ = this._smoothLinear('accelZ', rawAccelZ, now);
 
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
@@ -838,8 +839,7 @@ const InstrumentRenderer = {
    */
   drawSlammingGauge(canvas, rawSlamForceKn = 0.0, isSlamming = false, peakSlamKn = 12.0, fault = false) {
     const now = performance.now();
-    const dt = Math.max(0.005, Math.min(0.1, (now - (this._smoothed.lastTime || now)) / 1000));
-    const slamForceKn = this._smoothLinear('slam', rawSlamForceKn, dt);
+    const slamForceKn = this._smoothLinear('slam', rawSlamForceKn, now);
 
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
