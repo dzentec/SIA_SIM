@@ -128,6 +128,10 @@ export class CockpitController {
         else if (event.data.type === 'MODE_SYNC') {
           this.setControlMode(event.data.mode, '', false);
         }
+        // 6. Live Simulation Telemetry Broadcast Sync (60fps mirror)
+        else if (event.data.type === 'RIG_UPDATE' && event.data.telemetry) {
+          this.update(event.data.telemetry, false);
+        }
       };
     } catch (_) {}
 
@@ -1173,7 +1177,9 @@ export class CockpitController {
     }
 
     if (clutchBtn) {
-      clutchBtn.className = `clutch-btn ${rState.clamped ? 'clamped' : 'unclamped'}`;
+      clutchBtn.classList.toggle('clamped', Boolean(rState.clamped));
+      clutchBtn.classList.toggle('unclamped', !rState.clamped);
+      clutchBtn.classList.toggle('unlocked', !rState.clamped);
       clutchBtn.textContent = rState.clamped ? '🔒 CLAMPED' : '🔓 EASED';
       clutchBtn.title = rState.clamped ? 'Стопор закрыт (канат заблокирован). Нажмите, чтобы открыть (🔓 EASED)' : 'Стопор открыт (свободный ход). Нажмите, чтобы зажать (🔒 CLAMPED)';
     }
@@ -1291,9 +1297,15 @@ export class CockpitController {
     }
   }
 
-  update(telemetry) {
+  update(telemetry, broadcast = true) {
     if (!telemetry) return;
     this.state = telemetry;
+
+    if (broadcast && this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({ type: 'RIG_UPDATE', telemetry });
+      } catch (_) {}
+    }
 
     // Helm and Rudder update
     if (telemetry.helm) {

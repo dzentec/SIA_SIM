@@ -447,7 +447,8 @@
   color: #ffffff;
 }
 
-.clutch-btn.unclamped {
+.clutch-btn.unclamped,
+.clutch-btn.unlocked {
   background: #0d381e;
   border: 1px solid #34c759;
   color: #34c759;
@@ -456,7 +457,8 @@
   animation: unclamped-glow 2s infinite alternate;
 }
 
-.clutch-btn.unclamped:hover {
+.clutch-btn.unclamped:hover,
+.clutch-btn.unlocked:hover {
   background: #14532d;
   border-color: #4ade80;
   color: #ffffff;

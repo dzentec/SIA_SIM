@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/workbench.css?v=1217">
-  <link rel="stylesheet" href="/css/cockpit.css?v=1217">
+  <link rel="stylesheet" href="/css/workbench.css?v=1220">
+  <link rel="stylesheet" href="/css/cockpit.css?v=1220">
   <style>
     body.standalone-cockpit-body {
       background: #090c10;
@@ -103,30 +103,29 @@
   </main>
 
   <!-- SCRIPTS -->
-  <script src="/js/service_logger.js?v=1216"></script>
+  <script src="/js/service_logger.js?v=1220"></script>
   <script type="module">
-    import { CockpitController } from '/js/cockpit.js?v=1216';
-
-    // BroadcastChannel for instant cross-tab / cross-window sync
-    const syncChannel = new BroadcastChannel('sia_workbench_sync');
+    import { CockpitController } from '/js/cockpit.js?v=1220';
 
     window.CockpitController = new CockpitController('cockpitRoot');
 
     // Initial telemetry fetch
     window.CockpitController.fetchTelemetry();
 
-    // High frequency telemetry polling loop (100ms / 10 Hz)
+    // Heartbeat health check (every 3s without touching DOM)
     setInterval(async () => {
       try {
-        const res = await fetch('/api/v1/telemetry/rig');
-        if (res.ok) {
-          const telemetry = await res.json();
-          window.CockpitController.update(telemetry);
-          const connEl = document.getElementById('connStatus');
-          if (connEl) {
+        const res = await fetch('/api/health');
+        const connEl = document.getElementById('connStatus');
+        if (connEl) {
+          if (res.ok) {
             connEl.textContent = '● LIVE SYNC';
             connEl.style.borderColor = '#34c759';
             connEl.style.color = '#34c759';
+          } else {
+            connEl.textContent = '○ OFFLINE';
+            connEl.style.borderColor = '#ff3b30';
+            connEl.style.color = '#ff3b30';
           }
         }
       } catch (err) {
@@ -137,14 +136,7 @@
           connEl.style.color = '#ff3b30';
         }
       }
-    }, 100);
-
-    // Listen for broadcasted simulation steps / resets from main window
-    syncChannel.onmessage = (event) => {
-      if (event.data && event.data.type === 'RIG_UPDATE' && event.data.telemetry) {
-        window.CockpitController.update(event.data.telemetry);
-      }
-    };
+    }, 3000);
 
     // Fullscreen toggle handler
     const btnFullscreen = document.getElementById('btnToggleFullscreen');
