@@ -41,7 +41,56 @@
   color: #79c0ff;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.cockpit-mode-badge-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.cockpit-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cockpit-mode-btn.mode-autopilot {
+  background: rgba(88, 166, 255, 0.12);
+  border: 1px solid #58a6ff;
+  color: #79c0ff;
+}
+
+.cockpit-mode-btn.mode-autopilot:hover {
+  background: rgba(88, 166, 255, 0.25);
+  box-shadow: 0 0 6px rgba(88, 166, 255, 0.4);
+}
+
+.cockpit-mode-btn.mode-skipper {
+  background: rgba(255, 179, 0, 0.2);
+  border: 1px solid #ffb300;
+  color: #ffd166;
+  box-shadow: 0 0 8px rgba(255, 179, 0, 0.3);
+  animation: pulse-skipper 1.8s infinite alternate;
+}
+
+.cockpit-mode-btn.mode-skipper:hover {
+  background: rgba(255, 179, 0, 0.35);
+  border-color: #ffd166;
+}
+
+@keyframes pulse-skipper {
+  0% { box-shadow: 0 0 4px rgba(255, 179, 0, 0.25); }
+  100% { box-shadow: 0 0 10px rgba(255, 179, 0, 0.65); }
 }
 
 .cockpit-wind-summary {

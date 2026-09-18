@@ -43,6 +43,7 @@ export class CockpitController {
     this.hydro_loss = 0.0;
     this.isDraggingWheel = false;
     this.draggingRopeId = null;
+    this.controlMode = 'autopilot'; // 'autopilot' | 'skipper'
 
     if (this.container) {
       this.render();
@@ -56,7 +57,12 @@ export class CockpitController {
         <div class="cockpit-header">
           <div class="cockpit-title">
             <span>⚙ COCKPIT & RIG CONTROL</span>
-            <span style="font-size: 9px; opacity: 0.6; font-weight: normal;">[CORRECT 100Hz STATE]</span>
+            <div id="cockpit-mode-container" class="cockpit-mode-badge-wrap">
+              <button id="btn-cockpit-mode-toggle" class="cockpit-mode-btn mode-autopilot" title="Режим: АВТОПИЛОТ. Троньте любой инструмент для перехода на ручное управление шкипера">
+                <span id="cockpit-mode-icon">🤖</span>
+                <span id="cockpit-mode-text">АВТОПИЛОТ (СЦЕНАРИЙ)</span>
+              </button>
+            </div>
           </div>
           <div class="cockpit-wind-summary" id="cockpit-wind-summary">
             <span>AWA: <b id="cockpit-awa">040°</b></span>
@@ -294,10 +300,50 @@ export class CockpitController {
     `;
   }
 
+  setControlMode(mode, triggerSource = '') {
+    if (this.controlMode === mode) return;
+    this.controlMode = mode;
+    const btn = document.getElementById('btn-cockpit-mode-toggle');
+    const icon = document.getElementById('cockpit-mode-icon');
+    const text = document.getElementById('cockpit-mode-text');
+
+    if (mode === 'skipper') {
+      if (btn) {
+        btn.className = 'cockpit-mode-btn mode-skipper';
+        btn.title = 'Режим: ШКИПЕР (Ручное управление). Нажмите для возврата на АВТОПИЛОТ';
+      }
+      if (icon) icon.textContent = '🕹';
+      if (text) text.textContent = 'ШКИПЕР (РУЧНОЕ) • ↩ АВТОПИЛОТ';
+      if (window.Logger && triggerSource) {
+        window.Logger.log('COCKPIT', 'WARN', `Шкипер взял управление в свои руки (${triggerSource}) • SKIPPER MODE.`);
+      }
+    } else {
+      if (btn) {
+        btn.className = 'cockpit-mode-btn mode-autopilot';
+        btn.title = 'Режим: АВТОПИЛОТ (Сценарий). Троньте любой инструмент для перехода на ручное управление';
+      }
+      if (icon) icon.textContent = '🤖';
+      if (text) text.textContent = 'АВТОПИЛОТ (СЦЕНАРИЙ)';
+      if (window.Logger) {
+        window.Logger.log('COCKPIT', 'INFO', 'Управление передано автопилоту сценария • AUTOPILOT MODE.');
+      }
+    }
+  }
+
   bindEvents() {
+    // Mode Toggle Button (Autopilot <-> Skipper)
+    const modeBtn = document.getElementById('btn-cockpit-mode-toggle');
+    if (modeBtn) {
+      modeBtn.addEventListener('click', () => {
+        const nextMode = this.controlMode === 'autopilot' ? 'skipper' : 'autopilot';
+        this.setControlMode(nextMode, 'Кнопка переключения');
+      });
+    }
+
     // Clutch Toggle Buttons
     this.container.querySelectorAll('.clutch-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        this.setControlMode('skipper', 'Стопор каната');
         const ropeId = btn.dataset.rope;
         if (ropeId) {
           const isClamped = btn.classList.contains('clamped');
@@ -317,6 +363,7 @@ export class CockpitController {
     // Step +/- buttons
     this.container.querySelectorAll('.step-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        this.setControlMode('skipper', 'Шаг натяжки каната');
         const ropeId = btn.dataset.rope;
         const action = btn.dataset.action;
         if (!ropeId || !this.state?.ropes?.[ropeId]) return;
@@ -362,6 +409,7 @@ export class CockpitController {
         };
 
         trimTrack.addEventListener('pointerdown', (e) => {
+          this.setControlMode('skipper', `Канат ${ropeId}`);
           isDraggingTrack = true;
           this.draggingRopeId = ropeId;
           trimTrack.classList.add('dragging');
@@ -394,6 +442,7 @@ export class CockpitController {
       if (widget) {
         widget.addEventListener('wheel', (e) => {
           e.preventDefault();
+          this.setControlMode('skipper', `Колесо мыши ${ropeId}`);
           const currTrim = this.state?.ropes?.[ropeId]?.target_trim ?? this.state?.ropes?.[ropeId]?.actual_trim ?? 0.5;
           const step = e.deltaY < 0 ? 0.05 : -0.05;
           const newTrim = Math.max(0.0, Math.min(1.0, Math.round((currTrim + step) * 100) / 100));
@@ -420,6 +469,7 @@ export class CockpitController {
     const travelerWidget = document.querySelector('.traveler-widget-full');
     if (travelerSlider) {
       travelerSlider.addEventListener('input', (e) => {
+        this.setControlMode('skipper', 'Погон гика (Traveler)');
         const val = parseFloat(e.target.value);
         const readout = document.getElementById('traveler-val-readout');
         if (readout) {
@@ -429,6 +479,7 @@ export class CockpitController {
       });
 
       travelerSlider.addEventListener('change', (e) => {
+        this.setControlMode('skipper', 'Погон гика (Traveler)');
         const val = parseFloat(e.target.value) / 100.0;
         this.sendTravelerControl(val, false);
       });
@@ -437,6 +488,7 @@ export class CockpitController {
     if (travelerWidget) {
       travelerWidget.addEventListener('wheel', (e) => {
         e.preventDefault();
+        this.setControlMode('skipper', 'Погон гика (Колесо мыши)');
         if (!travelerSlider) return;
         const currVal = parseFloat(travelerSlider.value);
         const step = e.deltaY < 0 ? 5 : -5;
@@ -464,6 +516,7 @@ export class CockpitController {
       };
 
       wheelWrap.addEventListener('pointerdown', (e) => {
+        this.setControlMode('skipper', 'Штурвал');
         if (this.centeringAnimFrame) {
           cancelAnimationFrame(this.centeringAnimFrame);
           this.centeringAnimFrame = null;
@@ -507,6 +560,7 @@ export class CockpitController {
       // Mouse scroll support for incremental micro-steering
       wheelWrap.addEventListener('wheel', (e) => {
         e.preventDefault();
+        this.setControlMode('skipper', 'Штурвал (Колесо мыши)');
         if (this.centeringAnimFrame) {
           cancelAnimationFrame(this.centeringAnimFrame);
           this.centeringAnimFrame = null;
@@ -520,6 +574,7 @@ export class CockpitController {
 
       // Double click anywhere on wheel initiates smooth rate-limited return to 0° CTR
       wheelWrap.addEventListener('dblclick', () => {
+        this.setControlMode('skipper', 'Штурвал (2x клик)');
         this.smoothAnimateWheelTo(0.0);
       });
 
@@ -529,6 +584,7 @@ export class CockpitController {
         centerHubBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           e.preventDefault();
+          this.setControlMode('skipper', 'Штурвал (Центровка 0°)');
           this.smoothAnimateWheelTo(0.0);
         });
         centerHubBtn.addEventListener('pointerdown', (e) => {
@@ -542,6 +598,7 @@ export class CockpitController {
       btn.addEventListener('click', () => {
         const preset = btn.dataset.preset;
         if (preset) {
+          this.setControlMode('skipper', `Пресет ${preset}`);
           this.sendPreset(preset);
         }
       });
@@ -739,20 +796,24 @@ export class CockpitController {
     if (!telemetry) return;
     this.state = telemetry;
 
-    // Helm and Rudder update (sync from telemetry if not dragging)
+    // Helm and Rudder update
     if (telemetry.helm) {
-      if (telemetry.helm.rudder_deg !== undefined && telemetry.helm.rudder_deg !== null) {
-        this.rudder_actual_deg = telemetry.helm.rudder_deg;
-        if (!this.isDraggingWheel) {
-          const maxWheelDeg = this.turns_to_max_rudder * 360.0;
-          this.wheel_angle_deg = (this.rudder_actual_deg / this.max_rudder_deg) * maxWheelDeg;
-        }
-      }
       if (telemetry.helm.command_deg !== undefined && telemetry.helm.command_deg !== null) {
         this.rudder_cmd_deg = telemetry.helm.command_deg;
       }
       if (telemetry.helm.hydro_loss !== undefined && telemetry.helm.hydro_loss !== null) {
         this.hydro_loss = telemetry.helm.hydro_loss;
+      }
+
+      // ONLY overwrite rudder and wheel angle from scenario telemetry if in AUTOPILOT mode!
+      if (this.controlMode === 'autopilot') {
+        if (telemetry.helm.rudder_deg !== undefined && telemetry.helm.rudder_deg !== null) {
+          this.rudder_actual_deg = telemetry.helm.rudder_deg;
+          if (!this.isDraggingWheel) {
+            const maxWheelDeg = this.turns_to_max_rudder * 360.0;
+            this.wheel_angle_deg = (this.rudder_actual_deg / this.max_rudder_deg) * maxWheelDeg;
+          }
+        }
       }
       this.updateHelmVisuals();
     }
