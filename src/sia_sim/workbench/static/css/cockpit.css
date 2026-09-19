@@ -421,10 +421,15 @@
 /* Controls row inside widget */
 .rope-controls-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: stretch;
   align-items: center;
   margin-top: 4px;
-  gap: 6px;
+}
+
+.rope-controls-row .clutch-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 4px 8px;
 }
 
 .clutch-btn {
@@ -500,34 +505,6 @@
 
 .clutch-btn:hover {
   filter: brightness(1.2);
-}
-
-.step-btn:disabled,
-.step-btn.disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.step-btns {
-  display: flex;
-  gap: 4px;
-}
-
-.step-btn {
-  font-size: 9px;
-  padding: 2px 6px;
-  background: #21262d;
-  border: 1px solid var(--cockpit-border);
-  color: var(--cockpit-text-muted);
-  border-radius: 3px;
-  cursor: pointer;
-  font-family: monospace;
-}
-
-.step-btn:hover {
-  background: #30363d;
-  color: #ffffff;
 }
 
 /* Center Column Helm & Rudder Axiometer Console */

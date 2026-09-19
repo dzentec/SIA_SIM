@@ -439,10 +439,6 @@ export class CockpitController {
           <button class="clutch-btn ${clampClass}" id="${ropeId}-clutch-btn" data-rope="${ropeId}" title="${isClamped ? 'Стопор закрыт (заблокирован). Нажмите, чтобы открыть' : 'Стопор открыт (свободный ход). Нажмите, чтобы зажать'}">
             ${isClamped ? '🔒 CLAMPED' : '🔓 UNCLAMPED'}
           </button>
-          <div class="step-btns">
-            <button class="step-btn ${isClamped ? 'disabled' : ''}" data-action="ease" data-rope="${ropeId}" ${isClamped ? 'disabled' : ''}>-5%</button>
-            <button class="step-btn ${isClamped ? 'disabled' : ''}" data-action="trim" data-rope="${ropeId}" ${isClamped ? 'disabled' : ''}>+5%</button>
-          </div>
         </div>
       </div>
     `;
@@ -603,36 +599,6 @@ export class CockpitController {
           this.broadcastTravelerSync(pos, this.travelerClamped);
           this.sendTravelerControl(pos, this.travelerClamped);
         }
-      });
-    });
-
-    // Step +/- buttons (Strictly blocked while clamped)
-    this.container.querySelectorAll('.step-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const ropeId = btn.dataset.rope;
-        if (!ropeId || !this.ropeStates[ropeId]) return;
-
-        const rope = this.ropeStates[ropeId];
-        if (rope.clamped) {
-          e.preventDefault();
-          e.stopPropagation();
-          this.flashClutchAlert(ropeId);
-          return;
-        }
-
-        this.setControlMode('skipper', `Шаг натяжки ${ropeId}`);
-        const action = btn.dataset.action;
-        const step = action === 'trim' ? 0.05 : -0.05;
-        const newTrim = Math.max(0.0, Math.min(1.0, Math.round((rope.actual_trim + step) * 100) / 100));
-
-        rope.actual_trim = newTrim;
-        rope.target_trim = newTrim;
-        rope.length_m = newTrim * rope.max_length_m;
-
-        this.computeRopeTension(ropeId);
-        this.updateSingleRopeVisual(ropeId);
-        this.broadcastRopeSync(ropeId);
-        this.sendRopeControl(ropeId, newTrim, false);
       });
     });
 
@@ -1175,15 +1141,10 @@ export class CockpitController {
       }
     }
 
-    // 3. Widget card and Step buttons state
+    // 3. Widget card state
     if (widget) {
       widget.classList.toggle('clamped', isClamped);
       widget.classList.toggle('unlocked', !isClamped);
-      widget.querySelectorAll('.step-btn').forEach(b => {
-        b.classList.toggle('disabled', isClamped);
-        b.disabled = isClamped;
-        b.title = isClamped ? 'Канат зажат в стопоре (🔒 CLAMPED)' : 'Изменить набивку на 5%';
-      });
     }
 
     // 4. Physical Load Status Calculation
