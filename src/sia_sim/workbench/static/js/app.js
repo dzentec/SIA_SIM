@@ -198,20 +198,20 @@ const WARDROBE_DISPLAY_NAMES = {
 
 function renderVesselWardrobe() {
   const container = document.getElementById('vesselWardrobeStrip');
-  if (!container) return;
+  if (container) {
+    const avail = getAvailableSailsForCurrentVessel();
+    const slots = window.AppState.tackSlots || {};
+    const activeList = [slots.main, slots.inner, slots.outer, slots.bowsprit].filter(Boolean);
 
-  const avail = getAvailableSailsForCurrentVessel();
-  const slots = window.AppState.tackSlots || {};
-  const activeList = [slots.main, slots.inner, slots.outer, slots.bowsprit].filter(Boolean);
+    const tagsHtml = avail.map((id) => {
+      const isHoisted = activeList.includes(id);
+      const label = WARDROBE_DISPLAY_NAMES[id] || id.toUpperCase();
+      const statusIcon = isHoisted ? '● ' : '○ ';
+      return `<span class="wardrobe-tag${isHoisted ? ' active' : ''}" title="${id}">${statusIcon}${label}</span>`;
+    }).join('');
 
-  const tagsHtml = avail.map((id) => {
-    const isHoisted = activeList.includes(id);
-    const label = WARDROBE_DISPLAY_NAMES[id] || id.toUpperCase();
-    const statusIcon = isHoisted ? '● ' : '○ ';
-    return `<span class="wardrobe-tag${isHoisted ? ' active' : ''}" title="${id}">${statusIcon}${label}</span>`;
-  }).join('');
-
-  container.innerHTML = tagsHtml;
+    container.innerHTML = tagsHtml;
+  }
   updateVesselSpecsDisplay(window.AppState.vesselPreset);
 }
 
