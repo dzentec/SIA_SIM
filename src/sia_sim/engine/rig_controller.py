@@ -157,26 +157,30 @@ class RigController:
             halyard.actual_trim = halyard.target_trim
             halyard.clamped = True
 
-            reef_line = self.rig_system.winches.get(f"reef_line_{reef_level}")
-            if reef_line:
-                reef_line.clamped = False
-                reef_line.target_trim = 1.0
-                reef_line.actual_trim = 1.0
-                reef_line.clamped = True
+            # Set active reef line to 100% and ease all other reef lines
+            all_reef_ids = ("reef_line_1", "reef_line_2", "reef_line_3")
+            active_reef_id = f"reef_line_{reef_level}"
 
-            # Ease unused reef lines
-            other_reef = self.rig_system.winches.get("reef_line_2" if reef_level == 1 else "reef_line_1")
-            if other_reef:
-                other_reef.target_trim = 0.0
-                other_reef.actual_trim = 0.0
+            for r_id in all_reef_ids:
+                r_winch = self.rig_system.winches.get(r_id)
+                if r_winch:
+                    if r_id == active_reef_id:
+                        r_winch.clamped = False
+                        r_winch.target_trim = 1.0
+                        r_winch.actual_trim = 1.0
+                        r_winch.clamped = True
+                    else:
+                        r_winch.target_trim = 0.0
+                        r_winch.actual_trim = 0.0
 
+            self.active_preset = preset_name
             return {
                 "status": "ACCEPTED",
                 "preset_id": f"{preset_name.lower()}_{timestamp_ms}",
                 "steps": 7,
                 "interlocks": ["mainsheet_eased", "halyard_unclamped"],
                 "reef_level": reef_level,
-                "expected_area_ratio": 0.75 if reef_level == 1 else (0.50 if reef_level == 2 else 0.25),
+                "expected_area_ratio": 0.75 if reef_level == 1 else (0.50 if reef_level == 2 else 0.35),
             }
 
         elif preset_name in ("FULL_MAIN", "UNREEF"):
@@ -197,13 +201,14 @@ class RigController:
             halyard.actual_trim = 1.0
             halyard.clamped = True
 
-            for r_id in ("reef_line_1", "reef_line_2"):
+            for r_id in ("reef_line_1", "reef_line_2", "reef_line_3"):
                 r_winch = self.rig_system.winches.get(r_id)
                 if r_winch:
                     r_winch.target_trim = 0.0
                     r_winch.actual_trim = 0.0
                     r_winch.clamped = True
 
+            self.active_preset = preset_name
             return {
                 "status": "ACCEPTED",
                 "preset_id": f"full_main_{timestamp_ms}",

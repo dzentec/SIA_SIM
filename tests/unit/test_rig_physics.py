@@ -190,6 +190,33 @@ def test_rig_control_system_step_integration() -> None:
     assert forces.thrust_n > 0.0
     assert "mainsheet" in state.ropes
     assert "jib_sheet_port" in state.ropes
+    assert "reef_line_1" in state.ropes
+    assert "reef_line_2" in state.ropes
+    assert "reef_line_3" in state.ropes
     assert "traveler" == state.traveler.id
     assert "jib_furler" == state.furler.id
     assert state.sails["mainsail"].status in (SailStatus.OK, SailStatus.ATTACHED, SailStatus.STALL)
+
+
+def test_rig_controller_reef_3_preset() -> None:
+    """Reef 3 preset tightens reef_line_3, drops halyard to 0.25, and reduces area to ~35%."""
+    from sia_sim.engine.rig_controller import RigController
+
+    controller = RigController()
+    # Ease mainsheet to pass reefing interlock
+    controller.rig_system.winches["mainsheet"].actual_trim = 0.20
+
+    res = controller.execute_preset({"preset": "REEF_3", "timestamp_ms": 1726690000000})
+
+    assert res["status"] == "ACCEPTED"
+    assert res["reef_level"] == 3
+    assert res["expected_area_ratio"] == 0.35
+    assert controller.active_preset == "REEF_3"
+
+    # Verify rope settings applied to rig_system
+    rig_sys = controller.rig_system
+    assert rig_sys.winches["reef_line_3"].target_trim == 1.0
+    assert rig_sys.winches["main_halyard"].target_trim == 0.25
+    assert rig_sys.winches["main_halyard"].clamped is True
+
+

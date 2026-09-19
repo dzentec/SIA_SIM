@@ -303,6 +303,8 @@ function bindSailPresetControls() {
           window.AppState.activeSails = { mainsail: 0.75, genoa: 0.85 };
         } else if (preset === 'REEF_2') {
           window.AppState.activeSails = { mainsail: 0.55, genoa: 0.65 };
+        } else if (preset === 'REEF_3') {
+          window.AppState.activeSails = { mainsail: 0.35, genoa: 0.45 };
         } else if (preset === 'STORM_JIB') {
           window.AppState.activeSails = { storm_jib: 1.0 };
         } else if (preset === 'BARE_POLES') {

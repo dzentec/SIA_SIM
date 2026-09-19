@@ -22,6 +22,7 @@ const ROPE_METADATA = {
   outhaul: { name: 'Outhaul', side: 'port', badge: 'MAIN', color: '#D1A76E', group: 'main' },
   reef_line_1: { name: 'Reef Line 1', side: 'port', badge: 'R1', color: '#FFCC00', group: 'reef' },
   reef_line_2: { name: 'Reef Line 2', side: 'port', badge: 'R2', color: '#E08600', group: 'reef' },
+  reef_line_3: { name: 'Reef Line 3', side: 'port', badge: 'R3', color: '#D97706', group: 'reef' },
   main_halyard: { name: 'Main Halyard', side: 'starboard', badge: 'MAIN', color: '#FF2D55', group: 'main' },
   boom_vang: { name: 'Boom Vang', side: 'starboard', badge: 'VANG', color: '#FFD60A', group: 'main' },
 };
@@ -38,6 +39,7 @@ export const DEFAULT_ROPE_CONFIG = {
   outhaul: { max_working_load_n: 1500, breaking_load_n: 3000, slack_threshold_n: 100, taut_threshold_n: 1250, default_trim: 0.70, max_length_m: 5.0 },
   reef_line_1: { max_working_load_n: 2000, breaking_load_n: 4500, slack_threshold_n: 120, taut_threshold_n: 1700, default_trim: 0.05, max_length_m: 12.0 },
   reef_line_2: { max_working_load_n: 2000, breaking_load_n: 4500, slack_threshold_n: 120, taut_threshold_n: 1700, default_trim: 0.05, max_length_m: 15.0 },
+  reef_line_3: { max_working_load_n: 2000, breaking_load_n: 4500, slack_threshold_n: 120, taut_threshold_n: 1700, default_trim: 0.05, max_length_m: 18.0 },
 };
 
 /**
@@ -334,6 +336,7 @@ export class CockpitController {
                 <button class="preset-btn active" data-preset="FULL_MAIN">FULL MAIN</button>
                 <button class="preset-btn" data-preset="REEF_1">REEF 1 (75%)</button>
                 <button class="preset-btn" data-preset="REEF_2">REEF 2 (50%)</button>
+                <button class="preset-btn" data-preset="REEF_3">REEF 3 (35%)</button>
               </div>
               <div id="interlock-alert-box" class="interlock-alert"></div>
             </div>
@@ -371,11 +374,12 @@ export class CockpitController {
           </div>
         </div>
 
-        <!-- Tier 3: Lower Rig Dock (4 cards x 25% each: Main Halyard, Reef Line 1, Reef Line 2, Outhaul) -->
+        <!-- Tier 3: Lower Rig Dock (5 cards: Main Halyard, Reef 1, Reef 2, Reef 3, Outhaul) -->
         <div class="cockpit-reef-deck-grid">
           <div id="rope-main_halyard"></div>
           <div id="rope-reef_line_1"></div>
           <div id="rope-reef_line_2"></div>
+          <div id="rope-reef_line_3"></div>
           <div id="rope-outhaul"></div>
         </div>
       </div>
@@ -1048,6 +1052,7 @@ export class CockpitController {
     let mainArea = 52.0;
     if (this.activePreset === 'REEF_1') mainArea *= 0.75;
     else if (this.activePreset === 'REEF_2') mainArea *= 0.50;
+    else if (this.activePreset === 'REEF_3') mainArea *= 0.35;
 
     const furlerTrim = this.ropeStates.furling_line ? this.ropeStates.furling_line.actual_trim : 0.05;
     const jibArea = 48.0 * Math.max(0.0, 1.0 - furlerTrim);
@@ -1108,12 +1113,17 @@ export class CockpitController {
       }
       case 'reef_line_1': {
         const baseForce = dynPressure * 52.0 * 0.92 * angleLiftFactor;
-        tension = (this.activePreset === 'REEF_1' || this.activePreset === 'REEF_2') ? baseForce * 0.65 * r.actual_trim : 30.0;
+        tension = (this.activePreset === 'REEF_1' || this.activePreset === 'REEF_2' || this.activePreset === 'REEF_3') ? baseForce * 0.65 * r.actual_trim : 30.0;
         break;
       }
       case 'reef_line_2': {
         const baseForce = dynPressure * 52.0 * 0.92 * angleLiftFactor;
-        tension = (this.activePreset === 'REEF_2') ? baseForce * 0.70 * r.actual_trim : 30.0;
+        tension = (this.activePreset === 'REEF_2' || this.activePreset === 'REEF_3') ? baseForce * 0.70 * r.actual_trim : 30.0;
+        break;
+      }
+      case 'reef_line_3': {
+        const baseForce = dynPressure * 52.0 * 0.92 * angleLiftFactor;
+        tension = (this.activePreset === 'REEF_3') ? baseForce * 0.75 * r.actual_trim : 30.0;
         break;
       }
       default:
@@ -1277,9 +1287,15 @@ export class CockpitController {
         if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.85;
         if (this.ropeStates.reef_line_2) this.ropeStates.reef_line_2.actual_trim = 0.90;
         if (this.ropeStates.mainsheet) this.ropeStates.mainsheet.actual_trim = Math.max(0.3, this.ropeStates.mainsheet.actual_trim * 0.70);
+      } else if (presetName === 'REEF_3') {
+        if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.85;
+        if (this.ropeStates.reef_line_2) this.ropeStates.reef_line_2.actual_trim = 0.90;
+        if (this.ropeStates.reef_line_3) this.ropeStates.reef_line_3.actual_trim = 0.95;
+        if (this.ropeStates.mainsheet) this.ropeStates.mainsheet.actual_trim = Math.max(0.25, this.ropeStates.mainsheet.actual_trim * 0.55);
       } else if (presetName === 'FULL_MAIN') {
         if (this.ropeStates.reef_line_1) this.ropeStates.reef_line_1.actual_trim = 0.05;
         if (this.ropeStates.reef_line_2) this.ropeStates.reef_line_2.actual_trim = 0.05;
+        if (this.ropeStates.reef_line_3) this.ropeStates.reef_line_3.actual_trim = 0.05;
       }
 
       this.computeAllRopeTensions();

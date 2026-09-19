@@ -849,10 +849,10 @@
   display: none;
 }
 
-/* Lower Rig Deck (4 cards: Main Halyard 25%, Reef 1 25%, Reef 2 25%, Outhaul 25%) */
+/* Lower Rig Dock (5 cards: Main Halyard, Reef 1, Reef 2, Reef 3, Outhaul) */
 .cockpit-reef-deck-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
   width: 100%;
 }
