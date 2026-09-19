@@ -1,29 +1,36 @@
-"""Unit tests for Phase 12 Rig & Sails Data Contracts and Enums."""
+"""Unit tests for Phase 12 Rig & Sails Data Contracts, Status Model and Enums."""
 
 import pytest
 from pydantic import ValidationError
 
 from sia_sim.contracts.sails import (
+    ClampState,
     FurlerState,
     RigState,
     RopeControlInput,
+    RopeLoadStatus,
     RopeState,
     RopeStatus,
     SailState,
     SailStatus,
     TravelerControlInput,
     TravelerState,
+    compute_load_status,
 )
 
 
 def test_rope_status_and_sail_status_separation() -> None:
-    """Rope and Sail statuses must be distinct enums."""
-    assert RopeStatus.OK == "OK"
-    assert RopeStatus.OVERLOAD == "OVERLOAD"
-    assert RopeStatus.BROKEN == "BROKEN"
-    assert RopeStatus.CLAMPED == "CLAMPED"
-    assert RopeStatus.SLACK == "SLACK"
-    assert RopeStatus.TAUT == "TAUT"
+    """Rope load and clamp statuses must be distinct enums."""
+    assert RopeLoadStatus.OK == "OK"
+    assert RopeLoadStatus.OVERLOAD == "OVERLOAD"
+    assert RopeLoadStatus.BROKEN == "BROKEN"
+    assert RopeLoadStatus.SLACK == "SLACK"
+    assert RopeLoadStatus.TAUT == "TAUT"
+    # CLAMPED is removed from RopeLoadStatus
+    assert not hasattr(RopeLoadStatus, "CLAMPED")
+
+    assert ClampState.CLAMPED == "CLAMPED"
+    assert ClampState.UNCLAMPED == "UNCLAMPED"
 
     assert SailStatus.OK == "OK"
     assert SailStatus.LUFFING == "LUFFING"
@@ -32,8 +39,125 @@ def test_rope_status_and_sail_status_separation() -> None:
     assert SailStatus.FURLED == "FURLED"
 
     # Enums must not contain cross-domain values
-    assert not hasattr(RopeStatus, "LUFFING")
+    assert not hasattr(RopeLoadStatus, "LUFFING")
     assert not hasattr(SailStatus, "CLAMPED")
+
+
+def test_compute_load_status_priority_order() -> None:
+    """Verify strictly prioritized order: BROKEN > OVERLOAD > TAUT > SLACK > OK."""
+    # 1. Broken threshold overrides everything
+    assert (
+        compute_load_status(
+            tension_n=5000.0,
+            slack_threshold_n=100.0,
+            taut_threshold_n=2000.0,
+            max_working_load_n=2500.0,
+            breaking_load_n=5000.0,
+        )
+        == RopeLoadStatus.BROKEN
+    )
+
+    # 2. Overload
+    assert (
+        compute_load_status(
+            tension_n=2600.0,
+            slack_threshold_n=100.0,
+            taut_threshold_n=2000.0,
+            max_working_load_n=2500.0,
+            breaking_load_n=5000.0,
+        )
+        == RopeLoadStatus.OVERLOAD
+    )
+
+    # 3. Taut
+    assert (
+        compute_load_status(
+            tension_n=2100.0,
+            slack_threshold_n=100.0,
+            taut_threshold_n=2000.0,
+            max_working_load_n=2500.0,
+            breaking_load_n=5000.0,
+        )
+        == RopeLoadStatus.TAUT
+    )
+
+    # 4. Slack
+    assert (
+        compute_load_status(
+            tension_n=50.0,
+            slack_threshold_n=100.0,
+            taut_threshold_n=2000.0,
+            max_working_load_n=2500.0,
+            breaking_load_n=5000.0,
+        )
+        == RopeLoadStatus.SLACK
+    )
+
+    # 5. OK
+    assert (
+        compute_load_status(
+            tension_n=500.0,
+            slack_threshold_n=100.0,
+            taut_threshold_n=2000.0,
+            max_working_load_n=2500.0,
+            breaking_load_n=5000.0,
+        )
+        == RopeLoadStatus.OK
+    )
+
+
+def test_slack_threshold_from_contract() -> None:
+    """Slack threshold is channel-dependent (not a hardcoded constant)."""
+    light_line_slack = compute_load_status(
+        tension_n=70.0,
+        slack_threshold_n=50.0,  # line with 50N threshold is OK at 70N
+        taut_threshold_n=1000.0,
+        max_working_load_n=1200.0,
+        breaking_load_n=2500.0,
+    )
+    assert light_line_slack == RopeLoadStatus.OK
+
+    heavy_line_slack = compute_load_status(
+        tension_n=70.0,
+        slack_threshold_n=150.0,  # line with 150N threshold is SLACK at 70N
+        taut_threshold_n=2100.0,
+        max_working_load_n=2500.0,
+        breaking_load_n=5500.0,
+    )
+    assert heavy_line_slack == RopeLoadStatus.SLACK
+
+
+def test_broken_overrides_overload() -> None:
+    """When tension exceeds breaking_load_n, status is BROKEN, not OVERLOAD."""
+    stat = compute_load_status(
+        tension_n=6000.0,
+        slack_threshold_n=100.0,
+        taut_threshold_n=2000.0,
+        max_working_load_n=2500.0,
+        breaking_load_n=5000.0,
+    )
+    assert stat == RopeLoadStatus.BROKEN
+
+
+def test_taut_threshold_per_channel() -> None:
+    """TAUT status begins strictly at channel's taut_threshold_n."""
+    stat_below = compute_load_status(
+        tension_n=1450.0,
+        slack_threshold_n=100.0,
+        taut_threshold_n=1500.0,
+        max_working_load_n=1800.0,
+        breaking_load_n=4000.0,
+    )
+    assert stat_below == RopeLoadStatus.OK
+
+    stat_at = compute_load_status(
+        tension_n=1500.0,
+        slack_threshold_n=100.0,
+        taut_threshold_n=1500.0,
+        max_working_load_n=1800.0,
+        breaking_load_n=4000.0,
+    )
+    assert stat_at == RopeLoadStatus.TAUT
 
 
 def test_rope_control_input_validation() -> None:

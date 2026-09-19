@@ -315,15 +315,48 @@ CANONICAL_SAIL_NAMES_RU: dict[str, str] = {
 # ===========================================================================
 
 
-class RopeStatus(StrEnum):
-    """Operational status of a line/rope."""
+class RopeLoadStatus(StrEnum):
+    """Physical tension load status of a line/rope (independent of clamp state)."""
 
-    OK = "OK"  # Normal operating condition within safe working load
-    SLACK = "SLACK"  # Slack line (tension < slack_threshold)
-    TAUT = "TAUT"  # High tension approaching working limit
-    OVERLOAD = "OVERLOAD"  # tension > max_working_load_n (SWL)
+    SLACK = "SLACK"  # Slack line (tension < slack_threshold_n)
+    OK = "OK"  # Normal operating load (slack_threshold_n <= tension < taut_threshold_n)
+    TAUT = "TAUT"  # High tension approaching working limit (taut_threshold_n <= tension < SWL)
+    OVERLOAD = "OVERLOAD"  # Tension exceeds safe working load (tension >= max_working_load_n)
+    BROKEN = "BROKEN"  # Line snapped (tension >= breaking_load_n)
+
+
+# Backward compatibility alias
+RopeStatus = RopeLoadStatus
+
+
+class ClampState(StrEnum):
+    """Mechanical stopper/clutch state of a line/rope."""
+
     CLAMPED = "CLAMPED"  # Clutch / stopper is locked
-    BROKEN = "BROKEN"  # Line snapped (tension > breaking_load_n)
+    UNCLAMPED = "UNCLAMPED"  # Clutch / stopper is open (eased)
+
+
+def compute_load_status(
+    tension_n: float,
+    slack_threshold_n: float,
+    taut_threshold_n: float,
+    max_working_load_n: float,
+    breaking_load_n: float,
+) -> RopeLoadStatus:
+    """Calculate the physical load status of a line.
+
+    Evaluation order is strictly prioritized:
+    BROKEN >= OVERLOAD >= TAUT >= SLACK >= OK.
+    """
+    if tension_n >= breaking_load_n:
+        return RopeLoadStatus.BROKEN
+    if tension_n >= max_working_load_n:
+        return RopeLoadStatus.OVERLOAD
+    if tension_n >= taut_threshold_n:
+        return RopeLoadStatus.TAUT
+    if tension_n < slack_threshold_n:
+        return RopeLoadStatus.SLACK
+    return RopeLoadStatus.OK
 
 
 class SailStatus(StrEnum):
@@ -377,12 +410,14 @@ class RopeState(BaseModel):
     speed_m_s: float = 0.0  # >0 hauling/trimming, <0 easing
     accel_m_s2: float = 0.0
 
-    # Loads
+    # Loads & Thresholds (Parametric from ControlChannel)
     tension_n: float = Field(ge=0.0)
+    slack_threshold_n: float = Field(default=100.0, ge=0.0)
+    taut_threshold_n: float = Field(default=2000.0, gt=0.0)
     max_working_load_n: float = Field(gt=0.0)
     breaking_load_n: float = Field(gt=0.0)
 
-    status: RopeStatus
+    status: RopeLoadStatus
 
 
 class TravelerState(BaseModel):
@@ -395,7 +430,7 @@ class TravelerState(BaseModel):
     actual_pos: float = Field(ge=-1.0, le=1.0)
     speed_m_s: float = 0.0
     clamped: bool
-    status: RopeStatus = RopeStatus.OK
+    status: RopeLoadStatus = RopeLoadStatus.OK
 
 
 class FurlerState(BaseModel):
@@ -409,7 +444,7 @@ class FurlerState(BaseModel):
     drum_turns: float = Field(ge=0.0)
     furled_ratio: float = Field(ge=0.0, le=1.0, description="0.0 (unfurled) ... 1.0 (fully furled)")
     area_ratio: float = Field(ge=0.0, le=1.0, description="1.0 - furled_ratio")
-    status: RopeStatus = RopeStatus.OK
+    status: RopeLoadStatus = RopeLoadStatus.OK
 
 
 class SailState(BaseModel):

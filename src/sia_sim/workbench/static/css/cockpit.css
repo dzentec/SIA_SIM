@@ -277,6 +277,14 @@
   align-items: center;
   gap: 6px;
   font-weight: 600;
+  min-width: 0;
+}
+
+.rope-title-name {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rope-badge {
@@ -285,6 +293,7 @@
   padding: 1px 4px;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .rope-status-badge {
@@ -293,13 +302,14 @@
   padding: 1px 5px;
   border-radius: 3px;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .status-ok { background: rgba(52, 199, 89, 0.2); color: #34c759; border: 1px solid #34c759; }
 .status-slack { background: rgba(142, 142, 147, 0.2); color: #8e8e93; border: 1px solid #8e8e93; }
 .status-taut { background: rgba(255, 204, 0, 0.2); color: #ffcc00; border: 1px solid #ffcc00; }
 .status-overload { background: rgba(255, 59, 48, 0.3); color: #ff3b30; border: 1px solid #ff3b30; animation: pulse-alert 0.8s infinite alternate; }
-.status-broken { background: rgba(255, 0, 51, 0.4); color: #ff0033; border: 1px dashed #ff0033; text-decoration: line-through; }
+.status-broken { background: rgba(17, 24, 39, 0.8); color: #ef4444; border: 1px dashed #ef4444; text-decoration: line-through; }
 .status-clamped { background: rgba(88, 166, 255, 0.2); color: #58a6ff; border: 1px solid #58a6ff; }
 
 @keyframes pulse-alert {

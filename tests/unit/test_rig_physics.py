@@ -78,18 +78,22 @@ def test_clutch_lock_freezes_trim_while_tension_grows() -> None:
         actual_trim=0.5,
         target_trim=1.0,
         clamped=True,
+        slack_threshold_n=100.0,
+        taut_threshold_n=1600.0,
         max_working_load_n=2000.0,
         breaking_load_n=4000.0,
     )
 
-    # Step with target=1.0 but clamped=True
+    # Step with target=1.0 but clamped=True -> trim unchanged, status is OK (500N in safe band)
     s1 = winch.step(target_trim=1.0, clamped=True, external_tension_n=500.0, dt=0.5)
     assert s1.actual_trim == 0.5
-    assert s1.status == RopeStatus.CLAMPED
+    assert s1.clamped is True
+    assert s1.status == RopeStatus.OK
 
     # Higher load -> OVERLOAD while still clamped
     s2 = winch.step(target_trim=1.0, clamped=True, external_tension_n=2500.0, dt=0.5)
     assert s2.actual_trim == 0.5
+    assert s2.clamped is True
     assert s2.status == RopeStatus.OVERLOAD
 
     # Breaking load -> BROKEN
@@ -104,12 +108,14 @@ def test_traveler_signed_movement() -> None:
     # Clamped: does not move
     s_clamped = traveler.step(target_pos=-0.8, clamped=True, dt=0.5)
     assert s_clamped.actual_pos == 0.0
-    assert s_clamped.status == RopeStatus.CLAMPED
+    assert s_clamped.clamped is True
+    assert s_clamped.status == RopeStatus.OK
 
     # Unclamped: travels towards port (-0.8)
     s_unclamped = traveler.step(target_pos=-0.8, clamped=False, dt=1.0)
     assert s_unclamped.actual_pos < 0.0
     assert s_unclamped.actual_pos >= -0.8
+    assert s_unclamped.clamped is False
     assert s_unclamped.status == RopeStatus.OK
 
 

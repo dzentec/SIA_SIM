@@ -26,18 +26,44 @@ const ROPE_METADATA = {
   boom_vang: { name: 'Boom Vang', side: 'starboard', badge: 'VANG', color: '#FFD60A', group: 'main' },
 };
 
-const DEFAULT_ROPE_CONFIG = {
-  mainsheet: { max_working_load_n: 2500, default_trim: 0.65, max_length_m: 14.0 },
-  boom_vang: { max_working_load_n: 2200, default_trim: 0.40, max_length_m: 6.0 },
-  main_halyard: { max_working_load_n: 3500, default_trim: 0.95, max_length_m: 22.0 },
-  jib_sheet_port: { max_working_load_n: 2500, default_trim: 0.60, max_length_m: 16.0 },
-  jib_sheet_starboard: { max_working_load_n: 2500, default_trim: 0.60, max_length_m: 16.0 },
-  furling_line: { max_working_load_n: 1800, default_trim: 0.05, max_length_m: 20.0 },
-  cunningham: { max_working_load_n: 1800, default_trim: 0.30, max_length_m: 4.0 },
-  outhaul: { max_working_load_n: 2000, default_trim: 0.70, max_length_m: 5.0 },
-  reef_line_1: { max_working_load_n: 2500, default_trim: 0.05, max_length_m: 12.0 },
-  reef_line_2: { max_working_load_n: 2500, default_trim: 0.05, max_length_m: 15.0 },
+export const DEFAULT_ROPE_CONFIG = {
+  mainsheet: { max_working_load_n: 2500, breaking_load_n: 5500, slack_threshold_n: 150, taut_threshold_n: 2100, default_trim: 0.65, max_length_m: 14.0 },
+  boom_vang: { max_working_load_n: 2500, breaking_load_n: 5000, slack_threshold_n: 150, taut_threshold_n: 2100, default_trim: 0.40, max_length_m: 6.0 },
+  main_halyard: { max_working_load_n: 3000, breaking_load_n: 6000, slack_threshold_n: 180, taut_threshold_n: 2550, default_trim: 0.95, max_length_m: 22.0 },
+  jib_sheet_port: { max_working_load_n: 1800, breaking_load_n: 4000, slack_threshold_n: 100, taut_threshold_n: 1500, default_trim: 0.60, max_length_m: 16.0 },
+  jib_sheet_starboard: { max_working_load_n: 1800, breaking_load_n: 4000, slack_threshold_n: 100, taut_threshold_n: 1500, default_trim: 0.60, max_length_m: 16.0 },
+  jib_halyard: { max_working_load_n: 2500, breaking_load_n: 5000, slack_threshold_n: 150, taut_threshold_n: 2100, default_trim: 1.00, max_length_m: 20.0 },
+  furling_line: { max_working_load_n: 1200, breaking_load_n: 2500, slack_threshold_n: 80, taut_threshold_n: 1000, default_trim: 0.05, max_length_m: 20.0 },
+  cunningham: { max_working_load_n: 1500, breaking_load_n: 3000, slack_threshold_n: 100, taut_threshold_n: 1250, default_trim: 0.30, max_length_m: 4.0 },
+  outhaul: { max_working_load_n: 1500, breaking_load_n: 3000, slack_threshold_n: 100, taut_threshold_n: 1250, default_trim: 0.70, max_length_m: 5.0 },
+  reef_line_1: { max_working_load_n: 2000, breaking_load_n: 4500, slack_threshold_n: 120, taut_threshold_n: 1700, default_trim: 0.05, max_length_m: 12.0 },
+  reef_line_2: { max_working_load_n: 2000, breaking_load_n: 4500, slack_threshold_n: 120, taut_threshold_n: 1700, default_trim: 0.05, max_length_m: 15.0 },
 };
+
+/**
+ * Pure evaluation function for physical rope tension status.
+ * Evaluation order: BROKEN > OVERLOAD > TAUT > SLACK > OK.
+ */
+export function computeLoadStatus(tension_n, cfg) {
+  const breaking_n = cfg.breaking_load_n || ((cfg.max_working_load_n || 2500) * 2.0);
+  const swl_n = cfg.max_working_load_n || 2500.0;
+  const taut_n = cfg.taut_threshold_n || (swl_n * 0.85);
+  const slack_n = cfg.slack_threshold_n !== undefined ? cfg.slack_threshold_n : 100.0;
+
+  if (cfg.is_broken || tension_n >= breaking_n) {
+    return 'BROKEN';
+  }
+  if (tension_n >= swl_n) {
+    return 'OVERLOAD';
+  }
+  if (tension_n >= taut_n) {
+    return 'TAUT';
+  }
+  if (tension_n < slack_n) {
+    return 'SLACK';
+  }
+  return 'OK';
+}
 
 export class CockpitController {
   constructor(containerElement, apiBaseUrl = '') {
@@ -146,6 +172,9 @@ export class CockpitController {
         max_length_m: cfg.max_length_m,
         tension_n: 200.0,
         max_working_load_n: cfg.max_working_load_n,
+        breaking_load_n: cfg.breaking_load_n,
+        slack_threshold_n: cfg.slack_threshold_n,
+        taut_threshold_n: cfg.taut_threshold_n,
         status: 'OK',
         clamped: true,
         is_broken: false,
@@ -362,14 +391,17 @@ export class CockpitController {
   }
 
   renderRopeWidgetHtml(ropeId, meta) {
+    const isClamped = this.ropeStates[ropeId] ? Boolean(this.ropeStates[ropeId].clamped) : true;
+    const clampClass = isClamped ? 'clamped' : 'unclamped';
+
     return `
-      <div class="rope-widget" id="widget-${ropeId}">
+      <div class="rope-widget ${clampClass}" id="widget-${ropeId}">
         <div class="rope-stripe" style="background: ${meta.color};"></div>
         
         <div class="rope-widget-top">
           <div class="rope-title-row">
             <span class="rope-badge">${meta.badge}</span>
-            <span style="font-size:10px;">${meta.name}</span>
+            <span class="rope-title-name">${meta.name}</span>
           </div>
           <span class="rope-status-badge status-ok" id="${ropeId}-status-badge">OK</span>
         </div>
@@ -381,7 +413,7 @@ export class CockpitController {
               <span>TRIM</span>
               <span id="${ropeId}-trim-val">50% (5.0m)</span>
             </div>
-            <div class="bar-track trim-track" id="${ropeId}-trim-track" title="Тяните мышкой или крутите колесо мыши для натяжения">
+            <div class="bar-track trim-track ${isClamped ? 'locked' : 'unlocked'}" id="${ropeId}-trim-track" title="${isClamped ? 'Канат зажат в стопоре (🔒 CLAMPED)' : 'Тяните мышкой или крутите колесо мыши для натяжения'}">
               <div class="bar-fill-trim" id="${ropeId}-trim-fill" style="width: 50%;"></div>
               <div class="target-marker" id="${ropeId}-target-marker" style="left: 50%;"></div>
             </div>
@@ -400,12 +432,12 @@ export class CockpitController {
         </div>
 
         <div class="rope-controls-row">
-          <button class="clutch-btn clamped" id="${ropeId}-clutch-btn" data-rope="${ropeId}">
-            🔒 CLAMPED
+          <button class="clutch-btn ${clampClass}" id="${ropeId}-clutch-btn" data-rope="${ropeId}" title="${isClamped ? 'Стопор закрыт (заблокирован). Нажмите, чтобы открыть' : 'Стопор открыт (свободный ход). Нажмите, чтобы зажать'}">
+            ${isClamped ? '🔒 CLAMPED' : '🔓 UNCLAMPED'}
           </button>
           <div class="step-btns">
-            <button class="step-btn" data-action="ease" data-rope="${ropeId}">-5%</button>
-            <button class="step-btn" data-action="trim" data-rope="${ropeId}">+5%</button>
+            <button class="step-btn ${isClamped ? 'disabled' : ''}" data-action="ease" data-rope="${ropeId}" ${isClamped ? 'disabled' : ''}>-5%</button>
+            <button class="step-btn ${isClamped ? 'disabled' : ''}" data-action="trim" data-rope="${ropeId}" ${isClamped ? 'disabled' : ''}>+5%</button>
           </div>
         </div>
       </div>
@@ -1089,19 +1121,7 @@ export class CockpitController {
     }
 
     r.tension_n = Math.max(10.0, Math.round(tension));
-
-    const loadRatio = r.tension_n / r.max_working_load_n;
-    if (r.is_broken) {
-      r.status = 'BROKEN';
-    } else if (loadRatio > 1.0) {
-      r.status = 'OVERLOAD';
-    } else if (loadRatio > 0.85) {
-      r.status = 'TAUT';
-    } else if (r.tension_n < 50.0) {
-      r.status = 'SLACK';
-    } else {
-      r.status = 'OK';
-    }
+    r.status = computeLoadStatus(r.tension_n, r);
   }
 
   computeAllRopeTensions() {
@@ -1132,56 +1152,69 @@ export class CockpitController {
       if (trimVal) trimVal.textContent = `${Math.round(rState.actual_trim * 100)}% (${lenM.toFixed(1)}m)`;
     }
 
-    // Track lock state
+    const isClamped = Boolean(rState.clamped);
+
+    // 1. Track lock state
     if (trimTrack) {
-      if (rState.clamped) {
+      if (isClamped) {
         trimTrack.className = 'bar-track trim-track locked';
         trimTrack.title = 'Канат зажат в стопоре (🔒 CLAMPED). Кликните по кнопке стопора, чтобы открыть и регулировать.';
       } else {
         trimTrack.className = 'bar-track trim-track unlocked' + (this.draggingRopeId === ropeId ? ' dragging' : '');
-        trimTrack.title = 'Канат разблокирован (🔓 EASED). Тяните мышкой или крутите колесо мыши для натяжения.';
+        trimTrack.title = 'Канат разблокирован (🔓 UNCLAMPED). Тяните мышкой или крутите колесо мыши для натяжения.';
       }
     }
 
-    // Widget card and Step buttons state
+    // 3. Widget card and Step buttons state
     if (widget) {
-      widget.classList.toggle('clamped', Boolean(rState.clamped));
-      widget.classList.toggle('unlocked', !rState.clamped);
+      widget.classList.toggle('clamped', isClamped);
+      widget.classList.toggle('unlocked', !isClamped);
       widget.querySelectorAll('.step-btn').forEach(b => {
-        b.classList.toggle('disabled', Boolean(rState.clamped));
-        b.disabled = Boolean(rState.clamped);
-        b.title = rState.clamped ? 'Канат зажат в стопоре (🔒 CLAMPED)' : 'Изменить набивку на 5%';
+        b.classList.toggle('disabled', isClamped);
+        b.disabled = isClamped;
+        b.title = isClamped ? 'Канат зажат в стопоре (🔒 CLAMPED)' : 'Изменить набивку на 5%';
       });
     }
 
-    const loadPct = rState.max_working_load_n > 0 ? (rState.tension_n / rState.max_working_load_n) * 100 : 0;
+    // 4. Physical Load Status Calculation
+    const loadStatus = computeLoadStatus(rState.tension_n, rState);
+    rState.status = loadStatus;
+
+    if (statusBadge) {
+      statusBadge.textContent = loadStatus;
+      statusBadge.className = `rope-status-badge status-${loadStatus.toLowerCase()}`;
+    }
+
+    // 5. Load Bar Width & Threshold Color
+    const maxSwl = rState.max_working_load_n > 0 ? rState.max_working_load_n : 2500;
+    const loadPct = (rState.tension_n / maxSwl) * 100;
     if (loadFill) {
       loadFill.style.width = `${Math.min(100, Math.round(loadPct))}%`;
-      if (loadPct > 100) {
+      if (loadStatus === 'BROKEN') {
+        loadFill.style.backgroundColor = '#111827';
+      } else if (loadStatus === 'OVERLOAD') {
         loadFill.style.backgroundColor = 'var(--load-overload)';
-      } else if (loadPct > 85) {
-        loadFill.style.backgroundColor = 'var(--load-red)';
-      } else if (loadPct > 60) {
+      } else if (loadStatus === 'TAUT') {
         loadFill.style.backgroundColor = 'var(--load-yellow)';
+      } else if (loadStatus === 'SLACK') {
+        loadFill.style.backgroundColor = '#6b7280';
       } else {
         loadFill.style.backgroundColor = 'var(--load-green)';
       }
     }
     if (loadVal) {
-      loadVal.textContent = `${Math.round(rState.tension_n)} N / SWL ${Math.round(rState.max_working_load_n)} N`;
+      loadVal.textContent = `${Math.round(rState.tension_n)} N / SWL ${Math.round(maxSwl)} N`;
     }
 
-    if (statusBadge) {
-      statusBadge.textContent = rState.status;
-      statusBadge.className = `rope-status-badge status-${rState.status.toLowerCase()}`;
-    }
-
+    // 6. Clutch Toggle Button
     if (clutchBtn) {
-      clutchBtn.classList.toggle('clamped', Boolean(rState.clamped));
-      clutchBtn.classList.toggle('unclamped', !rState.clamped);
-      clutchBtn.classList.toggle('unlocked', !rState.clamped);
-      clutchBtn.textContent = rState.clamped ? '🔒 CLAMPED' : '🔓 EASED';
-      clutchBtn.title = rState.clamped ? 'Стопор закрыт (канат заблокирован). Нажмите, чтобы открыть (🔓 EASED)' : 'Стопор открыт (свободный ход). Нажмите, чтобы зажать (🔒 CLAMPED)';
+      clutchBtn.classList.toggle('clamped', isClamped);
+      clutchBtn.classList.toggle('unclamped', !isClamped);
+      clutchBtn.classList.toggle('unlocked', !isClamped);
+      clutchBtn.textContent = isClamped ? '🔒 CLAMPED' : '🔓 UNCLAMPED';
+      clutchBtn.title = isClamped
+        ? 'Стопор закрыт (канат заблокирован). Нажмите, чтобы открыть (🔓 UNCLAMPED)'
+        : 'Стопор открыт (свободный ход). Нажмите, чтобы зажать (🔒 CLAMPED)';
     }
   }
 

@@ -15,14 +15,17 @@ from dataclasses import dataclass, field
 from typing import Literal, Protocol, runtime_checkable
 
 from sia_sim.contracts.sails import (
+    ClampState,
     FurlerState,
     RigState,
     RopeControlInput,
+    RopeLoadStatus,
     RopeState,
     RopeStatus,
     SailState,
     TravelerControlInput,
     TravelerState,
+    compute_load_status,
 )
 from sia_sim.physics.sails.polars import SailType
 from sia_sim.physics.sails.sail import Sail, SailConfig, SailEvaluationResult
@@ -40,7 +43,8 @@ class WinchModel:
     - clamped == True: d(actual_trim)/dt = 0, tension continues to update from aerodynamic forces.
     - load_factor: hauling speed drops under tension (1.0 - tension / SWL).
     - acceleration limit: clamped by a_winch_max.
-    - breaking load: tension > breaking_load_n transitions to BROKEN.
+    - breaking load: tension >= breaking_load_n transitions to BROKEN.
+    - load status is independent of clamped state (evaluated via compute_load_status).
     """
 
     id: str
@@ -51,8 +55,8 @@ class WinchModel:
     a_winch_max_m_s2: float = 2.0
     max_working_load_n: float = 2500.0  # Safe Working Load (SWL)
     breaking_load_n: float = 5000.0
-    slack_threshold_n: float = 50.0
-    taut_threshold_n: float = 1800.0
+    slack_threshold_n: float = 100.0
+    taut_threshold_n: float = 2100.0  # ~84% SWL
 
     target_trim: float = 0.5
     actual_trim: float = 0.5
@@ -75,13 +79,13 @@ class WinchModel:
         self.clamped = clamped
         self.tension_n = max(0.0, external_tension_n)
 
-        if self.tension_n > self.breaking_load_n:
+        if self.tension_n >= self.breaking_load_n:
             self.is_broken = True
 
         if self.is_broken:
             self.speed_m_s = 0.0
             self.accel_m_s2 = 0.0
-            return self.get_state(RopeStatus.BROKEN)
+            return self.get_state(RopeLoadStatus.BROKEN)
 
         if self.clamped:
             self.speed_m_s = 0.0
@@ -117,20 +121,18 @@ class WinchModel:
         status = self._evaluate_status()
         return self.get_state(status)
 
-    def _evaluate_status(self) -> RopeStatus:
-        if self.is_broken or self.tension_n > self.breaking_load_n:
-            return RopeStatus.BROKEN
-        if self.tension_n > self.max_working_load_n:
-            return RopeStatus.OVERLOAD
-        if self.tension_n > self.taut_threshold_n:
-            return RopeStatus.TAUT
-        if self.tension_n < self.slack_threshold_n:
-            return RopeStatus.SLACK
-        if self.clamped:
-            return RopeStatus.CLAMPED
-        return RopeStatus.OK
+    def _evaluate_status(self) -> RopeLoadStatus:
+        if self.is_broken:
+            return RopeLoadStatus.BROKEN
+        return compute_load_status(
+            tension_n=self.tension_n,
+            slack_threshold_n=self.slack_threshold_n,
+            taut_threshold_n=self.taut_threshold_n,
+            max_working_load_n=self.max_working_load_n,
+            breaking_load_n=self.breaking_load_n,
+        )
 
-    def get_state(self, status: RopeStatus | None = None) -> RopeState:
+    def get_state(self, status: RopeLoadStatus | None = None) -> RopeState:
         stat = status or self._evaluate_status()
         length_m = (1.0 - self.actual_trim) * self.max_length_m
         return RopeState(
@@ -144,6 +146,8 @@ class WinchModel:
             speed_m_s=self.speed_m_s,
             accel_m_s2=self.accel_m_s2,
             tension_n=self.tension_n,
+            slack_threshold_n=self.slack_threshold_n,
+            taut_threshold_n=self.taut_threshold_n,
             max_working_load_n=self.max_working_load_n,
             breaking_load_n=self.breaking_load_n,
             status=stat,
@@ -173,7 +177,7 @@ class TravelerModel:
         else:
             self.speed_m_s = 0.0
 
-        status = RopeStatus.CLAMPED if self.clamped else RopeStatus.OK
+        status = RopeLoadStatus.OK
         return TravelerState(
             id=self.id,
             target_pos=self.target_pos,
@@ -209,7 +213,7 @@ class FurlerModel:
         self.furled_ratio = max(0.0, min(1.0, furled_length_m / max(0.01, self.luff_length_m)))
         self.area_ratio = max(0.0, min(1.0, 1.0 - self.furled_ratio))
 
-        status = RopeStatus.CLAMPED if self.clamped else RopeStatus.OK
+        status = RopeLoadStatus.OK
         return FurlerState(
             id=self.id,
             line_trim=self.line_trim,
@@ -713,12 +717,20 @@ class RigControlSystem:
         self.rig = rig
         self.winches: dict[str, WinchModel] = {
             "jib_sheet_port": WinchModel(
-                id="jib_sheet_port", side="port", group="jib", max_working_load_n=1800.0, breaking_load_n=4000.0
+                id="jib_sheet_port",
+                side="port",
+                group="jib",
+                slack_threshold_n=100.0,
+                taut_threshold_n=1500.0,
+                max_working_load_n=1800.0,
+                breaking_load_n=4000.0,
             ),
             "jib_sheet_starboard": WinchModel(
                 id="jib_sheet_starboard",
                 side="starboard",
                 group="jib",
+                slack_threshold_n=100.0,
+                taut_threshold_n=1500.0,
                 max_working_load_n=1800.0,
                 breaking_load_n=4000.0,
             ),
@@ -726,6 +738,8 @@ class RigControlSystem:
                 id="jib_halyard",
                 side="port",
                 group="jib",
+                slack_threshold_n=150.0,
+                taut_threshold_n=2100.0,
                 max_working_load_n=2500.0,
                 breaking_load_n=5000.0,
                 actual_trim=1.0,
@@ -734,6 +748,8 @@ class RigControlSystem:
                 id="furling_line",
                 side="port",
                 group="jib",
+                slack_threshold_n=80.0,
+                taut_threshold_n=1000.0,
                 max_working_load_n=1200.0,
                 breaking_load_n=2500.0,
                 actual_trim=0.0,
@@ -742,6 +758,8 @@ class RigControlSystem:
                 id="cunningham",
                 side="port",
                 group="main",
+                slack_threshold_n=100.0,
+                taut_threshold_n=1250.0,
                 max_working_load_n=1500.0,
                 breaking_load_n=3000.0,
                 actual_trim=0.0,
@@ -750,6 +768,8 @@ class RigControlSystem:
                 id="outhaul",
                 side="port",
                 group="main",
+                slack_threshold_n=100.0,
+                taut_threshold_n=1250.0,
                 max_working_load_n=1500.0,
                 breaking_load_n=3000.0,
                 actual_trim=0.5,
@@ -758,6 +778,8 @@ class RigControlSystem:
                 id="reef_line_1",
                 side="port",
                 group="reef",
+                slack_threshold_n=120.0,
+                taut_threshold_n=1700.0,
                 max_working_load_n=2000.0,
                 breaking_load_n=4500.0,
                 actual_trim=0.0,
@@ -766,6 +788,8 @@ class RigControlSystem:
                 id="reef_line_2",
                 side="port",
                 group="reef",
+                slack_threshold_n=120.0,
+                taut_threshold_n=1700.0,
                 max_working_load_n=2000.0,
                 breaking_load_n=4500.0,
                 actual_trim=0.0,
@@ -774,6 +798,8 @@ class RigControlSystem:
                 id="mainsheet",
                 side="starboard",
                 group="main",
+                slack_threshold_n=150.0,
+                taut_threshold_n=2100.0,
                 max_working_load_n=2500.0,
                 breaking_load_n=5500.0,
                 actual_trim=0.6,
@@ -782,6 +808,8 @@ class RigControlSystem:
                 id="main_halyard",
                 side="starboard",
                 group="main",
+                slack_threshold_n=180.0,
+                taut_threshold_n=2550.0,
                 max_working_load_n=3000.0,
                 breaking_load_n=6000.0,
                 actual_trim=1.0,
@@ -790,6 +818,8 @@ class RigControlSystem:
                 id="boom_vang",
                 side="starboard",
                 group="main",
+                slack_threshold_n=150.0,
+                taut_threshold_n=2100.0,
                 max_working_load_n=2500.0,
                 breaking_load_n=5000.0,
                 actual_trim=0.8,
