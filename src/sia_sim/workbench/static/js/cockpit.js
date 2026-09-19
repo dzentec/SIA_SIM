@@ -151,6 +151,7 @@ export class CockpitController {
           }
           this.computeAllRopeTensions();
           this.updateAllRopesVisuals();
+          this.updateActiveSailPlanVisuals();
         }
         // 5. Control Mode Mirror Sync (Autopilot <-> Skipper)
         else if (event.data.type === 'MODE_SYNC') {
@@ -159,6 +160,14 @@ export class CockpitController {
         // 6. Live Simulation Telemetry Broadcast Sync (60fps mirror)
         else if (event.data.type === 'RIG_UPDATE' && event.data.telemetry) {
           this.update(event.data.telemetry, false);
+        }
+        // 7. Active Sail Plan / Tack Slots Mirror Sync
+        else if (event.data.type === 'SAIL_PLAN_SYNC') {
+          if (event.data.tackSlots && window.AppState) {
+            window.AppState.tackSlots = event.data.tackSlots;
+            if (event.data.activeSails) window.AppState.activeSails = event.data.activeSails;
+          }
+          this.updateActiveSailPlanVisuals();
         }
       };
     } catch (_) {}
@@ -188,6 +197,7 @@ export class CockpitController {
       this.bindEvents();
       this.computeAllRopeTensions();
       this.updateAllRopesVisuals();
+      this.updateActiveSailPlanVisuals();
     }
   }
 
@@ -211,6 +221,30 @@ export class CockpitController {
             <span>AWA: <b id="cockpit-awa">040°</b></span>
             <span>AWS: <b id="cockpit-aws">15.0 kt</b></span>
             <span>TACK: <b id="cockpit-tack" style="color:#34C759">STARBOARD</b></span>
+          </div>
+        </div>
+
+        <!-- L2: Active Sail Plan Strip (Hoisted Sails & Tack Position Status) -->
+        <div class="cockpit-active-sail-plan-bar">
+          <button class="btn-sail-plan-modal" id="btnOpenSailPlanModal" title="Открыть тактический конфигуратор поднятых парусов (Active Sail Plan)">
+            <span>Active Sail Plan</span>
+          </button>
+          <div class="sail-slot-chip" id="slot-main" title="Main Mast Tack Slot • Нажмите для выбора паруса">
+            <span class="slot-lbl">Main:</span>
+            <span class="slot-val" id="slotMainVal">MAINSAIL</span>
+            <span class="slot-reef-badge" id="slotMainReefBadge" style="display:none">FULL</span>
+          </div>
+          <div class="sail-slot-chip" id="slot-inner" title="Inner Stay Slot (Solent / Staysail)">
+            <span class="slot-lbl">Inner:</span>
+            <span class="slot-val" id="slotInnerVal">—</span>
+          </div>
+          <div class="sail-slot-chip" id="slot-outer" title="Outer Forestay Slot (Genoa Furling)">
+            <span class="slot-lbl">Outer:</span>
+            <span class="slot-val" id="slotOuterVal">GENOA</span>
+          </div>
+          <div class="sail-slot-chip" id="slot-bowsprit" title="Bowsprit Tack Slot (Code 0 / Gennaker)">
+            <span class="slot-lbl">Bowsprit:</span>
+            <span class="slot-val" id="slotBowspritVal">—</span>
           </div>
         </div>
 
@@ -532,6 +566,27 @@ export class CockpitController {
           'SIACockpitStandaloneWindow',
           `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes,status=no`
         );
+      });
+    }
+
+    // Active Sail Plan Modal trigger
+    const openSailPlanModal = () => {
+      const backdrop = document.getElementById('activeSailPlanModalBackdrop');
+      if (backdrop) {
+        if (window.ModalsController && window.ModalsController.populateActiveSailPlanModal) {
+          window.ModalsController.populateActiveSailPlanModal();
+        }
+        backdrop.style.display = 'flex';
+      }
+    };
+    const btnSailPlanModal = document.getElementById('btnOpenSailPlanModal');
+    if (btnSailPlanModal) {
+      btnSailPlanModal.addEventListener('click', openSailPlanModal);
+    }
+    const sailPlanBar = this.container.querySelector('.cockpit-active-sail-plan-bar');
+    if (sailPlanBar) {
+      sailPlanBar.querySelectorAll('.sail-slot-chip').forEach(chip => {
+        chip.addEventListener('click', openSailPlanModal);
       });
     }
 
@@ -1193,6 +1248,70 @@ export class CockpitController {
     Object.keys(this.ropeStates).forEach(ropeId => this.updateSingleRopeVisual(ropeId));
   }
 
+  updateActiveSailPlanVisuals() {
+    const slots = window.AppState?.tackSlots || {
+      main: 'mainsail_square_top',
+      inner: null,
+      outer: 'genoa_furling',
+      bowsprit: null,
+    };
+
+    const mainVal = document.getElementById('slotMainVal');
+    const reefBadge = document.getElementById('slotMainReefBadge');
+    const innerVal = document.getElementById('slotInnerVal');
+    const outerVal = document.getElementById('slotOuterVal');
+    const bowspritVal = document.getElementById('slotBowspritVal');
+
+    const formatSailName = (id) => {
+      if (!id) return '—';
+      const s = String(id).toLowerCase();
+      if (s.includes('main')) return 'MAINSAIL';
+      if (s.includes('solent')) return 'SOLENT';
+      if (s.includes('genoa')) return 'GENOA';
+      if (s.includes('code_zero') || s.includes('code0')) return 'CODE 0';
+      if (s.includes('gennaker_a2') || s.includes('a2')) return 'GENNAKER A2';
+      if (s.includes('gennaker_a3') || s.includes('a3')) return 'GENNAKER A3';
+      if (s.includes('parasailor')) return 'PARASAILOR';
+      if (s.includes('storm')) return 'STORM JIB';
+      return id.replace(/_/g, ' ').toUpperCase();
+    };
+
+    if (mainVal) {
+      mainVal.textContent = formatSailName(slots.main);
+      mainVal.style.color = slots.main ? '#f0f6fc' : '#6e7681';
+    }
+
+    if (reefBadge) {
+      if (slots.main && this.activePreset && this.activePreset !== 'FULL_MAIN') {
+        const reefMap = {
+          REEF_1: 'R1 75%',
+          REEF_2: 'R2 50%',
+          REEF_3: 'R3 35%',
+        };
+        const badgeText = reefMap[this.activePreset] || this.activePreset.replace('_', ' ');
+        reefBadge.textContent = badgeText;
+        reefBadge.style.display = 'inline-block';
+      } else {
+        reefBadge.style.display = 'none';
+      }
+    }
+
+    if (innerVal) {
+      innerVal.textContent = formatSailName(slots.inner);
+      innerVal.style.color = slots.inner ? '#79c0ff' : '#6e7681';
+    }
+
+    if (outerVal) {
+      outerVal.textContent = formatSailName(slots.outer);
+      outerVal.style.color = slots.outer ? '#7ee787' : '#6e7681';
+    }
+
+    if (bowspritVal) {
+      bowspritVal.textContent = formatSailName(slots.bowsprit);
+      bowspritVal.style.color = slots.bowsprit ? '#d2a8ff' : '#6e7681';
+    }
+  }
+
   async sendRopeControl(ropeId, targetTrim, clamped) {
     if (this.syncChannel) {
       try {
@@ -1261,6 +1380,7 @@ export class CockpitController {
 
       this.computeAllRopeTensions();
       this.updateAllRopesVisuals();
+      this.updateActiveSailPlanVisuals();
 
       if (this.syncChannel) {
         try {

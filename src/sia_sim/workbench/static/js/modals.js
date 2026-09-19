@@ -68,6 +68,214 @@ function bindCustomWorldControls() {
   }
 }
 
+const sailLabels = {
+  mainsail_square_top: 'Mainsail (Square-Top)',
+  genoa_furling: 'Genoa (Furling 130%)',
+  solent_jib: 'Solent Jib (100%)',
+  storm_jib: 'Storm Jib (Heavy Weather)',
+  code_zero: 'Code 0 (Reaching)',
+  asymmetric_gennaker_a2: 'Gennaker A2 (Downwind)',
+  asymmetric_gennaker_a3: 'Gennaker A3 (Medium)',
+  parasailor: 'Parasailor (Spinnaker)'
+};
+
+function getAvailableSailsForCurrentVessel() {
+  if (window.AppState && window.AppState.customVessel && Array.isArray(window.AppState.customVessel.available_sails)) {
+    return window.AppState.customVessel.available_sails;
+  }
+  const isIOR = window.AppState && window.AppState.vesselPreset === 'monohull_ior';
+  return isIOR
+    ? ['mainsail_square_top', 'solent_jib', 'genoa_furling', 'storm_jib']
+    : ['mainsail_square_top', 'solent_jib', 'genoa_furling', 'code_zero', 'asymmetric_gennaker_a2', 'storm_jib'];
+}
+
+function populateActiveSailPlanModal() {
+  const availableSails = getAvailableSailsForCurrentVessel();
+  const currentSlots = (window.AppState && window.AppState.tackSlots) || {
+    main: 'mainsail_square_top',
+    inner: null,
+    outer: 'genoa_furling',
+    bowsprit: null,
+  };
+
+  // 1. Main Slot
+  const selMain = document.getElementById('selSlotMain');
+  if (selMain) {
+    let html = '<option value="">-- Doused / Bare --</option>';
+    ['mainsail_square_top'].forEach((id) => {
+      if (availableSails.includes(id)) {
+        html += `<option value="${id}">${sailLabels[id] || id}</option>`;
+      }
+    });
+    selMain.innerHTML = html;
+    selMain.value = currentSlots.main || '';
+  }
+
+  // 2. Inner Stay Slot
+  const selInner = document.getElementById('selSlotInner');
+  if (selInner) {
+    let html = '<option value="">-- None / Furled --</option>';
+    ['solent_jib', 'storm_jib'].forEach((id) => {
+      if (availableSails.includes(id)) {
+        html += `<option value="${id}">${sailLabels[id] || id}</option>`;
+      }
+    });
+    selInner.innerHTML = html;
+    selInner.value = currentSlots.inner || '';
+  }
+
+  // 3. Outer Forestay Slot
+  const selOuter = document.getElementById('selSlotOuter');
+  if (selOuter) {
+    let html = '<option value="">-- None / Furled --</option>';
+    ['genoa_furling', 'solent_jib'].forEach((id) => {
+      if (availableSails.includes(id)) {
+        html += `<option value="${id}">${sailLabels[id] || id}</option>`;
+      }
+    });
+    selOuter.innerHTML = html;
+    selOuter.value = currentSlots.outer || '';
+  }
+
+  // 4. Bowsprit Slot
+  const selBow = document.getElementById('selSlotBowsprit');
+  if (selBow) {
+    let html = '<option value="">-- None / Packed --</option>';
+    ['code_zero', 'asymmetric_gennaker_a2', 'asymmetric_gennaker_a3', 'parasailor'].forEach((id) => {
+      if (availableSails.includes(id)) {
+        html += `<option value="${id}">${sailLabels[id] || id}</option>`;
+      }
+    });
+    selBow.innerHTML = html;
+    selBow.value = currentSlots.bowsprit || '';
+  }
+}
+
+function bindActiveSailPlanModalControls() {
+  const backdrop = document.getElementById('activeSailPlanModalBackdrop');
+  const btnClose = document.getElementById('btnActiveSailPlanClose');
+  const btnCancel = document.getElementById('btnActiveSailPlanCancel');
+  const btnApply = document.getElementById('btnActiveSailPlanApply');
+
+  const closeModal = () => {
+    if (backdrop) backdrop.style.display = 'none';
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+  if (btnCancel) btnCancel.addEventListener('click', closeModal);
+
+  // Quick preset macro buttons inside modal
+  const quickBtns = document.querySelectorAll('#sailPlanQuickPresets .btn-sail-quick');
+  quickBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const plan = btn.getAttribute('data-plan');
+      const available = getAvailableSailsForCurrentVessel();
+      const selMain = document.getElementById('selSlotMain');
+      const selInner = document.getElementById('selSlotInner');
+      const selOuter = document.getElementById('selSlotOuter');
+      const selBow = document.getElementById('selSlotBowsprit');
+
+      if (plan === 'CRUISE') {
+        if (selMain) selMain.value = available.includes('mainsail_square_top') ? 'mainsail_square_top' : '';
+        if (selInner) selInner.value = '';
+        if (selOuter) selOuter.value = available.includes('genoa_furling') ? 'genoa_furling' : (available.includes('solent_jib') ? 'solent_jib' : '');
+        if (selBow) selBow.value = '';
+      } else if (plan === 'RACE_CODE0') {
+        if (selMain) selMain.value = available.includes('mainsail_square_top') ? 'mainsail_square_top' : '';
+        if (selInner) selInner.value = '';
+        if (selOuter) selOuter.value = '';
+        if (selBow) selBow.value = available.includes('code_zero') ? 'code_zero' : '';
+      } else if (plan === 'DOWNWIND') {
+        if (selMain) selMain.value = available.includes('mainsail_square_top') ? 'mainsail_square_top' : '';
+        if (selInner) selInner.value = '';
+        if (selOuter) selOuter.value = '';
+        if (selBow) selBow.value = available.includes('asymmetric_gennaker_a2') ? 'asymmetric_gennaker_a2' : (available.includes('parasailor') ? 'parasailor' : (available.includes('code_zero') ? 'code_zero' : ''));
+      } else if (plan === 'STORM') {
+        if (selMain) selMain.value = '';
+        if (selInner) selInner.value = available.includes('storm_jib') ? 'storm_jib' : (available.includes('solent_jib') ? 'solent_jib' : '');
+        if (selOuter) selOuter.value = '';
+        if (selBow) selBow.value = '';
+      } else if (plan === 'BARE_POLES') {
+        if (selMain) selMain.value = '';
+        if (selInner) selInner.value = '';
+        if (selOuter) selOuter.value = '';
+        if (selBow) selBow.value = '';
+      }
+    });
+  });
+
+  if (btnApply) {
+    btnApply.addEventListener('click', () => {
+      const selMain = document.getElementById('selSlotMain');
+      const selInner = document.getElementById('selSlotInner');
+      const selOuter = document.getElementById('selSlotOuter');
+      const selBow = document.getElementById('selSlotBowsprit');
+
+      const newTackSlots = {
+        main: (selMain && selMain.value) || null,
+        inner: (selInner && selInner.value) || null,
+        outer: (selOuter && selOuter.value) || null,
+        bowsprit: (selBow && selBow.value) || null,
+      };
+
+      window.AppState.tackSlots = newTackSlots;
+
+      // Map to activeSails dictionary for physics engine
+      const newActiveSails = {};
+      if (newTackSlots.main) newActiveSails.mainsail = 1.0;
+      if (newTackSlots.outer === 'genoa_furling') newActiveSails.genoa = 1.0;
+      else if (newTackSlots.outer === 'solent_jib') newActiveSails.solent_jib = 1.0;
+
+      if (newTackSlots.inner === 'solent_jib') newActiveSails.solent_jib = 1.0;
+      else if (newTackSlots.inner === 'storm_jib') newActiveSails.storm_jib = 1.0;
+
+      if (newTackSlots.bowsprit === 'code_zero') newActiveSails.code_zero = 1.0;
+      else if (
+        newTackSlots.bowsprit === 'asymmetric_gennaker_a2' ||
+        newTackSlots.bowsprit === 'asymmetric_gennaker_a3' ||
+        newTackSlots.bowsprit === 'parasailor'
+      ) {
+        newActiveSails.gennaker = 1.0;
+      }
+
+      window.AppState.activeSails = newActiveSails;
+
+      // Broadcast across sync channel
+      if (window.CockpitController && window.CockpitController.syncChannel) {
+        window.CockpitController.syncChannel.postMessage({
+          type: 'SAIL_PLAN_SYNC',
+          tackSlots: newTackSlots,
+          activeSails: newActiveSails,
+          vesselPreset: window.AppState.vesselPreset,
+          customVessel: window.AppState.customVessel,
+        });
+      }
+
+      // Update cockpit visuals
+      if (window.CockpitController && window.CockpitController.updateActiveSailPlanVisuals) {
+        window.CockpitController.updateActiveSailPlanVisuals();
+      }
+
+      // Update wardrobe tags in workbench
+      if (window.renderVesselWardrobe) {
+        window.renderVesselWardrobe();
+      }
+
+      closeModal();
+
+      if (window.loadScenario) {
+        window.loadScenario(
+          window.AppState.scenarioId,
+          window.AppState.seed,
+          window.AppState.durationS,
+          window.TimelineRenderer ? window.TimelineRenderer.events : null,
+          true
+        );
+      }
+    });
+  }
+}
+
 function bindCustomVesselControls() {
   const btnCustom = document.getElementById('btnCustomVessel');
   const backdrop = document.getElementById('customVesselModalBackdrop');
@@ -112,18 +320,6 @@ function bindCustomVesselControls() {
         if (cb) cb.checked = avail.includes(id);
       });
 
-      const currentActive = window.AppState.activeSails || { mainsail: 1.0, genoa: 1.0 };
-      const cbMain = document.getElementById('hoist_mainsail');
-      if (cbMain) cbMain.checked = Boolean(currentActive.mainsail || currentActive.main);
-      const cbGenoa = document.getElementById('hoist_genoa');
-      if (cbGenoa) cbGenoa.checked = Boolean(currentActive.genoa || currentActive.headsail || currentActive.jib);
-      const cbCode0 = document.getElementById('hoist_code_zero');
-      if (cbCode0) cbCode0.checked = Boolean(currentActive.code_zero || currentActive.code0);
-      const cbGennaker = document.getElementById('hoist_gennaker');
-      if (cbGennaker) cbGennaker.checked = Boolean(currentActive.gennaker || currentActive.parasailor);
-      const cbStorm = document.getElementById('hoist_storm_jib');
-      if (cbStorm) cbStorm.checked = Boolean(currentActive.storm_jib || currentActive.storm);
-
       backdrop.style.display = 'flex';
     });
   }
@@ -154,20 +350,6 @@ function bindCustomVesselControls() {
         return;
       }
 
-      const newActiveSails = {};
-      const cbMain = document.getElementById('hoist_mainsail');
-      if (cbMain && cbMain.checked) newActiveSails.mainsail = window.AppState.activeSails?.mainsail || 1.0;
-      const cbGenoa = document.getElementById('hoist_genoa');
-      if (cbGenoa && cbGenoa.checked) newActiveSails.genoa = window.AppState.activeSails?.genoa || 1.0;
-      const cbCode0 = document.getElementById('hoist_code_zero');
-      if (cbCode0 && cbCode0.checked) newActiveSails.code_zero = window.AppState.activeSails?.code_zero || 1.0;
-      const cbGennaker = document.getElementById('hoist_gennaker');
-      if (cbGennaker && cbGennaker.checked) newActiveSails.gennaker = window.AppState.activeSails?.gennaker || 1.0;
-      const cbStorm = document.getElementById('hoist_storm_jib');
-      if (cbStorm && cbStorm.checked) newActiveSails.storm_jib = window.AppState.activeSails?.storm_jib || 1.0;
-
-      window.AppState.activeSails = newActiveSails;
-
       window.AppState.customVessel = {
         hull_type: hullType,
         loa_m: loa,
@@ -176,7 +358,6 @@ function bindCustomVesselControls() {
         mast_height_m: mast,
         sail_area_m2: sailArea,
         available_sails: checkedSails,
-        active_sails: newActiveSails,
       };
 
       if (vspecLoa) vspecLoa.textContent = `${loa.toFixed(2)} m`;
@@ -184,12 +365,35 @@ function bindCustomVesselControls() {
       if (vspecMass) vspecMass.textContent = `${mass.toLocaleString()} kg`;
       if (vspecArea) vspecArea.textContent = `${sailArea.toFixed(0)} m²`;
 
-      if (window.renderActiveSailsDeck) {
-        window.renderActiveSailsDeck();
+      // Filter active tack slots if any decommissioned from wardrobe
+      const currentSlots = window.AppState.tackSlots || {};
+      const newTackSlots = {
+        main: checkedSails.includes(currentSlots.main) ? currentSlots.main : (checkedSails.includes('mainsail_square_top') ? 'mainsail_square_top' : null),
+        inner: checkedSails.includes(currentSlots.inner) ? currentSlots.inner : null,
+        outer: checkedSails.includes(currentSlots.outer) ? currentSlots.outer : (checkedSails.includes('genoa_furling') ? 'genoa_furling' : null),
+        bowsprit: checkedSails.includes(currentSlots.bowsprit) ? currentSlots.bowsprit : null,
+      };
+      window.AppState.tackSlots = newTackSlots;
+
+      const newActiveSails = {};
+      if (newTackSlots.main) newActiveSails.mainsail = 1.0;
+      if (newTackSlots.outer === 'genoa_furling') newActiveSails.genoa = 1.0;
+      else if (newTackSlots.outer === 'solent_jib') newActiveSails.solent_jib = 1.0;
+      if (newTackSlots.inner === 'solent_jib') newActiveSails.solent_jib = 1.0;
+      else if (newTackSlots.inner === 'storm_jib') newActiveSails.storm_jib = 1.0;
+      if (newTackSlots.bowsprit === 'code_zero') newActiveSails.code_zero = 1.0;
+      else if (['asymmetric_gennaker_a2', 'asymmetric_gennaker_a3', 'parasailor'].includes(newTackSlots.bowsprit)) {
+        newActiveSails.gennaker = 1.0;
       }
-      if (window.renderQueryActions) {
-        window.renderQueryActions();
+      window.AppState.activeSails = newActiveSails;
+
+      if (window.renderVesselWardrobe) {
+        window.renderVesselWardrobe();
       }
+      if (window.CockpitController && window.CockpitController.updateActiveSailPlanVisuals) {
+        window.CockpitController.updateActiveSailPlanVisuals();
+      }
+      populateActiveSailPlanModal();
 
       closeCustomVesselModal();
       if (window.loadScenario) {
@@ -318,6 +522,10 @@ window.openEventInspector = openEventInspector;
 window.ModalsController = {
   bindCustomWorldControls,
   bindCustomVesselControls,
+  bindActiveSailPlanModalControls,
+  populateActiveSailPlanModal,
+  getAvailableSailsForCurrentVessel,
   bindModalControls,
   openEventInspector,
 };
+

@@ -102,12 +102,93 @@
     <div id="cockpitRoot"></div>
   </main>
 
+  <!-- ACTIVE SAIL PLAN MODAL (L2 HOISTED SAILS & TACK CONFIG) -->
+  <div class="modal-backdrop" id="activeSailPlanModalBackdrop" style="display: none;">
+    <div class="modal-card active-sail-plan-modal" id="activeSailPlanModal" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title-group" style="display: flex; align-items: center; gap: 8px;">
+          <span>⚓</span>
+          <h3 class="modal-title" style="margin: 0;">ACTIVE SAIL PLAN (HOISTED SAILS)</h3>
+        </div>
+        <button class="modal-close" id="btnActiveSailPlanClose">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+        <div style="font-size: 11px; color: #8892b0; margin-bottom: 12px;">
+          Configure which sails from your on-board wardrobe are hoisted right now on each tack position.
+        </div>
+
+        <!-- Quick Macro Config Presets -->
+        <div style="font-size: 11px; font-weight: 700; color: #64ffda; margin-bottom: 6px;">
+          QUICK MACRO CONFIGS (SAIL SWAPS):
+        </div>
+        <div class="sail-plan-quick-presets" id="sailPlanQuickPresets">
+          <button class="btn-sail-quick" data-plan="CRUISE" title="Mainsail + Genoa (All-round standard cruise)">⛵ Cruise (Main + Genoa)</button>
+          <button class="btn-sail-quick" data-plan="RACE_CODE0" title="Mainsail + Code 0 (Light wind reach/upwind power)">⚡ Race (Main + Code 0)</button>
+          <button class="btn-sail-quick" data-plan="DOWNWIND" title="Mainsail + Gennaker A2 (Downwind run)">🎈 Downwind (Main + Gennaker)</button>
+          <button class="btn-sail-quick" data-plan="STORM" title="Storm Jib solo (Heavy gale storm configuration)">⛈ Storm (Storm Jib)</button>
+          <button class="btn-sail-quick" data-plan="BARE_POLES" title="0% Sails (Motoring or drifting)">⚙ Bare Poles (0%)</button>
+        </div>
+
+        <!-- 4 Tack Position Selectors -->
+        <div style="font-size: 11px; font-weight: 700; color: #60a5fa; margin-top: 14px; margin-bottom: 8px;">
+          HOISTED SAILS BY POSITION:
+        </div>
+        <div class="tack-positions-grid">
+          <!-- Main Tack -->
+          <div class="tack-position-card">
+            <div class="tack-card-header">
+              <span class="tack-card-title">1. MAIN MAST</span>
+              <span class="tack-card-badge badge-main">MAIN</span>
+            </div>
+            <select id="selSlotMain" class="select-dropdown full-width"></select>
+          </div>
+
+          <!-- Inner Foretriangle Tack -->
+          <div class="tack-position-card">
+            <div class="tack-card-header">
+              <span class="tack-card-title">2. INNER STAY (SOLENT)</span>
+              <span class="tack-card-badge badge-inner">INNER</span>
+            </div>
+            <select id="selSlotInner" class="select-dropdown full-width"></select>
+          </div>
+
+          <!-- Outer Forestay Tack -->
+          <div class="tack-position-card">
+            <div class="tack-card-header">
+              <span class="tack-card-title">3. OUTER FORESTAY (GENOA)</span>
+              <span class="tack-card-badge badge-outer">OUTER</span>
+            </div>
+            <select id="selSlotOuter" class="select-dropdown full-width"></select>
+          </div>
+
+          <!-- Bowsprit Tack -->
+          <div class="tack-position-card">
+            <div class="tack-card-header">
+              <span class="tack-card-title">4. BOWSPRIT (CODE 0 / GENNAKER)</span>
+              <span class="tack-card-badge badge-bow">BOW</span>
+            </div>
+            <select id="selSlotBowsprit" class="select-dropdown full-width"></select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btnActiveSailPlanCancel">Cancel</button>
+        <button class="btn btn-primary" id="btnActiveSailPlanApply">Apply Sail Plan</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="/js/service_logger.js?v=1220"></script>
+  <script src="/js/state.js?v=1220"></script>
+  <script src="/js/modals.js?v=1220"></script>
   <script type="module">
     import { CockpitController } from '/js/cockpit.js?v=1220';
 
     window.CockpitController = new CockpitController('cockpitRoot');
+    if (window.ModalsController && window.ModalsController.bindActiveSailPlanModalControls) {
+      window.ModalsController.bindActiveSailPlanModalControls();
+    }
 
     // Initial telemetry fetch
     window.CockpitController.fetchTelemetry();
