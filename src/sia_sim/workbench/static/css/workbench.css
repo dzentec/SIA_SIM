@@ -1613,23 +1613,78 @@ body.is-scrubbing .timeline-handle {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  min-height: 32px;
 }
 
 .form-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: #8892b0;
+  flex: 1 1 auto;
+  text-align: left;
+  letter-spacing: 0.02em;
 }
 
-.input-text {
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  color: var(--text-bright);
-  padding: var(--space-xs) var(--space-sm);
+.form-input-group {
+  display: grid;
+  grid-template-columns: 1fr 48px;
+  gap: 8px;
+  align-items: center;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.form-input-group.no-unit {
+  grid-template-columns: 1fr;
+}
+
+.form-input-group .input-number,
+.form-input-group .input-text {
+  width: 100%;
+  background: var(--bg-surface-elevated, #101a2e);
+  border: 1px solid var(--border-color, #1f2d47);
+  color: var(--text-bright, #f0f6fc);
+  padding: 6px 10px;
   border-radius: 4px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  text-align: right;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input-group .input-text[readonly] {
+  color: var(--text-muted, #8892b0);
+  background: rgba(16, 26, 46, 0.4);
+  cursor: default;
+}
+
+.form-input-group .select-dropdown {
+  width: 100%;
+  background: var(--bg-surface-elevated, #101a2e);
+  border: 1px solid var(--border-color, #1f2d47);
+  color: var(--text-bright, #f0f6fc);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.form-input-group .input-number:focus,
+.form-input-group .input-text:focus,
+.form-input-group .select-dropdown:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.form-input-group .input-unit {
   font-size: 11px;
-  width: 140px;
+  font-weight: 600;
+  color: #64ffda;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .modal-footer {

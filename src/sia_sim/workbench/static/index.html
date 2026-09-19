@@ -724,30 +724,40 @@
       <div class="modal-body">
         <div class="form-row">
           <label class="form-label">EVENT ID:</label>
-          <input type="text" id="modalEventId" class="input-text" readonly>
+          <div class="form-input-group no-unit">
+            <input type="text" id="modalEventId" class="input-text" readonly>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">TYPE:</label>
-          <select id="modalEventType" class="select-dropdown">
-            <option value="wind_gust">Wind Gust</option>
-            <option value="wave_impact">Wave Impact / Slam</option>
-            <option value="sensor_fault">Sensor Fault</option>
-          </select>
+          <div class="form-input-group no-unit">
+            <select id="modalEventType" class="select-dropdown">
+              <option value="wind_gust">Wind Gust</option>
+              <option value="wave_impact">Wave Impact / Slam</option>
+              <option value="sensor_fault">Sensor Fault</option>
+            </select>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">START TIME:</label>
-          <input type="number" id="modalEventTime" class="input-number" min="0" step="0.1">
-          <span class="input-unit">s</span>
+          <div class="form-input-group">
+            <input type="number" id="modalEventTime" class="input-number" min="0" step="0.1">
+            <span class="input-unit">s</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">DURATION:</label>
-          <input type="number" id="modalEventDuration" class="input-number" min="0.1" step="0.1">
-          <span class="input-unit">s</span>
+          <div class="form-input-group">
+            <input type="number" id="modalEventDuration" class="input-number" min="0.1" step="0.1">
+            <span class="input-unit">s</span>
+          </div>
         </div>
         <div class="form-row" id="rowModalForce">
           <label class="form-label">INTENSITY / FORCE:</label>
-          <input type="number" id="modalEventParam" class="input-number" min="1" step="1">
-          <span class="input-unit" id="modalParamUnit">kN / kt</span>
+          <div class="form-input-group">
+            <input type="number" id="modalEventParam" class="input-number" min="1" step="1">
+            <span class="input-unit" id="modalParamUnit">kN / kt</span>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -767,39 +777,53 @@
       <div class="modal-body">
         <div class="form-row">
           <label class="form-label">TRUE WIND SPEED (TWS):</label>
-          <input type="number" id="customTws" class="input-number" value="13.0" min="0" max="60" step="0.5">
-          <span class="input-unit">kt</span>
+          <div class="form-input-group">
+            <input type="number" id="customTws" class="input-number" value="13.0" min="0" max="60" step="0.5">
+            <span class="input-unit">kt</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">TRUE WIND ANGLE (TWA):</label>
-          <input type="number" id="customTwa" class="input-number" value="0.0" min="0" max="359" step="5">
-          <span class="input-unit">deg</span>
+          <div class="form-input-group">
+            <input type="number" id="customTwa" class="input-number" value="0.0" min="0" max="359" step="5">
+            <span class="input-unit">deg</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">WAVE HEIGHT (Hs):</label>
-          <input type="number" id="customWaveHeight" class="input-number" value="1.0" min="0" max="15" step="0.1">
-          <span class="input-unit">m</span>
+          <div class="form-input-group">
+            <input type="number" id="customWaveHeight" class="input-number" value="1.0" min="0" max="15" step="0.1">
+            <span class="input-unit">m</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">WAVE PERIOD (T):</label>
-          <input type="number" id="customWavePeriod" class="input-number" value="4.5" min="1.0" max="25" step="0.5">
-          <span class="input-unit">s</span>
+          <div class="form-input-group">
+            <input type="number" id="customWavePeriod" class="input-number" value="4.5" min="1.0" max="25" step="0.5">
+            <span class="input-unit">s</span>
+          </div>
         </div>
-        <hr style="border: 0; border-top: 1px solid #1f2d47; margin: 12px 0;">
+        <hr style="border: 0; border-top: 1px solid #1f2d47; margin: 8px 0;">
         <div class="form-row">
           <label class="form-label">INITIAL BOAT SOG:</label>
-          <input type="number" id="customSog" class="input-number" value="5.8" min="0" max="30" step="0.2">
-          <span class="input-unit">kt</span>
+          <div class="form-input-group">
+            <input type="number" id="customSog" class="input-number" value="5.8" min="0" max="30" step="0.2">
+            <span class="input-unit">kt</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">INITIAL HEADING:</label>
-          <input type="number" id="customHeading" class="input-number" value="65.0" min="0" max="359" step="5">
-          <span class="input-unit">deg</span>
+          <div class="form-input-group">
+            <input type="number" id="customHeading" class="input-number" value="65.0" min="0" max="359" step="5">
+            <span class="input-unit">deg</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">INITIAL HEEL ANGLE:</label>
-          <input type="number" id="customHeel" class="input-number" value="-12.0" min="-45" max="45" step="1">
-          <span class="input-unit">deg (+S/-P)</span>
+          <div class="form-input-group">
+            <input type="number" id="customHeel" class="input-number" value="-12.0" min="-45" max="45" step="1">
+            <span class="input-unit">deg</span>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -827,35 +851,47 @@
         </div>
         <div class="form-row">
           <label class="form-label">HULL TYPE:</label>
-          <select id="customHullType" class="select-dropdown">
-            <option value="monohull" selected>Monohull (Single Hull)</option>
-            <option value="catamaran">Catamaran (Multihull)</option>
-          </select>
+          <div class="form-input-group no-unit">
+            <select id="customHullType" class="select-dropdown">
+              <option value="monohull" selected>Monohull (Single Hull)</option>
+              <option value="catamaran">Catamaran (Multihull)</option>
+            </select>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">LENGTH OVERALL (LOA):</label>
-          <input type="number" id="customLoa" class="input-number" value="13.94" min="5" max="50" step="0.1">
-          <span class="input-unit">m</span>
+          <div class="form-input-group">
+            <input type="number" id="customLoa" class="input-number" value="13.94" min="5" max="50" step="0.1">
+            <span class="input-unit">m</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">BEAM (WIDTH):</label>
-          <input type="number" id="customBeam" class="input-number" value="4.50" min="1.5" max="25" step="0.1">
-          <span class="input-unit">m</span>
+          <div class="form-input-group">
+            <input type="number" id="customBeam" class="input-number" value="4.50" min="1.5" max="25" step="0.1">
+            <span class="input-unit">m</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">DISPLACEMENT (MASS):</label>
-          <input type="number" id="customDisplacement" class="input-number" value="10550" min="500" max="100000" step="50">
-          <span class="input-unit">kg</span>
+          <div class="form-input-group">
+            <input type="number" id="customDisplacement" class="input-number" value="10550" min="500" max="100000" step="50">
+            <span class="input-unit">kg</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">MAST HEIGHT:</label>
-          <input type="number" id="customMastHeight" class="input-number" value="19.5" min="5" max="50" step="0.5">
-          <span class="input-unit">m</span>
+          <div class="form-input-group">
+            <input type="number" id="customMastHeight" class="input-number" value="19.5" min="5" max="50" step="0.5">
+            <span class="input-unit">m</span>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">BASE SAIL AREA (S₀):</label>
-          <input type="number" id="customSailArea" class="input-number" value="100.0" min="10" max="500" step="1">
-          <span class="input-unit">m²</span>
+          <div class="form-input-group">
+            <input type="number" id="customSailArea" class="input-number" value="100.0" min="10" max="500" step="1">
+            <span class="input-unit">m²</span>
+          </div>
         </div>
 
         <!-- SECTION 2: Sail Inventory Checkboxes -->
